@@ -13,7 +13,7 @@ graph TD
     P["🎭 Presentation<br/><small>Tauri commands exposed to the frontend</small>"]
     A["📋 Application<br/><small>CQRS handlers, DTOs, Services</small>"]
     D["💎 Domain<br/><small>Entities, Value Objects, Ports, Services</small>"]
-    I["🔌 Infrastructure<br/><small>Adapters: WSL CLI, SQLite, Docker...</small>"]
+    I["🔌 Infrastructure<br/><small>Adapters: WSL CLI, SQLite, ProcFs...</small>"]
 
     P --> A
     A --> D
@@ -30,7 +30,7 @@ graph TD
 |---|---|---|
 | 💎 **Domain** | [`src/domain/`](src/domain/README.md) | Pure business logic, entities, value objects, ports (traits), services |
 | 📋 **Application** | [`src/application/`](src/application/README.md) | CQRS orchestration (commands + queries), DTOs, application services |
-| 🔌 **Infrastructure** | [`src/infrastructure/`](src/infrastructure/README.md) | Concrete port implementations (WSL CLI, SQLite, Docker, etc.) |
+| 🔌 **Infrastructure** | [`src/infrastructure/`](src/infrastructure/README.md) | Concrete port implementations (WSL CLI, SQLite, ProcFs, Audit, Debug Log) |
 | 🎭 **Presentation** | [`src/presentation/`](src/presentation/README.md) | Tauri commands, AppState, events |
 
 > **Dependency rule**: Inner layers never depend on outer layers. The Domain is the pure core with zero external dependencies.
@@ -50,15 +50,11 @@ graph LR
     AS --> WCA["WslCliAdapter"]
     AS --> SSR["SqliteSnapshotRepo"]
     AS --> PFA["ProcFsMonitoringAdapter"]
-    AS --> DCA["DockerCliAdapter"]
-    AS --> ICA["IacCliAdapter"]
     AS --> SAL["SqliteAuditLogger"]
 
     WCA -->|"Arc〈dyn WslManagerPort〉"| wsl["wsl.exe"]
     SSR -->|"Arc〈dyn SnapshotRepositoryPort〉"| db["SQLite"]
     PFA -->|"Arc〈dyn MonitoringProviderPort〉"| proc["/proc"]
-    DCA -->|"Arc〈dyn DockerProviderPort〉"| docker["docker"]
-    ICA -->|"Arc〈dyn IacProviderPort〉"| tools["IaC tools"]
     SAL -->|"Arc〈dyn AuditLoggerPort〉"| db
 ```
 
@@ -89,9 +85,8 @@ src-tauri/
 
 | Plugin | Usage |
 |---|---|
-| `tauri-plugin-shell` | Shell command execution (wsl.exe, docker, etc.) |
+| `tauri-plugin-shell` | Shell command execution (wsl.exe) |
 | `tauri-plugin-store` | Persistent preference storage |
-| `tauri-plugin-log` | Structured logging |
 | `tauri-plugin-dialog` | File dialogs (directory selection for snapshots) |
 
 ---
@@ -116,7 +111,7 @@ SQL migrations are in `src/infrastructure/sqlite/migrations/`:
 
 ---
 
-## 🧪 Tests — 31 tests
+## 🧪 Tests — 154 tests
 
 ```bash
 cargo test
@@ -124,11 +119,11 @@ cargo test
 
 | Layer | Count | Details |
 |---|---|---|
-| Domain | 13 | Value objects (DistroName, DistroState, WslVersion, MemorySize) + DistroService |
-| Infrastructure | 14 | UTF-16LE encoding (3), WSL parser (4), Monitoring (3), Docker (4) |
-| Application | 4 | DistroService start/stop |
+| Domain | 39 | Value objects (DistroName, DistroState, WslVersion, MemorySize, SnapshotId) + Snapshot entity + DistroService + errors |
+| Application | 31 | Commands (create/delete/restore snapshot) + Queries (list distros, get details, list snapshots) + DTO mapping |
+| Infrastructure | 84 | Debug log buffer (20), SQLite (19), Monitoring/ProcFs (18), WSL CLI adapter/encoding/parser (20), Audit (7) |
 
-**Test tools**: `mockall` (port/trait mocking), `tokio-test` (async)
+**Test tools**: `mockall` (port/trait mocking), `tokio-test` (async), `proptest` (property-based testing)
 
 ---
 

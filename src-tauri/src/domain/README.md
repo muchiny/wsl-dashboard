@@ -19,8 +19,6 @@ domain/
 │   ├── distro.rs          # WSL Distribution
 │   ├── snapshot.rs        # Distribution backup
 │   ├── monitoring.rs      # System metrics (CPU, RAM, disk, network, processes)
-│   ├── docker.rs          # Container and Docker Image
-│   ├── iac.rs             # IaC tools (Ansible, K8s, Terraform, Helm)
 │   └── wsl_config.rs      # Global and per-distro WSL configuration
 ├── 🔒 value_objects/       # Immutable objects validated at construction
 │   ├── distro_name.rs     # Distribution name (non-empty)
@@ -32,8 +30,6 @@ domain/
 │   ├── wsl_manager.rs     # WSL distribution management
 │   ├── snapshot_repository.rs  # Snapshot persistence
 │   ├── monitoring_provider.rs  # Metrics collection
-│   ├── docker_provider.rs      # Docker management
-│   ├── iac_provider.rs         # Infrastructure as Code tools
 │   └── audit_logger.rs         # Audit logging
 ├── ⚙️ services/            # Orchestrated business logic
 │   └── distro_service.rs  # Distribution management rules
@@ -77,8 +73,6 @@ Entities are business objects with their own identity.
 | Entity | File | Description |
 |---|---|---|
 | `CpuMetrics`, `MemoryMetrics`, `DiskMetrics`, `NetworkMetrics`, `ProcessInfo` | `monitoring.rs` | Real-time system metrics |
-| `Container`, `DockerImage` | `docker.rs` | Docker containers and images |
-| `IacToolset`, `KubernetesCluster`, `K8sPod`, `AnsiblePlaybook` | `iac.rs` | IaC tool state |
 | `WslGlobalConfig`, `WslDistroConfig` | `wsl_config.rs` | `.wslconfig` and `wsl.conf` configuration |
 
 ---
@@ -136,25 +130,6 @@ classDiagram
         +get_disk_usage(distro) DiskMetrics
         +get_network_stats(distro) NetworkMetrics
         +get_processes(distro) Vec~ProcessInfo~
-    }
-
-    class DockerProviderPort {
-        <<trait>>
-        +is_available(distro) bool
-        +list_containers(distro, all) Vec~Container~
-        +list_images(distro) Vec~DockerImage~
-        +start_container(distro, id)
-        +stop_container(distro, id)
-        +pull_image(distro, image)
-    }
-
-    class IacProviderPort {
-        <<trait>>
-        +detect_tools(distro) IacToolset
-        +list_ansible_playbooks(distro, path) Vec~AnsiblePlaybook~
-        +run_ansible_playbook(distro, path, vars) String
-        +get_k8s_cluster_info(distro) KubernetesCluster
-        +get_k8s_pods(distro, namespace) Vec~K8sPod~
     }
 
     class AuditLoggerPort {

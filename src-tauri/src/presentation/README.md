@@ -31,9 +31,8 @@ presentation/
     ├── distro_commands.rs   # Distribution management
     ├── snapshot_commands.rs # Snapshot management
     ├── monitoring_commands.rs  # System metrics
-    ├── docker_commands.rs   # Docker containers
     ├── settings_commands.rs # WSL config + VHDX
-    ├── iac_commands.rs      # IaC tools + K8s
+    ├── debug_commands.rs    # Debug log buffer access
     └── audit_commands.rs    # Audit log
 ```
 
@@ -48,8 +47,6 @@ pub struct AppState {
     pub wsl_manager:   Arc<dyn WslManagerPort>,
     pub snapshot_repo: Arc<dyn SnapshotRepositoryPort>,
     pub monitoring:    Arc<dyn MonitoringProviderPort>,
-    pub docker:        Arc<dyn DockerProviderPort>,
-    pub iac:           Arc<dyn IacProviderPort>,
     pub audit_logger:  Arc<dyn AuditLoggerPort>,
 }
 ```
@@ -89,14 +86,6 @@ All commands are registered in `lib.rs` via `invoke_handler![...]`.
 | `get_system_metrics` | `distro_name: String` | `SystemMetricsResponse` | CPU + RAM + Disk + Network |
 | `get_processes` | `distro_name: String` | `Vec<ProcessInfo>` | Top processes |
 
-### 🐳 Docker (`docker_commands.rs`)
-
-| Command | Parameters | Returns | Description |
-|---|---|---|---|
-| `get_docker_status` | `distro_name: String` | `DockerStatusResponse` | Availability + containers + images |
-| `docker_start_container` | distro_name, container_id | `()` | Start a container |
-| `docker_stop_container` | distro_name, container_id | `()` | Stop a container |
-
 ### ⚙️ Settings (`settings_commands.rs`)
 
 | Command | Parameters | Returns | Description |
@@ -105,13 +94,14 @@ All commands are registered in `lib.rs` via `invoke_handler![...]`.
 | `update_wsl_config` | `config: WslGlobalConfig` | `()` | Write `.wslconfig` |
 | `compact_vhdx` | `distro_name: String` | `()` | Enable sparse mode |
 
-### 🔧 IaC (`iac_commands.rs`)
+### 🐛 Debug (`debug_commands.rs`)
 
 | Command | Parameters | Returns | Description |
 |---|---|---|---|
-| `detect_iac_tools` | `distro_name: String` | `IacToolset` | Installed tool versions |
-| `get_k8s_info` | `distro_name: String` | `KubernetesCluster` | K8s cluster info |
-| `run_playbook` | distro_name, playbook_path, extra_vars | `String` | Run an Ansible playbook |
+| `get_debug_logs` | — | `Vec<LogEntry>` | Returns all buffered log entries from the in-memory ring buffer |
+| `clear_debug_logs` | — | `()` | Clears the debug log buffer |
+
+These commands access the `Arc<DebugLogBuffer>` directly via `tauri::State`, separate from `AppState`.
 
 ### 📝 Audit (`audit_commands.rs`)
 
@@ -123,15 +113,17 @@ All commands are registered in `lib.rs` via `invoke_handler![...]`.
 
 ## 📢 Events
 
-The backend emits **real-time events** to the frontend:
+The backend defines event constants in `events.rs`:
 
-| Event | Payload | When |
-|---|---|---|
-| `distro-state-changed` | `{ name, old_state, new_state }` | A distribution changes state |
-| `system-metrics` | `SystemMetrics` | New metrics (continuous polling) |
-| `snapshot-progress` | `{ snapshot_id, progress_percent }` | Export/import progress |
+| Event Constant | Event Name | Payload | Status |
+|---|---|---|---|
+| `EVENT_DISTRO_STATE_CHANGED` | `distro-state-changed` | `DistroStateChangedEvent { distro_name, new_state, timestamp }` | Actively emitted when a distribution changes state |
+| `EVENT_SYSTEM_METRICS` | `system-metrics` | `SystemMetrics` | Defined but not actively pushed to frontend |
+| `EVENT_SNAPSHOT_PROGRESS` | `snapshot-progress` | `SnapshotProgressEvent { snapshot_id, phase, progress_percent }` | Defined but not actively pushed to frontend |
 
-On the frontend side, these events are listened to via `useTauriEvent()`.
+Additionally, the `DebugLogLayer` (infrastructure) emits `debug-log-entry` events in real-time as log entries are captured.
+
+On the frontend side, events are listened to via `useTauriEvent()`.
 
 ---
 

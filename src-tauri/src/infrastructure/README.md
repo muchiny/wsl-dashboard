@@ -6,7 +6,7 @@
 
 ## 🎯 Purpose
 
-The Infrastructure layer provides the **concrete implementations** of the ports (traits) defined in the Domain. This is where the code interacts with external systems: `wsl.exe`, SQLite, `/proc`, Docker CLI, IaC tools.
+The Infrastructure layer provides the **concrete implementations** of the ports (traits) defined in the Domain. This is where the code interacts with external systems: `wsl.exe`, SQLite, `/proc`, and in-memory debug logging.
 
 ```mermaid
 graph LR
@@ -15,8 +15,6 @@ graph LR
         SSR["SqliteSnapshotRepo"]
         SAL["SqliteAuditLogger"]
         PFA["ProcFsMonitoringAdapter"]
-        DCA["DockerCliAdapter"]
-        ICA["IacCliAdapter"]
     end
 
     subgraph Ports["🔌 Ports (Domain)"]
@@ -24,31 +22,23 @@ graph LR
         SRP["SnapshotRepositoryPort"]
         ALP["AuditLoggerPort"]
         MPP["MonitoringProviderPort"]
-        DPP["DockerProviderPort"]
-        IPP["IacProviderPort"]
     end
 
     subgraph External["🌍 External Systems"]
         wsl["wsl.exe"]
         db["SQLite"]
         proc["/proc/*"]
-        docker["docker CLI"]
-        tools["ansible / kubectl / terraform / helm"]
     end
 
     WCA -->|implements| WMP
     SSR -->|implements| SRP
     SAL -->|implements| ALP
     PFA -->|implements| MPP
-    DCA -->|implements| DPP
-    ICA -->|implements| IPP
 
     WCA --> wsl
     SSR --> db
     SAL --> db
     PFA --> proc
-    DCA --> docker
-    ICA --> tools
 ```
 
 ---
@@ -68,12 +58,11 @@ infrastructure/
 │       └── 001_initial.sql  # snapshots + audit_log tables
 ├── 📈 monitoring/           # /proc Adapter
 │   └── adapter.rs           # ProcFsMonitoringAdapter
-├── 🐳 docker/               # Docker Adapter
-│   └── adapter.rs           # DockerCliAdapter
-├── 🔧 iac/                  # IaC Adapter
-│   └── adapter.rs           # IacCliAdapter
-└── 📝 audit/                # Audit Adapter
-    └── adapter.rs           # Delegates to SqliteAuditLogger
+├── 📝 audit/                # Audit Adapter
+│   └── adapter.rs           # Delegates to SqliteAuditLogger
+└── 🐛 debug_log/            # In-memory debug log capture
+    ├── buffer.rs            # DebugLogBuffer (ring buffer, 1000 max entries)
+    └── layer.rs             # DebugLogLayer (tracing subscriber layer)
 ```
 
 ---
@@ -86,8 +75,6 @@ infrastructure/
 | `SqliteSnapshotRepository` | `SnapshotRepositoryPort` | SQLite (sqlx) | `sqlite/adapter.rs` |
 | `SqliteAuditLogger` | `AuditLoggerPort` | SQLite (sqlx) | `sqlite/adapter.rs` |
 | `ProcFsMonitoringAdapter` | `MonitoringProviderPort` | `/proc/*` via WSL | `monitoring/adapter.rs` |
-| `DockerCliAdapter` | `DockerProviderPort` | `docker` CLI | `docker/adapter.rs` |
-| `IacCliAdapter` | `IacProviderPort` | ansible, kubectl, terraform, helm | `iac/adapter.rs` |
 
 ---
 
@@ -200,51 +187,41 @@ Collects system metrics by reading the `/proc` pseudo-filesystem **inside** WSL 
 
 ---
 
-## 🐳 Docker (`docker/`)
+## 🐛 Debug Log (`debug_log/`)
 
-### `DockerCliAdapter`
+In-memory log capture system for the frontend debug console.
 
-Executes `docker` commands inside WSL distributions.
+### `buffer.rs` — `DebugLogBuffer`
 
-| Method | Docker Command | Parsing |
-|---|---|---|
-| `is_available()` | `docker info` | Checks return code |
-| `list_containers()` | `docker ps [--all]` | Parses JSON, maps ports `0.0.0.0:8080->80/tcp` |
-| `list_images()` | `docker images` | Parses repository, tag, size (KB/MB/GB) |
-| `start_container()` | `docker start <id>` | — |
-| `stop_container()` | `docker stop <id>` | — |
-| `pull_image()` | `docker pull <image>` | — |
+A thread-safe **ring buffer** that stores the last 1000 log entries in memory.
 
-### State Parsing
-
-Docker state mapping: `running`, `paused`, `exited`, `created`, `restarting`, `dead`.
-
----
-
-## 🔧 IaC (`iac/`)
-
-### `IacCliAdapter`
-
-Detects and controls Infrastructure as Code tools.
-
-| Method | What It Does |
+| Method | Purpose |
 |---|---|
-| `detect_tools()` | Runs `{ansible,kubectl,terraform,helm} --version` to detect installed versions |
-| `list_ansible_playbooks()` | Recursive YAML file search in a directory |
-| `run_ansible_playbook()` | Executes `ansible-playbook` with optional variables |
-| `get_k8s_cluster_info()` | Runs `kubectl cluster-info` |
-| `get_k8s_pods()` | Runs `kubectl get pods -n <namespace>` |
+| `push(level, message, target)` | Appends a `LogEntry`, evicts the oldest if at capacity |
+| `get_all()` | Returns all buffered entries as a `Vec<LogEntry>` |
+| `clear()` | Removes all entries (counter continues incrementing) |
+
+Each `LogEntry` contains: `id` (monotonic u64), `timestamp` (HH:MM:SS.mmm), `level`, `message`, `target`.
+
+### `layer.rs` — `DebugLogLayer`
+
+A custom `tracing_subscriber::Layer` that captures every log event:
+1. Extracts the formatted message from the tracing event via a `MessageVisitor`
+2. Pushes the entry into the `DebugLogBuffer`
+3. Emits a `debug-log-entry` Tauri event for **real-time** frontend updates (best-effort)
+
+The `AppHandle` is set lazily via a `OnceLock` slot initialized during Tauri setup.
 
 ---
 
-## 🧪 Tests — 14 tests
+## 🧪 Tests — ~66 tests
 
 | Module | Tests | What's Tested |
 |---|---|---|
-| `encoding` | 3 | UTF-8 fallback, UTF-16LE decoding, UTF-16LE with BOM |
-| `parser` | 4 | Typical output, single distro, empty output, blank lines |
-| `monitoring` | 3 | CPU `/proc/stat`, memory `/proc/meminfo`, network `/proc/net/dev` parsing |
-| `docker` | 4 | Container state parsing, port mapping, image sizes |
+| `debug_log` (buffer) | 20 | Construction, push/retrieve, counter, FIFO ordering, ring buffer eviction, clear, thread safety, timestamp format |
+| `sqlite` | ~19 | Snapshot CRUD, audit log insert/search, migrations |
+| `monitoring` | ~15 | CPU `/proc/stat`, memory `/proc/meminfo`, network `/proc/net/dev` parsing |
+| `wsl_cli` | ~12 | UTF-8 fallback, UTF-16LE decoding, WSL output parsing, INI parsing |
 
 ```bash
 cargo test --lib infrastructure

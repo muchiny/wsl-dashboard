@@ -1,19 +1,19 @@
-# ⚛️ Frontend — React 19 + TypeScript 5.7
+# Frontend — React 19 + TypeScript 5.7
 
 > WSL Nexus user interface — Feature-Sliced Design, TanStack Query, Tailwind CSS v4.
 
 ---
 
-## 🏗️ Feature-Sliced Design Architecture (FSD)
+## Feature-Sliced Design Architecture (FSD)
 
 The frontend follows the **Feature-Sliced Design** architecture with 4 layers and strict import rules:
 
 ```mermaid
 graph TD
-    P["📄 Pages<br/><small>Route-level components</small>"]
-    W["🧱 Widgets<br/><small>Layout: Sidebar, Header</small>"]
-    F["🧩 Features<br/><small>8 feature slices</small>"]
-    S["🔧 Shared<br/><small>API, hooks, types, utils</small>"]
+    P["Pages<br/><small>Route-level components</small>"]
+    W["Widgets<br/><small>Layout: Header, DebugConsole</small>"]
+    F["Features<br/><small>6 feature slices</small>"]
+    S["Shared<br/><small>API, hooks, types, utils</small>"]
 
     P --> F
     P --> W
@@ -21,8 +21,8 @@ graph TD
     W --> S
     F --> S
 
-    P -.-x|"❌ FORBIDDEN"| P
-    F -.-x|"❌ FORBIDDEN"| F
+    P -.-x|"FORBIDDEN"| P
+    F -.-x|"FORBIDDEN"| F
 
     style S fill:#2d6a4f,stroke:#333,color:#fff
     style F fill:#1d3557,stroke:#333,color:#fff
@@ -32,98 +32,86 @@ graph TD
 
 | Layer | Directory | Can Import From |
 |---|---|---|
-| 🔧 **Shared** | [`shared/`](shared/README.md) | Nothing (lowest layer) |
-| 🧩 **Features** | [`features/`](features/README.md) | `shared/` only |
-| 🧱 **Widgets** | [`widgets/`](widgets/README.md) | `shared/` only |
-| 📄 **Pages** | [`pages/`](pages/README.md) | `features/`, `widgets/`, `shared/` |
+| **Shared** | [`shared/`](shared/README.md) | Nothing (lowest layer) |
+| **Features** | [`features/`](features/README.md) | `shared/` only |
+| **Widgets** | [`widgets/`](widgets/README.md) | `shared/` only |
+| **Pages** | [`pages/`](pages/README.md) | `features/`, `widgets/`, `shared/` |
 
 > **Golden rule**: A feature can **never** import from another feature. A page can **never** import from another page.
 
 ---
 
-## 📁 Structure
+## Structure
 
 ```
 src/
-├── 📄 main.tsx              # React 19 entry point (createRoot)
-├── 📄 app.tsx               # Providers: QueryClientProvider + RouterProvider
-├── 📄 router.tsx            # 7 TanStack Router routes
-├── 🎨 app.css               # oklch dark theme (Tailwind CSS v4)
-├── 📄 vite-env.d.ts         # Vite types
+├── main.tsx              # React 19 entry point (createRoot)
+├── app.tsx               # Providers: QueryClientProvider + RouterProvider
+├── router.tsx            # 3 TanStack Router routes
+├── app.css               # Catppuccin Mocha/Latte theme (Tailwind CSS v4)
+├── vite-env.d.ts         # Vite types
 │
-├── 🧩 features/             # 8 self-contained feature slices
+├── features/             # 6 self-contained feature slices
 │   ├── distro-list/         # Distribution management
 │   ├── snapshot-list/       # Snapshots
 │   ├── monitoring-dashboard/# Real-time metrics
-│   ├── docker-containers/   # Docker
-│   ├── iac-integrations/    # IaC (Ansible, K8s, Terraform, Helm)
 │   ├── wsl-config/          # .wslconfig editor
 │   ├── audit-log/           # Audit trail
 │   └── distro-events/       # Real-time events
 │
-├── 📄 pages/                # 7 routed pages
-│   ├── dashboard/           # /
-│   ├── distros/             # /distros
-│   ├── snapshots/           # /snapshots
+├── pages/                # 3 routed pages
+│   ├── distros/             # / (home)
 │   ├── monitoring/          # /monitoring
-│   ├── docker/              # /docker
-│   ├── iac/                 # /iac
 │   └── settings/            # /settings
 │
-├── 🔧 shared/               # Shared utilities
+├── shared/               # Shared utilities
 │   ├── api/                 # Tauri bridge (invoke + events)
 │   ├── config/              # QueryClient
-│   ├── hooks/               # useTauriEvent, useThemeStore
+│   ├── hooks/               # useDebugConsoleStore, useThemeStore, useTauriEvent
 │   ├── lib/                 # cn(), formatters
-│   ├── types/               # TypeScript interfaces
+│   ├── types/               # TypeScript interfaces (distro, monitoring, snapshot)
 │   └── ui/                  # ErrorBoundary
 │
-├── 🧱 widgets/              # Layout components
-│   ├── sidebar/             # Main navigation
-│   └── header/              # Top bar + theme toggle
+├── widgets/              # Layout components
+│   ├── header/              # Top bar with pill tabs + theme toggle
+│   └── debug-console/       # Collapsible in-app log viewer
 │
-└── 🧪 test/                 # Vitest setup + mocks
+└── test/                 # Vitest setup + mocks
     ├── setup.ts
     └── mocks/
 ```
 
 ---
 
-## 🛣️ Routing — TanStack Router
+## Routing — TanStack Router
 
-7 code-based routes (no file-based routing) defined in `router.tsx`:
+3 code-based routes (no file-based routing) defined in `router.tsx`:
 
 ```mermaid
 graph TD
-    Root["🏠 Root Layout<br/><small>Sidebar + Header + Outlet</small>"]
-    Root --> D["/ — Dashboard<br/><small>Overview</small>"]
-    Root --> DI["/distros — Distributions<br/><small>List + actions</small>"]
-    Root --> SN["/snapshots — Snapshots<br/><small>Create / restore</small>"]
+    Root["Root Layout<br/><small>Header + Outlet + DebugConsole</small>"]
+    Root --> DI["/ — Distributions<br/><small>Distro grid + snapshots</small>"]
     Root --> MO["/monitoring — Monitoring<br/><small>CPU, RAM, disk, network</small>"]
-    Root --> DO["/docker — Docker<br/><small>Containers + images</small>"]
-    Root --> IA["/iac — IaC<br/><small>Ansible, K8s, Terraform</small>"]
     Root --> SE["/settings — Settings<br/><small>WSL config + audit</small>"]
 ```
 
 ### Root Layout
 
 ```tsx
-<div className="flex h-screen overflow-hidden bg-background text-foreground">
-  <Sidebar />                    {/* w-64, border-r */}
-  <div className="flex flex-1 flex-col overflow-hidden">
-    <Header />                   {/* h-14, border-b */}
-    <main className="flex-1 overflow-y-auto p-6">
-      <ErrorBoundary>
-        <Outlet />               {/* Page content */}
-      </ErrorBoundary>
-    </main>
-  </div>
+<div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+  <Header />
+  <main className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+    <ErrorBoundary>
+      <Outlet />
+    </ErrorBoundary>
+  </main>
+  <DebugConsole />
 </div>
 ```
 
 ---
 
-## 📊 State Management
+## State Management
 
 ### TanStack Query 5 — Server State
 
@@ -135,12 +123,17 @@ Manages all data coming from the Tauri backend:
 | `retry` | 1 attempt |
 | `refetchOnWindowFocus` | Disabled |
 
-**Query key pattern** (for caching):
+**Query key patterns** (for caching):
 ```typescript
 distroKeys = {
   all: ["distros"],
-  list: () => [...all, "list"],
-  detail: (name) => [...all, "detail", name]
+  list: () => [...all, "list"]
+}
+
+monitoringKeys = {
+  all: ["monitoring"],
+  metrics: (distro) => [...all, "metrics", distro],
+  processes: (distro) => [...all, "processes", distro]
 }
 ```
 
@@ -150,45 +143,53 @@ distroKeys = {
 | Distributions | 10s |
 | System metrics | 2s |
 | Processes | 3s |
-| Docker | 5s |
 | Audit log | 10s |
 
 ### Zustand 5 — UI State
 
-Used only for the **theme** (dark/light) with localStorage persistence:
-- Store: `useThemeStore()`
+Two Zustand stores, both with no cross-dependencies:
+
+**`useThemeStore()`** — Theme (dark/light) with localStorage persistence:
 - Key: `wsl-nexus-theme`
-- Actions: `theme`, `toggleTheme()`
+- State: `theme`
+- Actions: `toggleTheme()`
+- Synced to DOM via `data-theme` attribute on `<html>`
+
+**`useDebugConsoleStore()`** — Debug console panel state:
+- State: `isOpen`, `logs`, `filter`
+- Actions: `toggle()`, `setFilter()`, `addLog()`, `setLogs()`, `clear()`
+- Capped at 1000 log entries (oldest evicted)
+- Keyboard shortcut: `Ctrl+Shift+D`
 
 ---
 
-## 🎨 Styling
+## Styling
 
-### Tailwind CSS v4 + oklch
+### Tailwind CSS v4 + Catppuccin
 
-Dark theme using the **oklch** color space for perceptually uniform colors:
+Dual-theme system using **Catppuccin Mocha** (dark, default) and **Catppuccin Latte** (light), toggled via the `data-theme` attribute:
 
-| Token | Color | Usage |
-|---|---|---|
-| `--background` | `oklch(0.145 0 0)` | Main background (near-black) |
-| `--foreground` | `oklch(0.985 0 0)` | Main text (near-white) |
-| `--primary` | `oklch(0.7 0.15 250)` | Vibrant blue (actions, links) |
-| `--success` | `oklch(0.7 0.18 145)` | Green (Running state) |
-| `--warning` | `oklch(0.75 0.15 75)` | Orange (alerts) |
-| `--destructive` | `oklch(0.6 0.2 25)` | Red (deletion, errors) |
-| `--card` | `oklch(0.17 0 0)` | Card backgrounds |
-| `--border` | `oklch(0.3 0 0)` | Subtle borders |
+| Token | Mocha (dark) | Latte (light) | Usage |
+|---|---|---|---|
+| `--color-background` | `#1e1e2e` (base) | `#eff1f5` (base) | Main background |
+| `--color-foreground` | `#cdd6f4` (text) | `#4c4f69` (text) | Main text |
+| `--color-primary` | `#89b4fa` (blue) | `#1e66f5` (blue) | Actions, links |
+| `--color-success` | `#a6e3a1` (green) | `#40a02b` (green) | Running state |
+| `--color-warning` | `#f9e2af` (yellow) | `#df8e1d` (yellow) | Alerts |
+| `--color-destructive` | `#f38ba8` (red) | `#d20f39` (red) | Deletion, errors |
+| `--color-card` | `#181825` (mantle) | `#e6e9ef` (mantle) | Card backgrounds |
+| `--color-border` | `#45475a` (surface-1) | `#bcc0cc` (surface-1) | Subtle borders |
 
 ### shadcn/ui
 
 - **Style**: new-york
 - **Components**: in `shared/ui/`
 - **Utility**: `cn()` = `clsx` + `tailwind-merge`
-- **Icons**: Lucide React (Play, Square, Archive, Server, Activity, Container, Wrench, Settings...)
+- **Icons**: Lucide React (Play, Square, Archive, Server, Activity, Wrench, Settings...)
 
 ---
 
-## 🔗 Tauri Bridge
+## Tauri Bridge
 
 ### `tauriInvoke<T>(cmd, args?)`
 
@@ -207,40 +208,61 @@ React hook for listening to Tauri events:
 | Constant | Event | Usage |
 |---|---|---|
 | `EVENTS.DISTRO_STATE_CHANGED` | `distro-state-changed` | Distro query invalidation |
-| `EVENTS.SYSTEM_METRICS` | `system-metrics` | Continuous metrics stream |
-| `EVENTS.SNAPSHOT_PROGRESS` | `snapshot-progress` | Progress bar |
 
 ---
 
-## 📁 Entry Point
+## Shared Types
+
+Three type files in `shared/types/`:
+
+**`distro.ts`** — `Distro`, `DistroState`
+```typescript
+interface Distro {
+  name: string;
+  state: DistroState;          // "Running" | "Stopped" | "Installing" | "Converting" | "Uninstalling"
+  wsl_version: number;
+  is_default: boolean;
+  base_path: string | null;
+  vhdx_size_bytes: number | null;
+  last_seen: string;
+}
+```
+
+**`monitoring.ts`** — `SystemMetrics`, `CpuMetrics`, `MemoryMetrics`, `DiskMetrics`, `NetworkMetrics`, `InterfaceStats`
+
+**`snapshot.ts`** — `Snapshot`, `CreateSnapshotArgs`, `RestoreSnapshotArgs`
+
+---
+
+## Entry Point
 
 ```mermaid
 graph LR
     M["main.tsx<br/><small>createRoot()</small>"]
     A["app.tsx<br/><small>QueryClientProvider + RouterProvider</small>"]
-    R["router.tsx<br/><small>7 routes + root layout</small>"]
+    R["router.tsx<br/><small>3 routes + root layout</small>"]
 
     M --> A --> R
 ```
 
-1. **`main.tsx`** — Mounts React 19 on `#root`
-2. **`app.tsx`** — Wraps with `QueryClientProvider` (TanStack Query) + `RouterProvider` (TanStack Router)
-3. **`router.tsx`** — Defines routes and the root layout (Sidebar + Header + Outlet)
+1. **`main.tsx`** — Mounts React 19 on `#root` (with StrictMode)
+2. **`app.tsx`** — Wraps with `QueryClientProvider` (TanStack Query) + `RouterProvider` (TanStack Router), calls `useThemeSync()`
+3. **`router.tsx`** — Defines routes and the root layout (Header + Outlet + DebugConsole), calls `useDebugConsoleSetup()`
 
 ---
 
-## ⚙️ TypeScript Configuration
+## TypeScript Configuration
 
 | Option | Value | Impact |
 |---|---|---|
-| `noUncheckedIndexedAccess` | `true` | `array[0]` returns `T \| undefined` → requires `!` or `?.` |
+| `noUncheckedIndexedAccess` | `true` | `array[0]` returns `T \| undefined` — requires `!` or `?.` |
 | `strict` | `true` | All strict checks enabled |
-| `paths` | `@/* → ./src/*` | Import alias to avoid deep relative paths |
+| `paths` | `@/* -> ./src/*` | Import alias to avoid deep relative paths |
 | `target` | ES2020 | Modern JS features support |
 
 ---
 
-## 🧪 Tests
+## Tests
 
 ```bash
 npm run test          # Single run
@@ -254,4 +276,4 @@ npm run test:watch    # Watch mode
 
 ---
 
-> 📖 Dive deeper: [🧩 Features](features/README.md) · [🔧 Shared](shared/README.md) · [📄 Pages](pages/README.md) · [🧱 Widgets](widgets/README.md)
+> Dive deeper: [Features](features/README.md) | [Shared](shared/README.md) | [Pages](pages/README.md) | [Widgets](widgets/README.md)

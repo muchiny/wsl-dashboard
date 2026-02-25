@@ -16,20 +16,20 @@ The `shared/` layer contains everything used by **multiple features and pages**.
 shared/
 ├── 🔗 api/               # Tauri backend communication
 │   ├── tauri-client.ts   # tauriInvoke<T>() — typed wrapper
-│   └── events.ts         # listenToEvent() + EVENTS constants
+│   └── events.ts         # EVENTS constants
 ├── ⚙️ config/            # Global configuration
 │   └── query-client.ts   # QueryClient (TanStack Query)
 ├── 🪝 hooks/             # Reusable React hooks
-│   ├── use-tauri-event.ts  # Tauri event listener
-│   └── use-theme.ts        # Zustand theme store
+│   ├── use-debug-console.ts  # Zustand store for debug console panel
+│   ├── use-tauri-event.ts    # Tauri event listener
+│   └── use-theme.ts          # Zustand theme store
 ├── 📚 lib/               # Utilities
 │   ├── utils.ts          # cn() — Tailwind class merging
 │   └── formatters.ts     # Bytes, percent, relative time formatting
 ├── 📝 types/             # TypeScript interfaces
-│   ├── distro.ts         # Distro, DistroState, DistroDetail, WslDistroConfig
+│   ├── distro.ts         # Distro, DistroState
 │   ├── snapshot.ts       # Snapshot, CreateSnapshotArgs, RestoreSnapshotArgs
-│   ├── monitoring.ts     # SystemMetrics, CpuMetrics, MemoryMetrics, DiskMetrics, NetworkMetrics
-│   └── docker.ts         # Container, PortMapping, DockerImage, DockerStatus
+│   └── monitoring.ts     # SystemMetrics, CpuMetrics, MemoryMetrics, DiskMetrics, NetworkMetrics
 └── 🎨 ui/               # Shared UI components
     └── error-boundary.tsx # React Error Boundary with retry
 ```
@@ -51,14 +51,12 @@ async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Prom
 ### `events.ts`
 
 ```typescript
-function listenToEvent<T>(event: string, handler: (payload: T) => void): Promise<UnlistenFn>
-
 const EVENTS = {
   DISTRO_STATE_CHANGED: "distro-state-changed",
-  SYSTEM_METRICS: "system-metrics",
-  SNAPSHOT_PROGRESS: "snapshot-progress",
 }
 ```
+
+Single event constant for distro state change notifications.
 
 ---
 
@@ -75,6 +73,28 @@ const EVENTS = {
 ---
 
 ## 🪝 `hooks/` — React Hooks
+
+### `useDebugConsoleStore()`
+
+Zustand store managing the in-app debug console panel:
+
+| Property | Type | Description |
+|---|---|---|
+| `isOpen` | `boolean` | Panel visibility |
+| `logs` | `LogEntry[]` | Log entries (max 1000) |
+| `filter` | `LogFilter` | Active level filter (`"ALL"` or a specific `LogLevel`) |
+| `toggle()` | `() => void` | Toggle panel open/closed |
+| `setFilter()` | `(filter) => void` | Change level filter |
+| `addLog()` | `(entry) => void` | Append a log entry |
+| `setLogs()` | `(entries) => void` | Replace all log entries |
+| `clear()` | `() => void` | Clear logs (also calls `clear_debug_logs` backend command) |
+
+Also exports `useDebugConsoleSetup()` — a one-time setup hook (called at app root) that:
+- Fetches existing backend logs via `get_debug_logs`
+- Listens for real-time `debug-log-entry` Tauri events
+- Intercepts `console.error` and `console.warn`
+- Catches unhandled promise rejections and global errors
+- Registers **Ctrl+Shift+D** keyboard shortcut
 
 ### `useTauriEvent<T>(event, handler)`
 
@@ -94,6 +114,8 @@ Zustand store with localStorage persistence:
 
 - **localStorage key**: `wsl-nexus-theme`
 - **Used by**: Header (Sun/Moon toggle)
+
+Also exports `useThemeSync()` — keeps the DOM `data-theme` attribute in sync (call once at app root).
 
 ---
 
@@ -124,8 +146,6 @@ Combines `clsx` (conditional classes) + `tailwind-merge` (Tailwind conflict reso
 |---|---|
 | `Distro` | name, state, wsl_version, is_default, base_path, vhdx_size_bytes, last_seen |
 | `DistroState` | `"Running" \| "Stopped" \| "Installing" \| "Converting" \| "Uninstalling"` |
-| `DistroDetail` | Distro + WslDistroConfig |
-| `WslDistroConfig` | automount, interop, network settings |
 
 ### `snapshot.ts`
 
@@ -145,15 +165,6 @@ Combines `clsx` (conditional classes) + `tailwind-merge` (Tailwind conflict reso
 | `DiskMetrics` | total, used, available, usage_percent |
 | `NetworkMetrics` | interfaces[] (name, rx_bytes, tx_bytes, rx_packets, tx_packets) |
 | `ProcessInfo` | pid, user, cpu_percent, mem_percent, vsz, rss, command, state |
-
-### `docker.ts`
-
-| Type | Contents |
-|---|---|
-| `Container` | id, name, image, state, status, ports[], created_at |
-| `PortMapping` | host_port, container_port, protocol |
-| `DockerImage` | id, repository, tag, size, created_at |
-| `DockerStatus` | available, containers[], images[] |
 
 ---
 

@@ -27,12 +27,8 @@ Each page is registered as a route in `router.tsx`.
 
 | Route | Page | Features Used | Description |
 |---|---|---|---|
-| `/` | `DashboardPage` | `distro-list` | Overview with distribution statistics |
-| `/distros` | `DistrosPage` | `distro-list`, `distro-events` | Full distribution management (list, actions) |
-| `/snapshots` | `SnapshotsPage` | `snapshot-list`, `distro-list` | Snapshot creation and restoration |
+| `/` | `DistrosPage` | `distro-list`, `distro-events`, `snapshot-list` | Distribution management with snapshots |
 | `/monitoring` | `MonitoringPage` | `monitoring-dashboard`, `distro-list` | Real-time metrics (requires distro selection) |
-| `/docker` | `DockerPage` | `docker-containers`, `distro-list` | Docker containers and images |
-| `/iac` | `IacPage` | `iac-integrations`, `distro-list` | Detected IaC tools + Kubernetes info |
 | `/settings` | `SettingsPage` | `wsl-config`, `audit-log` | .wslconfig editor + audit trail |
 
 ---
@@ -64,29 +60,13 @@ Most pages follow this pattern:
 
 ## 📝 Page Details
 
-### `/` — Dashboard
+### `/` — Distributions
 
-Quick overview: distro count, global status, shortcuts to other pages.
-
-### `/distros` — Distributions
-
-Full grid of `DistroCard` components with Start/Stop/Restart buttons and Shutdown All.
-
-### `/snapshots` — Snapshots
-
-Distro selector at the top, snapshot list below. "Create" button opens the `create-snapshot-dialog`.
+Full grid of `DistroCard` components with Start/Stop/Restart buttons, Shutdown All, and integrated snapshot management. This is the home page.
 
 ### `/monitoring` — Monitoring
 
 Distro selector, then 4 charts (CPU, memory, network, disk) + process table.
-
-### `/docker` — Docker
-
-Distro selector, then tabbed interface: Containers tab + Images tab.
-
-### `/iac` — IaC
-
-Distro selector, then detected tools grid + Kubernetes panel (if kubectl available).
 
 ### `/settings` — Settings
 

@@ -1,6 +1,6 @@
-# 🖥️ WSL Nexus
+# WSL Nexus
 
-> **Desktop application for comprehensive WSL2 distribution management** — Monitoring, Snapshots, Docker, IaC, and more.
+> **Desktop application for comprehensive WSL2 distribution management** -- Monitoring, Snapshots, Configuration, and Audit Logging.
 
 ![Tauri v2](https://img.shields.io/badge/Tauri-v2-blue?logo=tauri)
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react)
@@ -11,54 +11,53 @@
 
 ---
 
-## 🎯 Features
+## Features
 
 | Feature | Description |
 |---|---|
-| 📦 **Distribution Management** | List, start, stop, restart your WSL distros |
-| 💾 **Snapshots** | Create, restore and delete backups (tar, tar.gz, tar.xz, vhdx) |
-| 📈 **Real-Time Monitoring** | CPU, memory, disk, network + process table |
-| 🐳 **Docker** | Manage containers and images in each distro |
-| 🔧 **Infrastructure as Code** | Detect Ansible, kubectl, Terraform, Helm + control K8s |
-| ⚙️ **WSL Configuration** | Edit `.wslconfig` + compact VHDX disks |
-| 📝 **Audit Log** | Full traceability of all actions |
+| **Distribution Management** | List, start, stop, restart your WSL distros |
+| **Snapshots** | Create, restore and delete backups (tar, tar.gz, tar.xz, vhdx) |
+| **Real-Time Monitoring** | CPU, memory, disk, network + process table |
+| **WSL Configuration** | Edit `.wslconfig` + compact VHDX disks |
+| **Audit Log** | Full traceability of all actions |
+| **Debug Console** | In-app real-time log viewer with level filtering (Ctrl+Shift+D) |
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technologies |
 |---|---|
-| **Frontend** | React 19, TypeScript 5.7, Vite 6.1, Tailwind CSS 4 (oklch), TanStack Query 5, TanStack Router, Zustand 5, Recharts, Lucide, shadcn/ui |
-| **Backend** | Rust 1.93, Tauri v2, SQLx 0.8 (SQLite), Tokio, async-trait, thiserror |
-| **Testing** | Vitest 3 + Testing Library (frontend), mockall + tokio-test (backend) |
+| **Frontend** | React 19, TypeScript 5.7, Vite 7, Tailwind CSS 4 (Catppuccin), TanStack Query 5, TanStack Router 1, Zustand 5, Recharts 3, Lucide, Zod 4 |
+| **Backend** | Rust 1.93, Tauri v2, SQLx 0.8 (SQLite), Tokio, async-trait, thiserror, tracing |
+| **Testing** | Vitest 4 + Testing Library (frontend), mockall + tokio-test + proptest (backend) |
 | **Architecture** | Hexagonal Architecture + CQRS (backend), Feature-Sliced Design (frontend) |
 | **CI/CD** | GitHub Actions (lint, format, clippy, tests), automated release on tag push |
 
 ---
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
-### 🔭 High-Level View
+### High-Level View
 
 ```mermaid
 graph TB
-    subgraph Frontend["⚛️ Frontend — React 19 + TypeScript"]
-        Pages["📄 Pages"]
-        Features["🧩 Features"]
-        Widgets["🧱 Widgets"]
-        Shared["🔧 Shared"]
+    subgraph Frontend["React 19 + TypeScript"]
+        Pages["Pages"]
+        Features["Features"]
+        Widgets["Widgets"]
+        Shared["Shared"]
         Pages --> Features
         Pages --> Widgets
         Features --> Shared
         Widgets --> Shared
     end
 
-    subgraph Backend["🦀 Backend — Rust 1.93 + Tauri v2"]
-        Presentation["🎭 Presentation"]
-        Application["📋 Application"]
-        Domain["💎 Domain"]
-        Infrastructure["🔌 Infrastructure"]
+    subgraph Backend["Rust 1.93 + Tauri v2"]
+        Presentation["Presentation"]
+        Application["Application"]
+        Domain["Domain"]
+        Infrastructure["Infrastructure"]
         Presentation --> Application
         Application --> Domain
         Infrastructure -.->|implements ports| Domain
@@ -66,78 +65,70 @@ graph TB
 
     Frontend <-->|"Tauri IPC (invoke / events)"| Backend
 
-    Infrastructure --> WSL["🖥️ wsl.exe"]
-    Infrastructure --> SQLite["🗄️ SQLite"]
-    Infrastructure --> ProcFS["📊 /proc"]
-    Infrastructure --> Docker["🐳 Docker CLI"]
-    Infrastructure --> IaC["🔧 Ansible / kubectl / Terraform / Helm"]
+    Infrastructure --> WSL["wsl.exe"]
+    Infrastructure --> SQLite["SQLite"]
+    Infrastructure --> ProcFS["/proc"]
 ```
 
-### 🔷 Hexagonal Architecture (Ports & Adapters)
+### Hexagonal Architecture (Ports & Adapters)
 
 ```mermaid
 graph LR
-    subgraph Ports["🔌 Ports (traits)"]
+    subgraph Ports["Ports (traits)"]
         WMP["WslManagerPort"]
         SRP["SnapshotRepositoryPort"]
         MPP["MonitoringProviderPort"]
-        DPP["DockerProviderPort"]
-        IPP["IacProviderPort"]
         ALP["AuditLoggerPort"]
     end
 
-    subgraph Adapters["🧱 Adapters (implementations)"]
+    subgraph Adapters["Adapters (implementations)"]
         WCA["WslCliAdapter"] -->|implements| WMP
         SSR["SqliteSnapshotRepo"] -->|implements| SRP
         PFA["ProcFsMonitoringAdapter"] -->|implements| MPP
-        DCA["DockerCliAdapter"] -->|implements| DPP
-        ICA["IacCliAdapter"] -->|implements| IPP
         SAL["SqliteAuditLogger"] -->|implements| ALP
     end
 
     WCA --> wsl["wsl.exe"]
     SSR --> db["SQLite"]
     PFA --> proc["/proc/*"]
-    DCA --> docker["docker"]
-    ICA --> tools["ansible / kubectl / terraform / helm"]
     SAL --> db
 ```
 
-### 🔄 CQRS Flow (example: listing distributions)
+### CQRS Flow (example: listing distributions)
 
 ```mermaid
 sequenceDiagram
-    participant UI as ⚛️ React UI
-    participant TC as 🎭 Tauri Command
-    participant QH as 📖 Query Handler
-    participant Port as 🔌 WslManagerPort
-    participant Adapter as 🧱 WslCliAdapter
+    participant UI as React UI
+    participant TC as Tauri Command
+    participant QH as Query Handler
+    participant Port as WslManagerPort
+    participant Adapter as WslCliAdapter
 
     UI->>TC: tauriInvoke("list_distros")
     TC->>QH: ListDistrosHandler.handle()
     QH->>Port: wsl_manager.list_distros()
     Port->>Adapter: wsl.exe --list --verbose
-    Adapter-->>Port: Vec〈Distro〉
-    Port-->>QH: Vec〈Distro〉
-    QH-->>TC: Vec〈DistroResponse〉 (DTO)
+    Adapter-->>Port: Vec<Distro>
+    Port-->>QH: Vec<Distro>
+    QH-->>TC: Vec<DistroResponse> (DTO)
     TC-->>UI: JSON response
 ```
 
 ---
 
-## 📋 Prerequisites
+## Prerequisites
 
 | Tool | Version | Notes |
 |---|---|---|
 | **Windows** | 10/11 | WSL2 must be enabled |
-| **WSL2** | — | At least one distribution installed |
+| **WSL2** | -- | At least one distribution installed |
 | **Rust** | 1.93+ | Install via `rustup default 1.93` |
-| **Node.js** | ≥ 18 | With `npm` |
+| **Node.js** | >= 18 | With `npm` |
 | **Tauri CLI** | v2 | Included in devDependencies |
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Clone the project
 
@@ -180,26 +171,28 @@ cd src-tauri && cargo test
 
 ---
 
-## 📜 Available Scripts
+## Available Scripts
 
 | Script | Command | Description |
 |---|---|---|
 | `npm run dev` | `vite` | Frontend dev server (port 1420) |
-| `npm run build` | `tsc && vite build` | TypeScript + Vite build |
+| `npm run build` | `tsc -b && vite build` | TypeScript + Vite build |
 | `npm run preview` | `vite preview` | Preview the build |
 | `npm run lint` | `eslint` | Lint frontend code |
+| `npm run lint:fix` | `eslint --fix` | Lint and auto-fix |
+| `npm run format` | `prettier --write` | Format code |
 | `npm run format:check` | `prettier --check` | Check code formatting |
 | `npm run test` | `vitest run` | Frontend tests (single run) |
 | `npm run test:watch` | `vitest` | Frontend tests (watch mode) |
 | `npm run tauri dev` | `tauri dev` | Full dev (frontend + backend) |
 | `npm run tauri build` | `tauri build` | Production build |
-| `cargo test` | — | Backend Rust tests (31 tests) |
-| `cargo clippy` | — | Rust linter |
-| `cargo fmt --check` | — | Rust format check |
+| `cargo test` | -- | Backend Rust tests (154 tests) |
+| `cargo clippy` | -- | Rust linter |
+| `cargo fmt --check` | -- | Rust format check |
 
 ---
 
-## 🔄 CI/CD
+## CI/CD
 
 ### Continuous Integration (`.github/workflows/ci.yml`)
 
@@ -207,14 +200,14 @@ Runs on every **push** and **pull request** to `main`/`master`:
 
 ```mermaid
 graph LR
-    subgraph Frontend["⚛️ Frontend Job"]
+    subgraph Frontend["Frontend Job"]
         F1["npm ci"] --> F2["Lint"]
         F2 --> F3["Format check"]
         F3 --> F4["Type check (tsc)"]
         F4 --> F5["Unit tests (Vitest)"]
     end
 
-    subgraph Rust["🦀 Rust Job"]
+    subgraph Rust["Rust Job"]
         R1["Install system deps"] --> R2["cargo fmt --check"]
         R2 --> R3["cargo clippy -D warnings"]
         R3 --> R4["cargo test"]
@@ -223,8 +216,8 @@ graph LR
 
 | Job | Steps | Environment |
 |---|---|---|
-| **Frontend** | `npm ci` → Lint → Format check → Type check → Unit tests | `ubuntu-latest`, Node.js 22 |
-| **Rust** | Install system deps → `cargo fmt --check` → `cargo clippy -D warnings` → `cargo test` | `ubuntu-latest`, Rust stable |
+| **Frontend** | `npm ci` -> Lint -> Format check -> Type check -> Unit tests | `ubuntu-latest`, Node.js 22 |
+| **Rust** | Install system deps -> `cargo fmt --check` -> `cargo clippy -D warnings` -> `cargo test` | `ubuntu-latest`, Rust stable |
 
 **Concurrency**: Duplicate runs on the same branch are automatically cancelled.
 
@@ -232,70 +225,159 @@ graph LR
 
 Triggered on tag push (`v*`):
 
-1. ✅ Runs full CI checks (reuses `ci.yml`)
-2. 🏗️ Builds Windows installer on `windows-latest`
-3. 📦 Creates a draft GitHub Release with `.msi` and `.exe` (NSIS) artifacts
+1. Runs full CI checks (reuses `ci.yml`)
+2. Builds Windows installer on `windows-latest`
+3. Creates a draft GitHub Release with `.msi` and `.exe` (NSIS) artifacts
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 wsl-nexus/
-├── 📄 README.md                        ← You are here
-├── 📄 package.json                     # Frontend dependencies + scripts
-├── 📄 vite.config.ts                   # Vite config (port 1420, @/ alias)
-├── 📄 tsconfig.json                    # Strict TypeScript + noUncheckedIndexedAccess
-├── 📄 vitest.config.ts                 # jsdom test config
-├── 📄 components.json                  # shadcn/ui config (new-york)
-├── 📄 index.html                       # HTML entry point
-├── 🔄 .github/workflows/              # CI/CD
-│   ├── ci.yml                         # Lint, format, clippy, tests
-│   └── release.yml                    # Windows build + GitHub Release
+├── README.md                           <- You are here
+├── package.json                        # Frontend dependencies + scripts
+├── vite.config.ts                      # Vite config (port 1420, @/ alias)
+├── tsconfig.json                       # Strict TypeScript + noUncheckedIndexedAccess
+├── vitest.config.ts                    # jsdom test config
+├── components.json                     # shadcn/ui config (new-york)
+├── index.html                          # HTML entry point
+├── .github/workflows/                  # CI/CD
+│   ├── ci.yml                          # Lint, format, clippy, tests
+│   └── release.yml                     # Windows build + GitHub Release
 │
-├── 🦀 src-tauri/                       # Rust Backend + Tauri v2
-│   ├── 📄 Cargo.toml                  # Rust dependencies
-│   ├── 📄 tauri.conf.json             # Tauri config (1280×800 window)
+├── src-tauri/                          # Rust Backend + Tauri v2
+│   ├── Cargo.toml                      # Rust dependencies
+│   ├── tauri.conf.json                 # Tauri config (1280x800 window)
 │   └── src/
-│       ├── 💎 domain/                 # Pure business logic
-│       ├── 📋 application/            # CQRS handlers + DTOs
-│       ├── 🔌 infrastructure/         # Adapters (WSL CLI, SQLite, Docker...)
-│       └── 🎭 presentation/           # Tauri commands + AppState
+│       ├── domain/                     # Pure business logic
+│       ├── application/                # CQRS handlers + DTOs
+│       ├── infrastructure/             # Adapters (WSL CLI, SQLite, ProcFS, Debug Log)
+│       └── presentation/              # Tauri commands + AppState
 │
-└── ⚛️ src/                             # React Frontend
-    ├── 📄 main.tsx                     # React 19 entry point
-    ├── 📄 app.tsx                      # Providers (QueryClient + Router)
-    ├── 📄 router.tsx                   # 7 TanStack Router routes
-    ├── 📄 app.css                      # oklch dark theme
-    ├── 🧩 features/                   # 8 feature slices
-    ├── 📄 pages/                      # 7 routed pages
-    ├── 🔧 shared/                     # API, hooks, types, utils
-    └── 🧱 widgets/                    # Sidebar + Header
+└── src/                                # React Frontend
+    ├── main.tsx                        # React 19 entry point
+    ├── app.tsx                         # Providers (QueryClient + Router)
+    ├── router.tsx                      # 3 TanStack Router routes
+    ├── app.css                         # Catppuccin Mocha/Latte theme
+    ├── features/                       # 6 feature slices
+    ├── pages/                          # 3 routed pages
+    ├── shared/                         # API, hooks, types, utils
+    └── widgets/                        # Header + Debug Console
 ```
 
-> 📖 Each directory has its own README with in-depth details:
-> - [🦀 Backend (src-tauri/)](src-tauri/README.md)
->   - [💎 Domain](src-tauri/src/domain/README.md) · [📋 Application](src-tauri/src/application/README.md) · [🔌 Infrastructure](src-tauri/src/infrastructure/README.md) · [🎭 Presentation](src-tauri/src/presentation/README.md)
-> - [⚛️ Frontend (src/)](src/README.md)
->   - [🧩 Features](src/features/README.md) · [🔧 Shared](src/shared/README.md) · [📄 Pages](src/pages/README.md) · [🧱 Widgets](src/widgets/README.md)
+> Each directory has its own README with in-depth details:
+> - [Backend (src-tauri/)](src-tauri/README.md)
+>   - [Domain](src-tauri/src/domain/README.md) . [Application](src-tauri/src/application/README.md) . [Infrastructure](src-tauri/src/infrastructure/README.md) . [Presentation](src-tauri/src/presentation/README.md)
+> - [Frontend (src/)](src/README.md)
+>   - [Features](src/features/README.md) . [Shared](src/shared/README.md) . [Pages](src/pages/README.md) . [Widgets](src/widgets/README.md)
+
+### Frontend Layout
+
+The root layout is a vertical column with the header on top, the routed page in the middle, and a collapsible debug console at the bottom:
+
+```tsx
+function RootLayout() {
+  return (
+    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+      <Header />
+      <main className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
+      </main>
+      <DebugConsole />
+    </div>
+  );
+}
+```
+
+### Pages
+
+| Route | Page | Description |
+|---|---|---|
+| `/` | `DistrosPage` | Distribution grid + snapshot management |
+| `/monitoring` | `MonitoringPage` | CPU, memory, disk, network charts + process table |
+| `/settings` | `SettingsPage` | `.wslconfig` editor, VHDX compaction, audit log |
+
+### Feature Slices (FSD)
+
+| Slice | Description |
+|---|---|
+| `distro-list` | Distribution cards with status, start/stop/restart controls |
+| `snapshot-list` | Snapshot creation, restore, deletion for each distro |
+| `monitoring-dashboard` | Real-time metrics charts and process table |
+| `wsl-config` | `.wslconfig` viewer and editor |
+| `audit-log` | Searchable action history log |
+| `distro-events` | Real-time distro state change events |
+
+### Widgets
+
+| Widget | Description |
+|---|---|
+| `Header` | Branding + pill-shaped navigation tabs (Distributions / Monitoring / Settings) + debug console toggle + theme toggle |
+| `DebugConsole` | Collapsible bottom panel with real-time backend logs, level filtering (All/Error/Warn/Info/Debug), error/warn badges |
+
+### Backend: AppState (Composition Root)
+
+The `AppState` struct holds all hexagonal port implementations, injected into Tauri as managed state:
+
+```rust
+pub struct AppState {
+    pub wsl_manager: Arc<dyn WslManagerPort>,
+    pub snapshot_repo: Arc<dyn SnapshotRepositoryPort>,
+    pub monitoring: Arc<dyn MonitoringProviderPort>,
+    pub audit_logger: Arc<dyn AuditLoggerPort>,
+}
+```
+
+### Tauri Plugins
+
+| Plugin | Purpose |
+|---|---|
+| `tauri-plugin-shell` | Execute `wsl.exe` commands from the backend |
+| `tauri-plugin-store` | Persist user preferences (theme, settings) |
+| `tauri-plugin-dialog` | Native file dialogs for snapshot export/import |
+
+### Registered Tauri Commands
+
+| Module | Commands |
+|---|---|
+| `distro_commands` | `list_distros`, `get_distro_details`, `start_distro`, `stop_distro`, `restart_distro`, `shutdown_all` |
+| `snapshot_commands` | `list_snapshots`, `create_snapshot`, `delete_snapshot`, `restore_snapshot` |
+| `monitoring_commands` | `get_system_metrics`, `get_processes` |
+| `settings_commands` | `get_wsl_config`, `update_wsl_config`, `compact_vhdx` |
+| `audit_commands` | `search_audit_log` |
+| `debug_commands` | `get_debug_logs`, `clear_debug_logs` |
+
+### Styling: Catppuccin Theme
+
+The application uses the **Catppuccin** color system with two palettes toggled via the `data-theme` attribute:
+
+| Palette | Role | Base | Text | Blue (primary) |
+|---|---|---|---|---|
+| **Mocha** (dark, default) | Dark theme | `#1e1e2e` | `#cdd6f4` | `#89b4fa` |
+| **Latte** (light) | Light theme | `#eff1f5` | `#4c4f69` | `#1e66f5` |
+
+Colors are defined as CSS custom properties in `app.css` with semantic aliases (`--color-background`, `--color-foreground`, `--color-card`, `--color-primary`, etc.) consumed by Tailwind CSS v4.
 
 ---
 
-## 🧪 Tests
+## Tests
 
-### Backend Rust — 31 tests
+### Backend Rust -- 154 tests
 
 | Layer | Tests | Details |
 |---|---|---|
-| **Domain** | 13 | Value objects (DistroName, DistroState, WslVersion, MemorySize) + DistroService |
-| **Infrastructure** | 14 | UTF-16LE encoding (3), WSL parser (4), Monitoring /proc (3), Docker parsing (4) |
-| **Application** | 4 | DistroService (start/stop success/failure) |
+| **Domain** | 39 | Value objects (23: DistroName, DistroState, WslVersion, MemorySize, SnapshotId), entities (8: Snapshot), services (4: DistroService), errors (4) |
+| **Application** | 31 | DTOs (14: DistroResponse, SnapshotResponse), queries (9: ListDistros, GetDistroDetails, ListSnapshots), commands (8: CreateSnapshot, DeleteSnapshot, RestoreSnapshot) |
+| **Infrastructure** | 84 | WSL CLI (20: adapter, encoding, parser), debug log (20: buffer), SQLite (19: adapter), monitoring (18: ProcFS adapter), audit (7: adapter) |
 
 ```bash
 cd src-tauri && cargo test
 ```
 
-### Frontend — Vitest + Testing Library
+### Frontend -- 155 tests (20 test files)
 
 ```bash
 npm run test          # Single run
@@ -304,20 +386,22 @@ npm run test:watch    # Watch mode
 
 ---
 
-## ⚡ Technical Notes
+## Technical Notes
 
 | Topic | Details |
 |---|---|
-| **Rust 1.93** | Required minimum toolchain version — install via `rustup default 1.93` |
-| **UTF-16LE** | `wsl.exe` outputs UTF-16LE on Windows — `encoding.rs` handles BOM detection + UTF-8 fallback |
-| **noUncheckedIndexedAccess** | Enabled in `tsconfig.json` — array accesses require `!` or `?.` |
+| **Rust 1.93** | Required minimum toolchain version -- install via `rustup default 1.93` |
+| **UTF-16LE** | `wsl.exe` outputs UTF-16LE on Windows -- `encoding.rs` handles BOM detection + UTF-8 fallback |
+| **noUncheckedIndexedAccess** | Enabled in `tsconfig.json` -- array accesses require `!` or `?.` |
 | **SQLite async** | Initialized in Tauri's `setup` hook with `block_on` to avoid blocking the event loop |
 | **Tauri icons** | Must be RGBA PNG (color type 6), not RGB |
 | **`tauri::Manager`** | The trait must be imported for `app_handle.path()` and `.manage()` |
-| **mockall** | Cannot handle `Option<&str>` in async traits — use `Option<String>` instead |
+| **mockall** | Cannot handle `Option<&str>` in async traits -- use `Option<String>` instead |
+| **Debug logging** | Uses `tracing` + `tracing-subscriber` with a custom `DebugLogLayer` that buffers logs and emits them as Tauri events to the frontend |
+| **Panic handler** | Writes crash info to `crash.log` in the app data directory; shows a native MessageBox on Windows |
 
 ---
 
-## 📄 License
+## License
 
 MIT
