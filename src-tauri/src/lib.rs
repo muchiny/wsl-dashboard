@@ -42,9 +42,10 @@ pub fn run() {
         #[cfg(windows)]
         {
             use std::ffi::CString;
-            if let (Ok(text), Ok(title)) =
-                (CString::new(msg.clone()), CString::new("WSL Nexus - Fatal Error"))
-            {
+            if let (Ok(text), Ok(title)) = (
+                CString::new(msg.clone()),
+                CString::new("WSL Nexus - Fatal Error"),
+            ) {
                 unsafe {
                     extern "system" {
                         fn MessageBoxA(
@@ -90,10 +91,7 @@ pub fn run() {
 
                 // Use forward slashes for SQLite URI compatibility on Windows
                 let db_file = app_data_dir.join("wsl-nexus.db");
-                let db_path = format!(
-                    "sqlite:{}",
-                    db_file.to_string_lossy().replace('\\', "/")
-                );
+                let db_path = format!("sqlite:{}", db_file.to_string_lossy().replace('\\', "/"));
 
                 let db = SqliteDb::new(&db_path).await.map_err(|e| {
                     tracing::error!("SQLite init failed: {e}");
