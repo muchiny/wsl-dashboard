@@ -1,0 +1,87 @@
+[package]
+name = "wsl-nexus-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.wsl_nexus_lib]
+path = ".."
+package = "wsl-nexus"
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "fuzz_parse_ini"
+path = "fuzz_targets/fuzz_parse_ini.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_parse_ports"
+path = "fuzz_targets/fuzz_parse_ports.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_parse_docker_size"
+path = "fuzz_targets/fuzz_parse_docker_size.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_decode_wsl_output"
+path = "fuzz_targets/fuzz_decode_wsl_output.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_parse_distro_list"
+path = "fuzz_targets/fuzz_parse_distro_list.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_parse_meminfo"
+path = "fuzz_targets/fuzz_parse_meminfo.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_parse_df"
+path = "fuzz_targets/fuzz_parse_df.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_parse_proc_net_dev"
+path = "fuzz_targets/fuzz_parse_proc_net_dev.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_parse_ps_aux"
+path = "fuzz_targets/fuzz_parse_ps_aux.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_parse_cpu_line"
+path = "fuzz_targets/fuzz_parse_cpu_line.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_parse_k8s_pods"
+path = "fuzz_targets/fuzz_parse_k8s_pods.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_parse_k8s_nodes"
+path = "fuzz_targets/fuzz_parse_k8s_nodes.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_parse_container_state"
+path = "fuzz_targets/fuzz_parse_container_state.rs"
+doc = false
