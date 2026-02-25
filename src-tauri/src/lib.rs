@@ -30,6 +30,42 @@ use presentation::state::AppState;
 #[cfg(not(fuzzing))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Panic hook: write crash info to a log file so silent crashes are diagnosable
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let msg = format!("WSL Nexus PANIC: {info}");
+        if let Some(dirs) = dirs::data_dir() {
+            let log_path = dirs.join("dev.muchini.wsl-nexus").join("crash.log");
+            let _ = std::fs::write(&log_path, &msg);
+        }
+        // Also try to show a native message box (best-effort)
+        #[cfg(windows)]
+        {
+            use std::ffi::CString;
+            if let (Ok(text), Ok(title)) =
+                (CString::new(msg.clone()), CString::new("WSL Nexus - Fatal Error"))
+            {
+                unsafe {
+                    extern "system" {
+                        fn MessageBoxA(
+                            hwnd: *mut std::ffi::c_void,
+                            text: *const i8,
+                            caption: *const i8,
+                            utype: u32,
+                        ) -> i32;
+                    }
+                    MessageBoxA(
+                        std::ptr::null_mut(),
+                        text.as_ptr(),
+                        title.as_ptr(),
+                        0x10, // MB_ICONERROR
+                    );
+                }
+            }
+        }
+        default_hook(info);
+    }));
+
     // Initialize tracing
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -48,22 +84,21 @@ pub fn run() {
 
             // Async initialization of SQLite and hexagonal wiring
             tauri::async_runtime::block_on(async move {
-                let app_data_dir = app_handle
-                    .path()
-                    .app_data_dir()
-                    .expect("failed to resolve app data dir");
+                let app_data_dir = app_handle.path().app_data_dir()?;
 
-                std::fs::create_dir_all(&app_data_dir)
-                    .expect("failed to create app data directory");
+                std::fs::create_dir_all(&app_data_dir)?;
 
+                // Use forward slashes for SQLite URI compatibility on Windows
+                let db_file = app_data_dir.join("wsl-nexus.db");
                 let db_path = format!(
                     "sqlite:{}",
-                    app_data_dir.join("wsl-nexus.db").to_string_lossy()
+                    db_file.to_string_lossy().replace('\\', "/")
                 );
 
-                let db = SqliteDb::new(&db_path)
-                    .await
-                    .expect("failed to initialize SQLite database");
+                let db = SqliteDb::new(&db_path).await.map_err(|e| {
+                    tracing::error!("SQLite init failed: {e}");
+                    e.to_string()
+                })?;
 
                 let wsl_manager = Arc::new(WslCliAdapter::new());
                 let snapshot_repo = Arc::new(SqliteSnapshotRepository::new(db.clone()));
@@ -82,7 +117,8 @@ pub fn run() {
                 };
 
                 app_handle.manage(app_state);
-            });
+                Ok::<(), Box<dyn std::error::Error>>(())
+            })?;
 
             Ok(())
         })
