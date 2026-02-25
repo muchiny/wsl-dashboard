@@ -41,9 +41,12 @@ pub fn run() {
 
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
+    use tracing_subscriber::Layer as _;
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer().with_target(true))
-        .with(debug_layer)
+        .with(debug_layer.with_filter(
+            tracing_subscriber::filter::LevelFilter::INFO,
+        ))
         .init();
 
     // Panic hook: write crash info to a log file so silent crashes are diagnosable
