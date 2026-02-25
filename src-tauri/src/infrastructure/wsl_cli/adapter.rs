@@ -5,6 +5,7 @@ use tokio::process::Command;
 use crate::domain::entities::distro::Distro;
 use crate::domain::entities::snapshot::ExportFormat;
 use crate::domain::entities::wsl_config::{WslDistroConfig, WslGlobalConfig};
+use crate::domain::entities::wsl_version::WslVersionInfo;
 use crate::domain::errors::DomainError;
 use crate::domain::ports::wsl_manager::WslManagerPort;
 use crate::domain::value_objects::DistroName;
@@ -191,8 +192,18 @@ impl WslManagerPort for WslCliAdapter {
     }
 
     async fn start_distro(&self, name: &DistroName) -> Result<(), DomainError> {
-        self.run_wsl_raw(&["-d", name.as_str(), "-e", "/bin/true"])
-            .await?;
+        // Launch a background keep-alive process inside the distro.
+        // `nohup sleep infinity &` forks a persistent process that keeps the
+        // WSL2 VM alive after the shell exits, even without systemd.
+        self.run_wsl_raw(&[
+            "-d",
+            name.as_str(),
+            "-e",
+            "sh",
+            "-c",
+            "nohup sleep infinity >/dev/null 2>&1 &",
+        ])
+        .await?;
         Ok(())
     }
 
@@ -362,6 +373,45 @@ impl WslManagerPort for WslCliAdapter {
         self.run_wsl_raw(&["--manage", name.as_str(), "--set-sparse", flag])
             .await?;
         Ok(())
+    }
+
+    async fn get_version_info(&self) -> Result<WslVersionInfo, DomainError> {
+        let raw = self.run_wsl_raw(&["--version"]).await?;
+        let text = decode_wsl_output(&raw)?;
+
+        let mut info = WslVersionInfo::default();
+
+        for line in text.lines() {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+
+            let lower = line.to_lowercase();
+            if let Some(pos) = lower.find("wsl version") {
+                if lower[pos..].contains("wslg") {
+                    // "WSLg version: X.Y.Z"
+                    if let Some(val) = line.split(':').nth(1) {
+                        info.wslg_version = Some(val.trim().to_string());
+                    }
+                } else {
+                    // "WSL version: X.Y.Z"
+                    if let Some(val) = line.split(':').nth(1) {
+                        info.wsl_version = Some(val.trim().to_string());
+                    }
+                }
+            } else if lower.contains("kernel version") {
+                if let Some(val) = line.split(':').nth(1) {
+                    info.kernel_version = Some(val.trim().to_string());
+                }
+            } else if lower.contains("windows version") {
+                if let Some(val) = line.split(':').nth(1) {
+                    info.windows_version = Some(val.trim().to_string());
+                }
+            }
+        }
+
+        Ok(info)
     }
 }
 

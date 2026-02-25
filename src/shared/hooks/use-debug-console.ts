@@ -103,6 +103,13 @@ export function useDebugConsoleSetup() {
     console.warn = (...args: unknown[]) => {
       origWarn(...args);
       const msg = args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ");
+      // Filter out known noisy warnings
+      if (
+        msg.includes("should be greater than 0") || // Recharts ResponsiveContainer init
+        msg.includes("RedrawEventsCleared") // Tauri/wry internal
+      ) {
+        return;
+      }
       addLog(createJsEntry("WARN", msg));
     };
 

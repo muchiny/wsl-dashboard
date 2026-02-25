@@ -10,7 +10,7 @@ export function MemoryChart({ data }: MemoryChartProps) {
   const latest = data.length > 0 ? data[data.length - 1] : null;
 
   return (
-    <div className="border-surface-1 bg-mantle rounded-xl border p-4">
+    <div className="border-surface-1 bg-mantle min-w-0 rounded-xl border p-4">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="text-sm font-semibold">Memory Usage</h4>
         {latest && (
@@ -22,50 +22,57 @@ export function MemoryChart({ data }: MemoryChartProps) {
           {formatBytes(latest.memUsed)} / {formatBytes(latest.memTotal)}
         </p>
       )}
-      <div className="h-40">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data}>
-            <defs>
-              <linearGradient id="memGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-chart-success)" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="var(--color-chart-success)" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <XAxis
-              dataKey="time"
-              tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
-              tickLine={false}
-              axisLine={false}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              domain={[0, 100]}
-              tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
-              tickLine={false}
-              axisLine={false}
-              width={35}
-              tickFormatter={(v: number) => `${v}%`}
-            />
-            <Tooltip
-              contentStyle={{
-                background: "var(--color-card)",
-                border: "1px solid var(--color-border)",
-                borderRadius: "6px",
-                fontSize: "12px",
-              }}
-              formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(1)}%`, "Memory"]}
-            />
-            <Area
-              type="monotone"
-              dataKey="memPercent"
-              stroke="var(--color-chart-success)"
-              fill="url(#memGrad)"
-              strokeWidth={2}
-              dot={false}
-              isAnimationActive={false}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+      <div className="h-40" aria-label="Memory usage chart">
+        {data.length === 0 && (
+          <div className="text-subtext-0 flex h-full items-center justify-center text-sm">
+            Waiting for data...
+          </div>
+        )}
+        {data.length > 0 && (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data}>
+              <defs>
+                <linearGradient id="memGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--color-chart-success)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="var(--color-chart-success)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis
+                dataKey="time"
+                tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+                tickLine={false}
+                axisLine={false}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                domain={[0, 100]}
+                tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
+                tickLine={false}
+                axisLine={false}
+                width={35}
+                tickFormatter={(v: number) => `${v}%`}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: "var(--color-card)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                }}
+                formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(1)}%`, "Memory"]}
+              />
+              <Area
+                type="monotone"
+                dataKey="memPercent"
+                stroke="var(--color-chart-success)"
+                fill="url(#memGrad)"
+                strokeWidth={2}
+                dot={false}
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );

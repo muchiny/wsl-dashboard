@@ -1,6 +1,7 @@
 use tauri::State;
 
 use crate::domain::entities::wsl_config::WslGlobalConfig;
+use crate::domain::entities::wsl_version::WslVersionInfo;
 use crate::domain::errors::DomainError;
 use crate::domain::value_objects::DistroName;
 use crate::presentation::state::AppState;
@@ -37,4 +38,11 @@ pub async fn compact_vhdx(
         .log_with_details("vhdx.compact", &distro_name, "Set sparse mode enabled")
         .await?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn get_wsl_version(
+    state: State<'_, AppState>,
+) -> Result<WslVersionInfo, DomainError> {
+    state.wsl_manager.get_version_info().await
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, X, Archive, FolderOpen } from "lucide-react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useDistros } from "@/features/distro-list/api/queries";
@@ -13,6 +13,7 @@ interface CreateSnapshotDialogProps {
 export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSnapshotDialogProps) {
   const { data: distros } = useDistros();
   const createSnapshot = useCreateSnapshot();
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const [distroName, setDistroName] = useState(defaultDistro ?? "");
   const [name, setName] = useState("");
@@ -20,6 +21,34 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
   useEffect(() => {
     if (defaultDistro) setDistroName(defaultDistro);
   }, [defaultDistro]);
+
+  // Focus trap + Escape key
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
 
   const [description, setDescription] = useState("");
   const [format, setFormat] = useState<"tar" | "tar.gz" | "tar.xz" | "vhdx">("tar");
@@ -54,12 +83,23 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="bg-crust/80 fixed inset-0 backdrop-blur-sm" onClick={onClose} />
-      <div className="border-surface-1 bg-mantle relative z-10 mx-4 w-full max-w-lg rounded-2xl border p-6 shadow-2xl">
+      <div
+        className="bg-crust/80 animate-in fade-in fixed inset-0 backdrop-blur-sm duration-150"
+        onClick={onClose}
+      />
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-snapshot-title"
+        className="border-surface-1 bg-mantle animate-in zoom-in-95 fade-in relative z-10 mx-4 w-full max-w-lg rounded-2xl border p-6 shadow-2xl duration-200"
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Archive className="text-mauve h-5 w-5" />
-            <h3 className="text-text text-lg font-semibold">Create Snapshot</h3>
+            <h3 id="create-snapshot-title" className="text-text text-lg font-semibold">
+              Create Snapshot
+            </h3>
           </div>
           <button onClick={onClose} className="text-subtext-0 hover:bg-surface-0 rounded-lg p-1">
             <X className="h-5 w-5" />

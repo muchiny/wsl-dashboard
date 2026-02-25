@@ -7,9 +7,10 @@ interface SnapshotCardProps {
   snapshot: Snapshot;
   onDelete: () => void;
   onRestore: () => void;
+  hideDistroName?: boolean;
 }
 
-export function SnapshotCard({ snapshot, onDelete, onRestore }: SnapshotCardProps) {
+export function SnapshotCard({ snapshot, onDelete, onRestore, hideDistroName }: SnapshotCardProps) {
   const isCompleted = snapshot.status === "completed";
   const isInProgress = snapshot.status === "in_progress";
   const isFailed = snapshot.status.startsWith("failed");
@@ -39,10 +40,12 @@ export function SnapshotCard({ snapshot, onDelete, onRestore }: SnapshotCardProp
       </div>
 
       <div className="text-subtext-0 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-        <span className="flex items-center gap-1">
-          <HardDrive className="h-3 w-3" />
-          {snapshot.distro_name}
-        </span>
+        {!hideDistroName && (
+          <span className="flex items-center gap-1">
+            <HardDrive className="h-3 w-3" />
+            {snapshot.distro_name}
+          </span>
+        )}
         <span className="flex items-center gap-1">
           <Clock className="h-3 w-3" />
           {formatRelativeTime(snapshot.created_at)}

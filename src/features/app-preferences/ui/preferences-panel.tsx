@@ -1,0 +1,106 @@
+import { Moon, Sun, Timer } from "lucide-react";
+import { useThemeStore } from "@/shared/hooks/use-theme";
+import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
+import { cn } from "@/shared/lib/utils";
+
+const INTERVAL_OPTIONS = [
+  { label: "1 second", value: 1000 },
+  { label: "2 seconds", value: 2000 },
+  { label: "3 seconds", value: 3000 },
+  { label: "5 seconds", value: 5000 },
+  { label: "10 seconds", value: 10000 },
+  { label: "30 seconds", value: 30000 },
+];
+
+const selectClass =
+  "border-surface-1 bg-base text-text focus:border-blue w-full rounded-lg border px-3 py-2 text-sm focus:outline-none";
+
+export function PreferencesPanel() {
+  const { theme, toggleTheme } = useThemeStore();
+  const { metricsInterval, processesInterval, setMetricsInterval, setProcessesInterval } =
+    usePreferencesStore();
+
+  return (
+    <div className="space-y-6">
+      <div className="border-surface-1 bg-mantle rounded-xl border p-5">
+        <h4 className="text-text mb-4 font-semibold">Appearance</h4>
+        <div className="flex gap-3">
+          <button
+            onClick={() => theme === "light" && toggleTheme()}
+            className={cn(
+              "flex flex-1 items-center gap-3 rounded-lg border p-4 transition-all",
+              theme === "dark"
+                ? "border-blue bg-blue/10"
+                : "border-surface-1 hover:border-surface-2",
+            )}
+          >
+            <Moon className="h-5 w-5 shrink-0" />
+            <div className="text-left">
+              <p className="text-text text-sm font-medium">Mocha (Dark)</p>
+              <p className="text-subtext-0 text-xs">Dark theme with warm tones</p>
+            </div>
+          </button>
+          <button
+            onClick={() => theme === "dark" && toggleTheme()}
+            className={cn(
+              "flex flex-1 items-center gap-3 rounded-lg border p-4 transition-all",
+              theme === "light"
+                ? "border-blue bg-blue/10"
+                : "border-surface-1 hover:border-surface-2",
+            )}
+          >
+            <Sun className="h-5 w-5 shrink-0" />
+            <div className="text-left">
+              <p className="text-text text-sm font-medium">Latte (Light)</p>
+              <p className="text-subtext-0 text-xs">Light theme for bright environments</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div className="border-surface-1 bg-mantle rounded-xl border p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Timer className="text-mauve h-5 w-5" />
+          <h4 className="text-text font-semibold">Monitoring</h4>
+        </div>
+        <p className="text-subtext-0 mb-4 text-xs">
+          Adjust how often metrics are polled from running distributions.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="text-subtext-0 mb-1 block text-xs font-medium">
+              System Metrics Interval
+            </label>
+            <select
+              value={metricsInterval}
+              onChange={(e) => setMetricsInterval(Number(e.target.value))}
+              className={selectClass}
+            >
+              {INTERVAL_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-subtext-0 mb-1 block text-xs font-medium">
+              Process List Interval
+            </label>
+            <select
+              value={processesInterval}
+              onChange={(e) => setProcessesInterval(Number(e.target.value))}
+              className={selectClass}
+            >
+              {INTERVAL_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

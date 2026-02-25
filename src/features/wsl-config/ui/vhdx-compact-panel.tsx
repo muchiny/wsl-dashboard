@@ -52,14 +52,6 @@ export function VhdxCompactPanel() {
         </button>
       </div>
 
-      {compactVhdx.isSuccess && (
-        <p className="text-green mt-3 text-sm">
-          Sparse mode enabled successfully. The distro was terminated during the process.
-        </p>
-      )}
-
-      {compactVhdx.isError && <p className="text-red mt-3 text-sm">{compactVhdx.error.message}</p>}
-
       <div className="border-surface-0 bg-base/50 text-subtext-0 mt-4 rounded-lg border p-3 text-xs">
         <strong>Note:</strong> The distro will be terminated before enabling sparse mode. This
         operation is safe and non-destructive.

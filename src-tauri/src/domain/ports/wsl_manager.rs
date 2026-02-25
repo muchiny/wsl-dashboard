@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use crate::domain::entities::distro::Distro;
 use crate::domain::entities::snapshot::ExportFormat;
 use crate::domain::entities::wsl_config::{WslDistroConfig, WslGlobalConfig};
+use crate::domain::entities::wsl_version::WslVersionInfo;
 use crate::domain::errors::DomainError;
 use crate::domain::value_objects::DistroName;
 
@@ -58,4 +59,7 @@ pub trait WslManagerPort: Send + Sync {
 
     /// Set sparse mode for a distro's VHDX (WSL2 only)
     async fn set_sparse(&self, name: &DistroName, enabled: bool) -> Result<(), DomainError>;
+
+    /// Get WSL version information (wsl --version)
+    async fn get_version_info(&self) -> Result<WslVersionInfo, DomainError>;
 }

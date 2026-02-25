@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { tauriInvoke } from "@/shared/api/tauri-client";
 import type { Snapshot } from "@/shared/types/snapshot";
@@ -15,4 +16,15 @@ export function useSnapshots(distroName?: string) {
         distroName: distroName ?? null,
       }),
   });
+}
+
+export function useSnapshotCounts(): Record<string, number> {
+  const { data: snapshots } = useSnapshots();
+  return useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const snap of snapshots ?? []) {
+      counts[snap.distro_name] = (counts[snap.distro_name] ?? 0) + 1;
+    }
+    return counts;
+  }, [snapshots]);
 }

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { tauriInvoke } from "@/shared/api/tauri-client";
+import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
 import type { SystemMetrics } from "@/shared/types/monitoring";
 
 export interface ProcessInfo {
@@ -20,6 +21,7 @@ export const monitoringKeys = {
 };
 
 export function useSystemMetrics(distroName: string | null, enabled = true) {
+  const metricsInterval = usePreferencesStore((s) => s.metricsInterval);
   return useQuery({
     queryKey: monitoringKeys.metrics(distroName ?? ""),
     queryFn: () =>
@@ -27,11 +29,12 @@ export function useSystemMetrics(distroName: string | null, enabled = true) {
         distroName: distroName!,
       }),
     enabled: !!distroName && enabled,
-    refetchInterval: 2000,
+    refetchInterval: metricsInterval,
   });
 }
 
 export function useProcesses(distroName: string | null, enabled = true) {
+  const processesInterval = usePreferencesStore((s) => s.processesInterval);
   return useQuery({
     queryKey: monitoringKeys.processes(distroName ?? ""),
     queryFn: () =>
@@ -39,6 +42,6 @@ export function useProcesses(distroName: string | null, enabled = true) {
         distroName: distroName!,
       }),
     enabled: !!distroName && enabled,
-    refetchInterval: 3000,
+    refetchInterval: processesInterval,
   });
 }

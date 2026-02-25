@@ -1,4 +1,13 @@
-import { Play, Square, RotateCw, Star, Archive, Activity, Loader2 } from "lucide-react";
+import {
+  Play,
+  Square,
+  RotateCw,
+  Star,
+  Archive,
+  Activity,
+  Loader2,
+  ChevronDown,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { Distro } from "@/shared/types/distro";
 import { cn } from "@/shared/lib/utils";
@@ -10,6 +19,9 @@ interface DistroCardProps {
   onRestart: () => void;
   onSnapshot: () => void;
   pendingAction?: string;
+  onExpand: () => void;
+  isExpanded: boolean;
+  snapshotCount: number;
 }
 
 export function DistroCard({
@@ -19,12 +31,33 @@ export function DistroCard({
   onRestart,
   onSnapshot,
   pendingAction,
+  onExpand,
+  isExpanded,
+  snapshotCount,
 }: DistroCardProps) {
   const isRunning = distro.state === "Running";
   const isPending = !!pendingAction;
 
   return (
-    <div className="group border-surface-1 bg-mantle hover:border-blue/40 hover:shadow-blue/5 rounded-xl border p-5 transition-all duration-200 hover:shadow-lg">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onExpand}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onExpand();
+        }
+      }}
+      aria-expanded={isExpanded}
+      aria-label={`${distro.name} - ${distro.state}${distro.is_default ? " (default)" : ""}`}
+      className={cn(
+        "group border-surface-1 bg-mantle focus:ring-blue/50 cursor-pointer rounded-xl border p-5 transition-all duration-200 focus:ring-2 focus:outline-none",
+        isExpanded
+          ? "border-mauve/50 shadow-mauve/5 shadow-lg"
+          : "hover:border-blue/40 hover:shadow-blue/5 hover:shadow-lg",
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -33,9 +66,15 @@ export function DistroCard({
               "h-2.5 w-2.5 rounded-full",
               isRunning ? "bg-green shadow-green/50 shadow-[0_0_8px]" : "bg-surface-2",
             )}
+            aria-hidden="true"
           />
           <h3 className="text-text text-base font-semibold">{distro.name}</h3>
-          {distro.is_default && <Star className="fill-yellow text-yellow h-3.5 w-3.5" />}
+          {distro.is_default && (
+            <Star
+              className="fill-yellow text-yellow h-3.5 w-3.5"
+              aria-label="Default distribution"
+            />
+          )}
         </div>
         <span
           className={cn(
@@ -57,6 +96,20 @@ export function DistroCard({
         <span className="bg-surface-0 text-subtext-0 rounded-md px-2 py-0.5 text-xs">
           WSL {distro.wsl_version}
         </span>
+        {snapshotCount > 0 && (
+          <span className="bg-mauve/15 text-mauve inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
+            <Archive className="h-3 w-3" aria-hidden="true" />
+            {snapshotCount}
+          </span>
+        )}
+        <div className="flex-1" />
+        <ChevronDown
+          className={cn(
+            "text-subtext-0 h-4 w-4 transition-transform duration-200",
+            isExpanded && "rotate-180",
+          )}
+          aria-hidden="true"
+        />
       </div>
 
       {/* Actions */}
@@ -70,9 +123,9 @@ export function DistroCard({
               }}
               disabled={isPending}
               className="text-subtext-0 hover:bg-green/15 hover:text-green flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
-              title="Start"
+              aria-label={`Start ${distro.name}`}
             >
-              <Play className="h-3.5 w-3.5" />
+              <Play className="h-3.5 w-3.5" aria-hidden="true" />
               Start
             </button>
           )}
@@ -85,9 +138,9 @@ export function DistroCard({
                 }}
                 disabled={isPending}
                 className="text-subtext-0 hover:bg-yellow/15 hover:text-yellow flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
-                title="Restart"
+                aria-label={`Restart ${distro.name}`}
               >
-                <RotateCw className="h-3.5 w-3.5" />
+                <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
                 Restart
               </button>
               <button
@@ -97,9 +150,9 @@ export function DistroCard({
                 }}
                 disabled={isPending}
                 className="text-subtext-0 hover:bg-red/15 hover:text-red flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
-                title="Stop"
+                aria-label={`Stop ${distro.name}`}
               >
-                <Square className="h-3.5 w-3.5" />
+                <Square className="h-3.5 w-3.5" aria-hidden="true" />
                 Stop
               </button>
             </>
@@ -113,18 +166,20 @@ export function DistroCard({
               onSnapshot();
             }}
             className="text-subtext-0 hover:bg-mauve/15 hover:text-mauve flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-            title="Create snapshot"
+            aria-label={`Create snapshot of ${distro.name}`}
           >
-            <Archive className="h-3.5 w-3.5" />
+            <Archive className="h-3.5 w-3.5" aria-hidden="true" />
             Snapshot
           </button>
           {isRunning && (
             <Link
               to="/monitoring"
+              search={{ distro: distro.name }}
+              onClick={(e) => e.stopPropagation()}
               className="text-subtext-0 hover:bg-sapphire/15 hover:text-sapphire flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-              title="View monitoring"
+              aria-label={`Monitor ${distro.name}`}
             >
-              <Activity className="h-3.5 w-3.5" />
+              <Activity className="h-3.5 w-3.5" aria-hidden="true" />
               Monitor
             </Link>
           )}

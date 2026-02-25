@@ -143,6 +143,7 @@ pub fn run() {
             settings_commands::get_wsl_config,
             settings_commands::update_wsl_config,
             settings_commands::compact_vhdx,
+            settings_commands::get_wsl_version,
             audit_commands::search_audit_log,
             debug_commands::get_debug_logs,
             debug_commands::clear_debug_logs,

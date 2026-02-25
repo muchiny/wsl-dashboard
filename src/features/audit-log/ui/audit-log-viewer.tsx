@@ -1,15 +1,19 @@
 import { useState } from "react";
 import { ScrollText, Search } from "lucide-react";
 import { useAuditLog } from "../api/queries";
+import { useDebounce } from "@/shared/hooks/use-debounce";
 import { formatRelativeTime } from "@/shared/lib/formatters";
 
 export function AuditLogViewer() {
   const [actionFilter, setActionFilter] = useState("");
   const [targetFilter, setTargetFilter] = useState("");
 
+  const debouncedAction = useDebounce(actionFilter, 300);
+  const debouncedTarget = useDebounce(targetFilter, 300);
+
   const { data: entries, isLoading } = useAuditLog({
-    action_filter: actionFilter || undefined,
-    target_filter: targetFilter || undefined,
+    action_filter: debouncedAction || undefined,
+    target_filter: debouncedTarget || undefined,
   });
 
   return (
@@ -22,22 +26,30 @@ export function AuditLogViewer() {
         </div>
         <div className="flex gap-2">
           <div className="relative flex-1 sm:flex-none">
-            <Search className="text-overlay-0 absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2" />
+            <Search
+              className="text-overlay-0 absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2"
+              aria-hidden="true"
+            />
             <input
               type="text"
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
               placeholder="Filter action..."
+              aria-label="Filter by action"
               className="border-surface-1 bg-base text-text focus:border-blue w-full rounded-lg border py-1 pr-2 pl-7 text-xs focus:outline-none sm:w-36"
             />
           </div>
           <div className="relative flex-1 sm:flex-none">
-            <Search className="text-overlay-0 absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2" />
+            <Search
+              className="text-overlay-0 absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2"
+              aria-hidden="true"
+            />
             <input
               type="text"
               value={targetFilter}
               onChange={(e) => setTargetFilter(e.target.value)}
               placeholder="Filter target..."
+              aria-label="Filter by target"
               className="border-surface-1 bg-base text-text focus:border-blue w-full rounded-lg border py-1 pr-2 pl-7 text-xs focus:outline-none sm:w-36"
             />
           </div>
@@ -53,7 +65,10 @@ export function AuditLogViewer() {
       )}
 
       {entries && entries.length === 0 && (
-        <div className="text-subtext-0 p-8 text-center text-sm">No audit entries found.</div>
+        <div className="flex flex-col items-center px-8 py-10 text-center">
+          <ScrollText className="text-surface-2 mb-2 h-8 w-8" />
+          <p className="text-subtext-0 text-sm">No audit entries found.</p>
+        </div>
       )}
 
       {entries && entries.length > 0 && (

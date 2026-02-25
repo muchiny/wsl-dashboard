@@ -1,6 +1,7 @@
 import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/react-router";
 import { Header } from "@/widgets/header/ui/header";
 import { DebugConsole } from "@/widgets/debug-console/ui/debug-console";
+import { ToastContainer } from "@/shared/ui/toast";
 import { DistrosPage } from "@/pages/distros/ui/distros-page";
 import { MonitoringPage } from "@/pages/monitoring/ui/monitoring-page";
 import { SettingsPage } from "@/pages/settings/ui/settings-page";
@@ -19,6 +20,7 @@ function RootLayout() {
         </ErrorBoundary>
       </main>
       <DebugConsole />
+      <ToastContainer />
     </div>
   );
 }
@@ -37,6 +39,9 @@ const monitoringRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/monitoring",
   component: MonitoringPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    distro: (search.distro as string) || undefined,
+  }),
 });
 
 const settingsRoute = createRoute({

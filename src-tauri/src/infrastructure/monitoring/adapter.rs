@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use std::sync::Arc;
-use tokio::time::{sleep, Duration};
 
 use crate::domain::entities::monitoring::{
     CpuMetrics, DiskMetrics, MemoryMetrics, NetworkMetrics, ProcessInfo,
@@ -155,48 +154,55 @@ impl ProcFsMonitoringAdapter {
 #[async_trait]
 impl MonitoringProviderPort for ProcFsMonitoringAdapter {
     async fn get_cpu_usage(&self, distro: &DistroName) -> Result<CpuMetrics, DomainError> {
-        // Take two /proc/stat snapshots 500ms apart for delta-based CPU calculation
-        let output1 = self
-            .wsl_manager
-            .exec_in_distro(distro, "cat /proc/stat")
-            .await?;
-
-        sleep(Duration::from_millis(500)).await;
-
-        let output2 = self
+        // Single wsl.exe call: two /proc/stat snapshots 200ms apart + load average.
+        // This halves latency vs two separate wsl.exe invocations + 500ms Rust sleep.
+        let output = self
             .wsl_manager
             .exec_in_distro(
                 distro,
-                "cat /proc/stat && echo '---LOADAVG---' && cat /proc/loadavg",
+                concat!(
+                    "cat /proc/stat",
+                    " && echo __NEXUS_SEP__",
+                    " && sleep 0.2",
+                    " && cat /proc/stat",
+                    " && echo __NEXUS_SEP__",
+                    " && cat /proc/loadavg",
+                ),
             )
             .await?;
 
-        // Parse load average from second sample
-        let load_average = output2
-            .lines()
-            .find(|l| !l.starts_with("cpu") && !l.starts_with("intr") && !l.starts_with("---"))
-            .and_then(|line| {
-                let parts: Vec<f64> = line
-                    .split_whitespace()
-                    .take(3)
-                    .filter_map(|s| s.parse().ok())
-                    .collect();
-                if parts.len() >= 3 {
-                    Some([parts[0], parts[1], parts[2]])
-                } else {
-                    None
-                }
-            })
-            .unwrap_or([0.0; 3]);
+        let sections: Vec<&str> = output.split("__NEXUS_SEP__\n").collect();
+        let (stat1, stat2, loadavg_raw) = if sections.len() >= 3 {
+            (sections[0], sections[1], sections[2].trim())
+        } else {
+            // Fallback: return zeroed metrics rather than error
+            return Ok(CpuMetrics {
+                usage_percent: 0.0,
+                per_core: vec![],
+                load_average: [0.0; 3],
+            });
+        };
+
+        // Parse load average
+        let la: Vec<f64> = loadavg_raw
+            .split_whitespace()
+            .take(3)
+            .filter_map(|s| s.parse().ok())
+            .collect();
+        let load_average = if la.len() >= 3 {
+            [la[0], la[1], la[2]]
+        } else {
+            [0.0; 3]
+        };
 
         // Parse aggregate CPU line
-        let cpu_before = output1
+        let cpu_before = stat1
             .lines()
             .find(|l| l.starts_with("cpu "))
             .and_then(Self::parse_cpu_line)
             .unwrap_or([0; 8]);
 
-        let cpu_after = output2
+        let cpu_after = stat2
             .lines()
             .find(|l| l.starts_with("cpu "))
             .and_then(Self::parse_cpu_line)
@@ -205,13 +211,13 @@ impl MonitoringProviderPort for ProcFsMonitoringAdapter {
         let usage_percent = Self::cpu_usage_from_samples(cpu_before, cpu_after);
 
         // Parse per-core lines (cpu0, cpu1, ...)
-        let cores_before: Vec<[u64; 8]> = output1
+        let cores_before: Vec<[u64; 8]> = stat1
             .lines()
             .filter(|l| l.starts_with("cpu") && !l.starts_with("cpu "))
             .filter_map(Self::parse_cpu_line)
             .collect();
 
-        let cores_after: Vec<[u64; 8]> = output2
+        let cores_after: Vec<[u64; 8]> = stat2
             .lines()
             .filter(|l| l.starts_with("cpu") && !l.starts_with("cpu "))
             .filter_map(Self::parse_cpu_line)

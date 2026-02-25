@@ -19,10 +19,16 @@ impl SqliteDb {
     pub async fn new(db_path: &str) -> Result<Self, DomainError> {
         let options = SqliteConnectOptions::from_str(db_path)
             .map_err(|e| DomainError::DatabaseError(e.to_string()))?
-            .create_if_missing(true);
+            .create_if_missing(true)
+            .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+            .synchronous(sqlx::sqlite::SqliteSynchronous::Normal)
+            .busy_timeout(std::time::Duration::from_secs(5))
+            .pragma("temp_store", "MEMORY")
+            .pragma("mmap_size", "268435456")
+            .pragma("cache_size", "-8000");
 
         let pool = SqlitePoolOptions::new()
-            .max_connections(5)
+            .max_connections(2)
             .connect_with(options)
             .await
             .map_err(|e| DomainError::DatabaseError(e.to_string()))?;

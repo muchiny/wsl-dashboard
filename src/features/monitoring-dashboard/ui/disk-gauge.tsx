@@ -12,7 +12,7 @@ export function DiskGauge({ disk }: DiskGaugeProps) {
   const isCritical = percent > 90;
 
   return (
-    <div className="border-surface-1 bg-mantle rounded-xl border p-4">
+    <div className="border-surface-1 bg-mantle min-w-0 rounded-xl border p-4">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="text-sm font-semibold">Disk Usage</h4>
         {disk && (

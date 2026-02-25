@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Power, Plus, Archive, ChevronDown, ChevronUp } from "lucide-react";
+import { Power, Plus } from "lucide-react";
 import { DistroList } from "@/features/distro-list/ui/distro-list";
 import { useDistroEvents } from "@/features/distro-events/hooks/use-distro-events";
 import { useDistros } from "@/features/distro-list/api/queries";
 import { useShutdownAll } from "@/features/distro-list/api/mutations";
-import { SnapshotList } from "@/features/snapshot-list/ui/snapshot-list";
 import { CreateSnapshotDialog } from "@/features/snapshot-list/ui/create-snapshot-dialog";
 import { RestoreSnapshotDialog } from "@/features/snapshot-list/ui/restore-snapshot-dialog";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { toast } from "@/shared/ui/toast";
 
 export function DistrosPage() {
   useDistroEvents();
@@ -16,7 +17,7 @@ export function DistrosPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createForDistro, setCreateForDistro] = useState("");
   const [restoreSnapshotId, setRestoreSnapshotId] = useState<string | null>(null);
-  const [showSnapshots, setShowSnapshots] = useState(true);
+  const [showShutdownConfirm, setShowShutdownConfirm] = useState(false);
 
   const running = distros?.filter((d) => d.state === "Running").length ?? 0;
   const stopped = (distros?.length ?? 0) - running;
@@ -36,12 +37,12 @@ export function DistrosPage() {
             <p className="text-subtext-0 text-xs font-medium tracking-wider uppercase">Total</p>
             <p className="text-text text-xl font-bold sm:text-2xl">{total}</p>
           </div>
-          <div className="bg-surface-1 h-8 w-px" />
+          <div className="bg-surface-1 h-8 w-px" aria-hidden="true" />
           <div>
             <p className="text-subtext-0 text-xs font-medium tracking-wider uppercase">Running</p>
             <p className="text-green text-xl font-bold sm:text-2xl">{running}</p>
           </div>
-          <div className="bg-surface-1 h-8 w-px" />
+          <div className="bg-surface-1 h-8 w-px" aria-hidden="true" />
           <div>
             <p className="text-subtext-0 text-xs font-medium tracking-wider uppercase">Stopped</p>
             <p className="text-subtext-0 text-xl font-bold sm:text-2xl">{stopped}</p>
@@ -60,7 +61,7 @@ export function DistrosPage() {
             <span className="hidden sm:inline">New</span> Snapshot
           </button>
           <button
-            onClick={() => shutdownAll.mutate()}
+            onClick={() => setShowShutdownConfirm(true)}
             disabled={shutdownAll.isPending || running === 0}
             className="bg-red/15 text-red hover:bg-red/25 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-40 sm:px-4 sm:py-2.5"
           >
@@ -70,31 +71,8 @@ export function DistrosPage() {
         </div>
       </div>
 
-      {/* Distro Grid */}
-      <DistroList onSnapshot={handleSnapshot} />
-
-      {/* Snapshots Section */}
-      <div className="border-surface-1 bg-mantle rounded-xl border">
-        <button
-          onClick={() => setShowSnapshots(!showSnapshots)}
-          className="hover:bg-surface-0/50 flex w-full items-center justify-between px-5 py-4 text-left transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <Archive className="text-mauve h-5 w-5" />
-            <h3 className="text-text text-base font-semibold">Snapshots</h3>
-          </div>
-          {showSnapshots ? (
-            <ChevronUp className="text-subtext-0 h-4 w-4" />
-          ) : (
-            <ChevronDown className="text-subtext-0 h-4 w-4" />
-          )}
-        </button>
-        {showSnapshots && (
-          <div className="border-surface-0 border-t p-5">
-            <SnapshotList onRestore={(id) => setRestoreSnapshotId(id)} />
-          </div>
-        )}
-      </div>
+      {/* Distro Grid with per-distro snapshot panels */}
+      <DistroList onSnapshot={handleSnapshot} onRestore={(id) => setRestoreSnapshotId(id)} />
 
       {/* Dialogs */}
       <CreateSnapshotDialog
@@ -106,6 +84,26 @@ export function DistrosPage() {
         open={!!restoreSnapshotId}
         snapshotId={restoreSnapshotId}
         onClose={() => setRestoreSnapshotId(null)}
+      />
+      <ConfirmDialog
+        open={showShutdownConfirm}
+        title="Shutdown all distributions"
+        description={`This will terminate all ${running} running distribution${running > 1 ? "s" : ""}. Any unsaved work will be lost.`}
+        confirmLabel="Shutdown All"
+        variant="danger"
+        isPending={shutdownAll.isPending}
+        onConfirm={() => {
+          shutdownAll.mutate(undefined, {
+            onSuccess: () => {
+              toast.success("All distributions shut down");
+              setShowShutdownConfirm(false);
+            },
+            onError: (err) => {
+              toast.error(`Shutdown failed: ${err.message}`);
+            },
+          });
+        }}
+        onCancel={() => setShowShutdownConfirm(false)}
       />
     </div>
   );

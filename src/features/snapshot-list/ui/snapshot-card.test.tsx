@@ -175,4 +175,28 @@ describe("SnapshotCard", () => {
     fireEvent.click(screen.getByTitle("Delete snapshot"));
     expect(onDelete).toHaveBeenCalledOnce();
   });
+
+  it("hides distro name when hideDistroName is true", () => {
+    render(
+      <SnapshotCard
+        snapshot={makeSnapshot({ distro_name: "Arch" })}
+        onDelete={noop}
+        onRestore={noop}
+        hideDistroName
+      />,
+    );
+    expect(screen.queryByText("Arch")).not.toBeInTheDocument();
+  });
+
+  it("shows distro name when hideDistroName is false", () => {
+    render(
+      <SnapshotCard
+        snapshot={makeSnapshot({ distro_name: "Arch" })}
+        onDelete={noop}
+        onRestore={noop}
+        hideDistroName={false}
+      />,
+    );
+    expect(screen.getByText("Arch")).toBeInTheDocument();
+  });
 });

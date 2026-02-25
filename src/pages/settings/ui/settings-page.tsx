@@ -1,11 +1,20 @@
 import { useState } from "react";
-import { Settings, FileText, HardDrive, ScrollText } from "lucide-react";
+import { Settings, FileText, HardDrive, ScrollText, SlidersHorizontal } from "lucide-react";
 import { WslConfigEditor } from "@/features/wsl-config/ui/wslconfig-editor";
+import { WslInfoPanel } from "@/features/wsl-config/ui/wsl-info-panel";
 import { VhdxCompactPanel } from "@/features/wsl-config/ui/vhdx-compact-panel";
 import { AuditLogViewer } from "@/features/audit-log/ui/audit-log-viewer";
+import { PreferencesPanel } from "@/features/app-preferences/ui/preferences-panel";
 import { cn } from "@/shared/lib/utils";
 
-type SettingsTab = "config" | "optimization" | "audit";
+const tabs = [
+  { id: "config", label: "WSL Configuration", icon: FileText },
+  { id: "optimization", label: "Optimization", icon: HardDrive },
+  { id: "audit", label: "Audit Log", icon: ScrollText },
+  { id: "preferences", label: "Preferences", icon: SlidersHorizontal },
+] as const;
+
+type SettingsTab = (typeof tabs)[number]["id"];
 
 export function SettingsPage() {
   const [tab, setTab] = useState<SettingsTab>("config");
@@ -22,16 +31,18 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <div className="border-surface-1 bg-mantle flex flex-wrap gap-1 rounded-xl border p-1">
-        {(
-          [
-            { id: "config", label: "WSL Configuration", icon: FileText },
-            { id: "optimization", label: "Optimization", icon: HardDrive },
-            { id: "audit", label: "Audit Log", icon: ScrollText },
-          ] as const
-        ).map((item) => (
+      <div
+        role="tablist"
+        aria-label="Settings sections"
+        className="border-surface-1 bg-mantle flex flex-wrap gap-1 rounded-xl border p-1"
+      >
+        {tabs.map((item) => (
           <button
             key={item.id}
+            role="tab"
+            aria-selected={tab === item.id}
+            aria-controls={`tabpanel-${item.id}`}
+            id={`tab-${item.id}`}
             onClick={() => setTab(item.id)}
             className={cn(
               "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 sm:gap-2 sm:px-4 sm:py-2.5",
@@ -40,15 +51,38 @@ export function SettingsPage() {
                 : "text-subtext-1 hover:bg-surface-0 hover:text-text",
             )}
           >
-            <item.icon className="h-4 w-4" />
+            <item.icon className="h-4 w-4" aria-hidden="true" />
             {item.label}
           </button>
         ))}
       </div>
 
-      {tab === "config" && <WslConfigEditor />}
-      {tab === "optimization" && <VhdxCompactPanel />}
-      {tab === "audit" && <AuditLogViewer />}
+      {tab === "config" && (
+        <div
+          role="tabpanel"
+          id="tabpanel-config"
+          aria-labelledby="tab-config"
+          className="space-y-6"
+        >
+          <WslInfoPanel />
+          <WslConfigEditor />
+        </div>
+      )}
+      {tab === "optimization" && (
+        <div role="tabpanel" id="tabpanel-optimization" aria-labelledby="tab-optimization">
+          <VhdxCompactPanel />
+        </div>
+      )}
+      {tab === "audit" && (
+        <div role="tabpanel" id="tabpanel-audit" aria-labelledby="tab-audit">
+          <AuditLogViewer />
+        </div>
+      )}
+      {tab === "preferences" && (
+        <div role="tabpanel" id="tabpanel-preferences" aria-labelledby="tab-preferences">
+          <PreferencesPanel />
+        </div>
+      )}
     </div>
   );
 }
