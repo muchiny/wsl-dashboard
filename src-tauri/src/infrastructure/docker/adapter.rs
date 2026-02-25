@@ -379,7 +379,7 @@ mod tests {
             #[test]
             fn parse_ports_valid_range(s in "\\PC{0,200}") {
                 for p in DockerCliAdapter::parse_ports(&s) {
-                    prop_assert!(p.container_port <= u16::MAX);
+                    prop_assert!(p.container_port > 0);
                 }
             }
 

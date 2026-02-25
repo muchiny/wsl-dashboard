@@ -50,6 +50,9 @@ mockall = "0.14"
 tokio-test = "0.4"
 proptest = "1"
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(fuzzing)'] }
+
 [profile.release]
 opt-level = "s"
 lto = true

@@ -440,7 +440,7 @@ Inter-|   Receive                                                |  Transmit
                 after in proptest::array::uniform8(0u64..1_000_000)
             ) {
                 let usage = ProcFsMonitoringAdapter::cpu_usage_from_samples(before, after);
-                prop_assert!(usage >= 0.0 && usage <= 100.0);
+                prop_assert!((0.0..=100.0).contains(&usage));
             }
 
             #[test]
