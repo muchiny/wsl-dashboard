@@ -60,9 +60,7 @@ impl From<Snapshot> for SnapshotResponse {
             crate::domain::entities::snapshot::SnapshotStatus::InProgress => {
                 "in_progress".to_string()
             }
-            crate::domain::entities::snapshot::SnapshotStatus::Completed => {
-                "completed".to_string()
-            }
+            crate::domain::entities::snapshot::SnapshotStatus::Completed => "completed".to_string(),
             crate::domain::entities::snapshot::SnapshotStatus::Failed(reason) => {
                 format!("failed: {}", reason)
             }
@@ -92,9 +90,7 @@ impl From<Snapshot> for SnapshotResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entities::snapshot::{
-        ExportFormat, Snapshot, SnapshotStatus, SnapshotType,
-    };
+    use crate::domain::entities::snapshot::{ExportFormat, Snapshot, SnapshotStatus, SnapshotType};
     use crate::domain::value_objects::distro_name::DistroName;
     use crate::domain::value_objects::distro_state::DistroState;
     use crate::domain::value_objects::memory_size::MemorySize;
@@ -170,15 +166,19 @@ mod tests {
 
     #[test]
     fn test_snapshot_response_completed() {
-        let resp =
-            SnapshotResponse::from(make_test_snapshot(SnapshotStatus::Completed, SnapshotType::Full));
+        let resp = SnapshotResponse::from(make_test_snapshot(
+            SnapshotStatus::Completed,
+            SnapshotType::Full,
+        ));
         assert_eq!(resp.status, "completed");
     }
 
     #[test]
     fn test_snapshot_response_in_progress() {
-        let resp =
-            SnapshotResponse::from(make_test_snapshot(SnapshotStatus::InProgress, SnapshotType::Full));
+        let resp = SnapshotResponse::from(make_test_snapshot(
+            SnapshotStatus::InProgress,
+            SnapshotType::Full,
+        ));
         assert_eq!(resp.status, "in_progress");
     }
 
@@ -193,8 +193,10 @@ mod tests {
 
     #[test]
     fn test_snapshot_response_type_full() {
-        let resp =
-            SnapshotResponse::from(make_test_snapshot(SnapshotStatus::Completed, SnapshotType::Full));
+        let resp = SnapshotResponse::from(make_test_snapshot(
+            SnapshotStatus::Completed,
+            SnapshotType::Full,
+        ));
         assert_eq!(resp.snapshot_type, "full");
     }
 
@@ -209,22 +211,28 @@ mod tests {
 
     #[test]
     fn test_snapshot_response_format_extension() {
-        let resp =
-            SnapshotResponse::from(make_test_snapshot(SnapshotStatus::Completed, SnapshotType::Full));
+        let resp = SnapshotResponse::from(make_test_snapshot(
+            SnapshotStatus::Completed,
+            SnapshotType::Full,
+        ));
         assert_eq!(resp.format, "tar.gz");
     }
 
     #[test]
     fn test_snapshot_response_file_size() {
-        let resp =
-            SnapshotResponse::from(make_test_snapshot(SnapshotStatus::Completed, SnapshotType::Full));
+        let resp = SnapshotResponse::from(make_test_snapshot(
+            SnapshotStatus::Completed,
+            SnapshotType::Full,
+        ));
         assert_eq!(resp.file_size_bytes, 1_048_576);
     }
 
     #[test]
     fn test_snapshot_response_parent_id() {
-        let resp =
-            SnapshotResponse::from(make_test_snapshot(SnapshotStatus::Completed, SnapshotType::Full));
+        let resp = SnapshotResponse::from(make_test_snapshot(
+            SnapshotStatus::Completed,
+            SnapshotType::Full,
+        ));
         assert_eq!(resp.parent_id, Some("parent-001".to_string()));
     }
 

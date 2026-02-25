@@ -70,10 +70,8 @@ pub async fn delete_snapshot(
     snapshot_id: String,
     state: State<'_, AppState>,
 ) -> Result<(), DomainError> {
-    let handler = DeleteSnapshotHandler::new(
-        state.snapshot_repo.clone(),
-        state.audit_logger.clone(),
-    );
+    let handler =
+        DeleteSnapshotHandler::new(state.snapshot_repo.clone(), state.audit_logger.clone());
 
     handler
         .handle(DeleteSnapshotCommand {

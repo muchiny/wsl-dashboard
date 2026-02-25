@@ -54,7 +54,12 @@ impl AuditLoggerPort for InMemoryAuditLogger {
             target: target.to_string(),
             details: Some(details.to_string()),
         });
-        tracing::info!(action = action, target = target, details = details, "Audit log");
+        tracing::info!(
+            action = action,
+            target = target,
+            details = details,
+            "Audit log"
+        );
         Ok(())
     }
 

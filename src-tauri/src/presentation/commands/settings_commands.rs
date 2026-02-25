@@ -6,9 +6,7 @@ use crate::domain::value_objects::DistroName;
 use crate::presentation::state::AppState;
 
 #[tauri::command]
-pub async fn get_wsl_config(
-    state: State<'_, AppState>,
-) -> Result<WslGlobalConfig, DomainError> {
+pub async fn get_wsl_config(state: State<'_, AppState>) -> Result<WslGlobalConfig, DomainError> {
     state.wsl_manager.get_global_config().await
 }
 

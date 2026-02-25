@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
-use crate::domain::entities::snapshot::{
-    ExportFormat, Snapshot, SnapshotStatus, SnapshotType,
-};
+use crate::domain::entities::snapshot::{ExportFormat, Snapshot, SnapshotStatus, SnapshotType};
 use crate::domain::errors::DomainError;
 use crate::domain::ports::audit_logger::AuditLoggerPort;
 use crate::domain::ports::snapshot_repository::SnapshotRepositoryPort;
@@ -148,9 +146,7 @@ mod tests {
         let mut wsl_mock = MockWslManagerPort::new();
         wsl_mock
             .expect_export_distro()
-            .withf(|_, path, _| {
-                path.starts_with("/tmp/Ubuntu-") && path.ends_with(".tar.gz")
-            })
+            .withf(|_, path, _| path.starts_with("/tmp/Ubuntu-") && path.ends_with(".tar.gz"))
             .returning(|_, _, _| Err(DomainError::WslCliError("abort".into())));
 
         let mut repo_mock = MockSnapshotRepositoryPort::new();

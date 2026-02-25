@@ -21,8 +21,8 @@ use infrastructure::sqlite::adapter::{SqliteAuditLogger, SqliteDb, SqliteSnapsho
 use infrastructure::wsl_cli::adapter::WslCliAdapter;
 #[cfg(not(fuzzing))]
 use presentation::commands::{
-    audit_commands, distro_commands, docker_commands, iac_commands,
-    monitoring_commands, settings_commands, snapshot_commands,
+    audit_commands, distro_commands, docker_commands, iac_commands, monitoring_commands,
+    settings_commands, snapshot_commands,
 };
 #[cfg(not(fuzzing))]
 use presentation::state::AppState;

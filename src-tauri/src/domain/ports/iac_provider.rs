@@ -1,8 +1,6 @@
 use async_trait::async_trait;
 
-use crate::domain::entities::iac::{
-    AnsiblePlaybook, IacToolset, K8sPod, KubernetesCluster,
-};
+use crate::domain::entities::iac::{AnsiblePlaybook, IacToolset, K8sPod, KubernetesCluster};
 use crate::domain::errors::DomainError;
 use crate::domain::value_objects::DistroName;
 

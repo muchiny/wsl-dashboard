@@ -77,9 +77,7 @@ pub fn parse_df_output(text: &str) -> DiskMetrics {
 }
 
 /// Parse /proc/net/dev output into a list of InterfaceStats.
-pub fn parse_proc_net_dev(
-    text: &str,
-) -> Vec<crate::domain::entities::monitoring::InterfaceStats> {
+pub fn parse_proc_net_dev(text: &str) -> Vec<crate::domain::entities::monitoring::InterfaceStats> {
     let mut interfaces = Vec::new();
     for line in text.lines().skip(2) {
         let parts: Vec<&str> = line.split_whitespace().collect();
@@ -167,7 +165,10 @@ impl MonitoringProviderPort for ProcFsMonitoringAdapter {
 
         let output2 = self
             .wsl_manager
-            .exec_in_distro(distro, "cat /proc/stat && echo '---LOADAVG---' && cat /proc/loadavg")
+            .exec_in_distro(
+                distro,
+                "cat /proc/stat && echo '---LOADAVG---' && cat /proc/loadavg",
+            )
             .await?;
 
         // Parse load average from second sample
@@ -245,10 +246,7 @@ impl MonitoringProviderPort for ProcFsMonitoringAdapter {
         Ok(parse_df_output(&output))
     }
 
-    async fn get_network_stats(
-        &self,
-        distro: &DistroName,
-    ) -> Result<NetworkMetrics, DomainError> {
+    async fn get_network_stats(&self, distro: &DistroName) -> Result<NetworkMetrics, DomainError> {
         let output = self
             .wsl_manager
             .exec_in_distro(distro, "cat /proc/net/dev")
@@ -258,10 +256,7 @@ impl MonitoringProviderPort for ProcFsMonitoringAdapter {
         })
     }
 
-    async fn get_processes(
-        &self,
-        distro: &DistroName,
-    ) -> Result<Vec<ProcessInfo>, DomainError> {
+    async fn get_processes(&self, distro: &DistroName) -> Result<Vec<ProcessInfo>, DomainError> {
         let output = self
             .wsl_manager
             .exec_in_distro(distro, "ps aux --no-headers --sort=-%cpu")

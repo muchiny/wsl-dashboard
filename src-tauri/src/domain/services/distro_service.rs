@@ -60,12 +60,7 @@ mod tests {
     use crate::domain::value_objects::WslVersion;
 
     fn make_distro(name: &str, state: DistroState) -> Distro {
-        Distro::new(
-            DistroName::new(name).unwrap(),
-            state,
-            WslVersion::V2,
-            false,
-        )
+        Distro::new(DistroName::new(name).unwrap(), state, WslVersion::V2, false)
     }
 
     #[tokio::test]

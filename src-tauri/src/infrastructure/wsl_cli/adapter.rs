@@ -43,11 +43,7 @@ impl WslCliAdapter {
     }
 
     /// Run a command inside a distro and return UTF-8 output
-    async fn exec_in_distro_raw(
-        &self,
-        distro: &str,
-        command: &str,
-    ) -> Result<String, DomainError> {
+    async fn exec_in_distro_raw(&self, distro: &str, command: &str) -> Result<String, DomainError> {
         let output = Command::new(&self.wsl_exe)
             .args(["-d", distro, "-e", "sh", "-c", command])
             .stdout(Stdio::piped())
@@ -80,7 +76,9 @@ impl WslCliAdapter {
     }
 
     /// Parse a simple INI-style config into a map of section -> key -> value
-    pub fn parse_ini(content: &str) -> std::collections::HashMap<String, std::collections::HashMap<String, String>> {
+    pub fn parse_ini(
+        content: &str,
+    ) -> std::collections::HashMap<String, std::collections::HashMap<String, String>> {
         let mut sections = std::collections::HashMap::new();
         let mut current_section = String::new();
 
@@ -206,10 +204,7 @@ impl WslManagerPort for WslCliAdapter {
         })
     }
 
-    async fn get_distro_config(
-        &self,
-        name: &DistroName,
-    ) -> Result<WslDistroConfig, DomainError> {
+    async fn get_distro_config(&self, name: &DistroName) -> Result<WslDistroConfig, DomainError> {
         let output = self
             .exec_in_distro_raw(name.as_str(), "cat /etc/wsl.conf 2>/dev/null || echo ''")
             .await?;
@@ -303,20 +298,14 @@ mod tests {
     fn test_parse_ini_basic_section() {
         let ini = "[wsl2]\nmemory=4GB\n";
         let sections = WslCliAdapter::parse_ini(ini);
-        assert_eq!(
-            sections.get("wsl2").unwrap().get("memory").unwrap(),
-            "4GB"
-        );
+        assert_eq!(sections.get("wsl2").unwrap().get("memory").unwrap(), "4GB");
     }
 
     #[test]
     fn test_parse_ini_multiple_sections() {
         let ini = "[wsl2]\nmemory=4GB\n[automount]\nenabled=true\n";
         let sections = WslCliAdapter::parse_ini(ini);
-        assert_eq!(
-            sections.get("wsl2").unwrap().get("memory").unwrap(),
-            "4GB"
-        );
+        assert_eq!(sections.get("wsl2").unwrap().get("memory").unwrap(), "4GB");
         assert_eq!(
             sections.get("automount").unwrap().get("enabled").unwrap(),
             "true"
@@ -328,20 +317,14 @@ mod tests {
         let ini = "# this is a comment\n; another comment\n[wsl2]\nmemory=4GB\n";
         let sections = WslCliAdapter::parse_ini(ini);
         assert_eq!(sections.len(), 1);
-        assert_eq!(
-            sections.get("wsl2").unwrap().get("memory").unwrap(),
-            "4GB"
-        );
+        assert_eq!(sections.get("wsl2").unwrap().get("memory").unwrap(), "4GB");
     }
 
     #[test]
     fn test_parse_ini_empty_lines_ignored() {
         let ini = "[wsl2]\n\nmemory=4GB\n\n";
         let sections = WslCliAdapter::parse_ini(ini);
-        assert_eq!(
-            sections.get("wsl2").unwrap().get("memory").unwrap(),
-            "4GB"
-        );
+        assert_eq!(sections.get("wsl2").unwrap().get("memory").unwrap(), "4GB");
     }
 
     #[test]
@@ -362,10 +345,7 @@ mod tests {
     fn test_parse_ini_values_trimmed() {
         let ini = "[wsl2]\nmemory = 4GB \n";
         let sections = WslCliAdapter::parse_ini(ini);
-        assert_eq!(
-            sections.get("wsl2").unwrap().get("memory").unwrap(),
-            "4GB"
-        );
+        assert_eq!(sections.get("wsl2").unwrap().get("memory").unwrap(), "4GB");
     }
 
     #[test]
@@ -379,10 +359,7 @@ mod tests {
         let ini = "key=val\n";
         let sections = WslCliAdapter::parse_ini(ini);
         // Stored under empty string section
-        assert_eq!(
-            sections.get("").unwrap().get("key").unwrap(),
-            "val"
-        );
+        assert_eq!(sections.get("").unwrap().get("key").unwrap(), "val");
     }
 
     mod proptests {

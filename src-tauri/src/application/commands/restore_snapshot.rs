@@ -72,9 +72,7 @@ impl RestoreSnapshotHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entities::snapshot::{
-        ExportFormat, Snapshot, SnapshotStatus, SnapshotType,
-    };
+    use crate::domain::entities::snapshot::{ExportFormat, Snapshot, SnapshotStatus, SnapshotType};
     use crate::domain::ports::audit_logger::MockAuditLoggerPort;
     use crate::domain::ports::snapshot_repository::MockSnapshotRepositoryPort;
     use crate::domain::ports::wsl_manager::MockWslManagerPort;

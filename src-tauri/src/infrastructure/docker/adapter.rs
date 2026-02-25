@@ -55,8 +55,7 @@ impl DockerCliAdapter {
                         protocol: proto.to_string(),
                     })
                 } else {
-                    let (port_str, proto) =
-                        mapping.split_once('/').unwrap_or((mapping, "tcp"));
+                    let (port_str, proto) = mapping.split_once('/').unwrap_or((mapping, "tcp"));
                     let container_port = port_str.parse::<u16>().ok()?;
                     Some(PortMapping {
                         host_port: None,
@@ -89,7 +88,10 @@ impl DockerProviderPort for DockerCliAdapter {
     async fn is_available(&self, distro: &DistroName) -> Result<bool, DomainError> {
         match self
             .wsl_manager
-            .exec_in_distro(distro, "docker info --format '{{.ServerVersion}}' 2>/dev/null")
+            .exec_in_distro(
+                distro,
+                "docker info --format '{{.ServerVersion}}' 2>/dev/null",
+            )
             .await
         {
             Ok(output) => Ok(!output.trim().is_empty()),
@@ -308,8 +310,7 @@ mod tests {
     async fn test_list_images_parses_docker_images() {
         use crate::domain::ports::wsl_manager::MockWslManagerPort;
 
-        let docker_output =
-            "sha256:abc\tnginx\tlatest\t150MB\t2025-01-15 10:00:00 +0000\n";
+        let docker_output = "sha256:abc\tnginx\tlatest\t150MB\t2025-01-15 10:00:00 +0000\n";
         let mut mock = MockWslManagerPort::new();
         mock.expect_exec_in_distro()
             .returning(move |_, _| Ok(docker_output.to_string()));

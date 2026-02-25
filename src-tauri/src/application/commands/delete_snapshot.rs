@@ -46,9 +46,7 @@ impl DeleteSnapshotHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entities::snapshot::{
-        ExportFormat, Snapshot, SnapshotStatus, SnapshotType,
-    };
+    use crate::domain::entities::snapshot::{ExportFormat, Snapshot, SnapshotStatus, SnapshotType};
     use crate::domain::ports::audit_logger::MockAuditLoggerPort;
     use crate::domain::ports::snapshot_repository::MockSnapshotRepositoryPort;
     use crate::domain::value_objects::{DistroName, MemorySize};

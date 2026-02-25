@@ -9,9 +9,7 @@ use crate::domain::value_objects::DistroName;
 use crate::presentation::state::AppState;
 
 #[tauri::command]
-pub async fn list_distros(
-    state: State<'_, AppState>,
-) -> Result<Vec<DistroResponse>, DomainError> {
+pub async fn list_distros(state: State<'_, AppState>) -> Result<Vec<DistroResponse>, DomainError> {
     let handler = ListDistrosHandler::new(state.wsl_manager.clone());
     handler.handle().await
 }
@@ -27,58 +25,35 @@ pub async fn get_distro_details(
 }
 
 #[tauri::command]
-pub async fn start_distro(
-    name: String,
-    state: State<'_, AppState>,
-) -> Result<(), DomainError> {
+pub async fn start_distro(name: String, state: State<'_, AppState>) -> Result<(), DomainError> {
     let distro_name = DistroName::new(&name)?;
     let service = DistroService::new(state.wsl_manager.clone());
     service.start(&distro_name).await?;
-    state
-        .audit_logger
-        .log("distro.start", &name)
-        .await?;
+    state.audit_logger.log("distro.start", &name).await?;
     Ok(())
 }
 
 #[tauri::command]
-pub async fn stop_distro(
-    name: String,
-    state: State<'_, AppState>,
-) -> Result<(), DomainError> {
+pub async fn stop_distro(name: String, state: State<'_, AppState>) -> Result<(), DomainError> {
     let distro_name = DistroName::new(&name)?;
     let service = DistroService::new(state.wsl_manager.clone());
     service.stop(&distro_name).await?;
-    state
-        .audit_logger
-        .log("distro.stop", &name)
-        .await?;
+    state.audit_logger.log("distro.stop", &name).await?;
     Ok(())
 }
 
 #[tauri::command]
-pub async fn restart_distro(
-    name: String,
-    state: State<'_, AppState>,
-) -> Result<(), DomainError> {
+pub async fn restart_distro(name: String, state: State<'_, AppState>) -> Result<(), DomainError> {
     let distro_name = DistroName::new(&name)?;
     let service = DistroService::new(state.wsl_manager.clone());
     service.restart(&distro_name).await?;
-    state
-        .audit_logger
-        .log("distro.restart", &name)
-        .await?;
+    state.audit_logger.log("distro.restart", &name).await?;
     Ok(())
 }
 
 #[tauri::command]
-pub async fn shutdown_all(
-    state: State<'_, AppState>,
-) -> Result<(), DomainError> {
+pub async fn shutdown_all(state: State<'_, AppState>) -> Result<(), DomainError> {
     state.wsl_manager.shutdown_all().await?;
-    state
-        .audit_logger
-        .log("wsl.shutdown_all", "all")
-        .await?;
+    state.audit_logger.log("wsl.shutdown_all", "all").await?;
     Ok(())
 }

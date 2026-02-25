@@ -22,13 +22,10 @@ describe("cn", () => {
 describe("cn - property-based", () => {
   it("falsy values produce empty or equivalent result", () => {
     fc.assert(
-      fc.property(
-        fc.constantFrom(null, undefined, false, 0, ""),
-        (falsy) => {
-          const result = cn(falsy);
-          return result === "" || result === cn();
-        },
-      ),
+      fc.property(fc.constantFrom(null, undefined, false, 0, ""), (falsy) => {
+        const result = cn(falsy);
+        return result === "" || result === cn();
+      }),
     );
   });
 

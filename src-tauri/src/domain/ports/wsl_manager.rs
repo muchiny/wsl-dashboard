@@ -44,20 +44,14 @@ pub trait WslManagerPort: Send + Sync {
     async fn shutdown_all(&self) -> Result<(), DomainError>;
 
     /// Execute a command inside a distribution
-    async fn exec_in_distro(
-        &self,
-        name: &DistroName,
-        command: &str,
-    ) -> Result<String, DomainError>;
+    async fn exec_in_distro(&self, name: &DistroName, command: &str)
+        -> Result<String, DomainError>;
 
     /// Read the global .wslconfig
     async fn get_global_config(&self) -> Result<WslGlobalConfig, DomainError>;
 
     /// Read a distro's /etc/wsl.conf
-    async fn get_distro_config(
-        &self,
-        name: &DistroName,
-    ) -> Result<WslDistroConfig, DomainError>;
+    async fn get_distro_config(&self, name: &DistroName) -> Result<WslDistroConfig, DomainError>;
 
     /// Write the global .wslconfig
     async fn update_global_config(&self, config: WslGlobalConfig) -> Result<(), DomainError>;

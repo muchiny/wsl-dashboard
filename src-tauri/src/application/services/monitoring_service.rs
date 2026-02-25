@@ -40,21 +40,14 @@ impl MonitoringService {
                         let _ = service.tx.send(metrics);
                     }
                     Err(e) => {
-                        tracing::warn!(
-                            "Monitoring error for {}: {}",
-                            distro_name,
-                            e
-                        );
+                        tracing::warn!("Monitoring error for {}: {}", distro_name, e);
                     }
                 }
             }
         })
     }
 
-    async fn collect_metrics(
-        &self,
-        distro: &DistroName,
-    ) -> Result<SystemMetrics, DomainError> {
+    async fn collect_metrics(&self, distro: &DistroName) -> Result<SystemMetrics, DomainError> {
         let (cpu, memory, disk, network) = tokio::try_join!(
             self.monitoring.get_cpu_usage(distro),
             self.monitoring.get_memory_usage(distro),
@@ -122,12 +115,10 @@ mod tests {
     #[tokio::test]
     async fn test_collect_metrics_aggregates_all() {
         let mut mock = MockMonitoringProviderPort::new();
-        mock.expect_get_cpu_usage()
-            .returning(|_| Ok(make_cpu()));
+        mock.expect_get_cpu_usage().returning(|_| Ok(make_cpu()));
         mock.expect_get_memory_usage()
             .returning(|_| Ok(make_memory()));
-        mock.expect_get_disk_usage()
-            .returning(|_| Ok(make_disk()));
+        mock.expect_get_disk_usage().returning(|_| Ok(make_disk()));
         mock.expect_get_network_stats()
             .returning(|_| Ok(make_network()));
 
@@ -150,8 +141,7 @@ mod tests {
             .returning(|_| Err(DomainError::WslCliError("cpu fail".into())));
         mock.expect_get_memory_usage()
             .returning(|_| Ok(make_memory()));
-        mock.expect_get_disk_usage()
-            .returning(|_| Ok(make_disk()));
+        mock.expect_get_disk_usage().returning(|_| Ok(make_disk()));
         mock.expect_get_network_stats()
             .returning(|_| Ok(make_network()));
 
@@ -165,12 +155,10 @@ mod tests {
     #[tokio::test]
     async fn test_subscribe_receives_metrics() {
         let mut mock = MockMonitoringProviderPort::new();
-        mock.expect_get_cpu_usage()
-            .returning(|_| Ok(make_cpu()));
+        mock.expect_get_cpu_usage().returning(|_| Ok(make_cpu()));
         mock.expect_get_memory_usage()
             .returning(|_| Ok(make_memory()));
-        mock.expect_get_disk_usage()
-            .returning(|_| Ok(make_disk()));
+        mock.expect_get_disk_usage().returning(|_| Ok(make_disk()));
         mock.expect_get_network_stats()
             .returning(|_| Ok(make_network()));
 

@@ -20,10 +20,7 @@ pub fn parse_k8s_pods(text: &str, namespace: &str) -> Vec<K8sPod> {
                 namespace: namespace.to_string(),
                 ready: parts.get(1).unwrap_or(&"").to_string(),
                 status: parts.get(2).unwrap_or(&"").to_string(),
-                restarts: parts
-                    .get(3)
-                    .and_then(|s| s.parse().ok())
-                    .unwrap_or(0),
+                restarts: parts.get(3).and_then(|s| s.parse().ok()).unwrap_or(0),
             }
         })
         .collect()
@@ -59,11 +56,7 @@ impl IacCliAdapter {
         Self { wsl_manager }
     }
 
-    async fn get_tool_version(
-        &self,
-        distro: &DistroName,
-        cmd: &str,
-    ) -> Option<String> {
+    async fn get_tool_version(&self, distro: &DistroName, cmd: &str) -> Option<String> {
         self.wsl_manager
             .exec_in_distro(distro, &format!("{cmd} --version 2>/dev/null | head -1"))
             .await
@@ -124,10 +117,7 @@ impl IacProviderPort for IacCliAdapter {
             .map(|v| format!(" --extra-vars '{v}'"))
             .unwrap_or_default();
         self.wsl_manager
-            .exec_in_distro(
-                distro,
-                &format!("ansible-playbook {playbook_path}{extra}"),
-            )
+            .exec_in_distro(distro, &format!("ansible-playbook {playbook_path}{extra}"))
             .await
     }
 
@@ -192,9 +182,7 @@ impl IacProviderPort for IacCliAdapter {
             .wsl_manager
             .exec_in_distro(
                 distro,
-                &format!(
-                    "kubectl get pods -n {namespace} --no-headers 2>/dev/null"
-                ),
+                &format!("kubectl get pods -n {namespace} --no-headers 2>/dev/null"),
             )
             .await?;
 
@@ -257,12 +245,16 @@ mod tests {
     #[tokio::test]
     async fn test_list_ansible_playbooks() {
         let mut mock = MockWslManagerPort::new();
-        mock.expect_exec_in_distro()
-            .returning(|_, _| Ok("/home/user/playbooks/setup.yml\n/home/user/playbooks/deploy.yaml\n".to_string()));
+        mock.expect_exec_in_distro().returning(|_, _| {
+            Ok("/home/user/playbooks/setup.yml\n/home/user/playbooks/deploy.yaml\n".to_string())
+        });
 
         let adapter = IacCliAdapter::new(Arc::new(mock));
         let name = DistroName::new("Ubuntu").unwrap();
-        let playbooks = adapter.list_ansible_playbooks(&name, "/home/user/playbooks").await.unwrap();
+        let playbooks = adapter
+            .list_ansible_playbooks(&name, "/home/user/playbooks")
+            .await
+            .unwrap();
 
         assert_eq!(playbooks.len(), 2);
         assert_eq!(playbooks[0].name, "setup");

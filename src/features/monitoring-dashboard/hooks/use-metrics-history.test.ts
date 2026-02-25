@@ -259,31 +259,27 @@ describe("useMetricsHistory - property-based", () => {
 
   it("memPercent is always between 0 and 100", () => {
     fc.assert(
-      fc.property(
-        fc.nat(1_000_000_000),
-        fc.nat(1_000_000_000),
-        (total, used) => {
-          if (total === 0) return true;
-          const adjustedUsed = Math.min(used, total);
-          const { result } = renderHook(() => useMetricsHistory());
-          let points: ReturnType<typeof result.current.push> = [];
-          act(() => {
-            points = result.current.push(
-              makeMetrics({
-                memory: {
-                  total_bytes: total,
-                  used_bytes: adjustedUsed,
-                  available_bytes: total - adjustedUsed,
-                  cached_bytes: 0,
-                  swap_total_bytes: 0,
-                  swap_used_bytes: 0,
-                },
-              }),
-            );
-          });
-          return points[0]!.memPercent >= 0 && points[0]!.memPercent <= 100;
-        },
-      ),
+      fc.property(fc.nat(1_000_000_000), fc.nat(1_000_000_000), (total, used) => {
+        if (total === 0) return true;
+        const adjustedUsed = Math.min(used, total);
+        const { result } = renderHook(() => useMetricsHistory());
+        let points: ReturnType<typeof result.current.push> = [];
+        act(() => {
+          points = result.current.push(
+            makeMetrics({
+              memory: {
+                total_bytes: total,
+                used_bytes: adjustedUsed,
+                available_bytes: total - adjustedUsed,
+                cached_bytes: 0,
+                swap_total_bytes: 0,
+                swap_used_bytes: 0,
+              },
+            }),
+          );
+        });
+        return points[0]!.memPercent >= 0 && points[0]!.memPercent <= 100;
+      }),
     );
   });
 });

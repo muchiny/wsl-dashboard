@@ -3,9 +3,7 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::{Row, SqlitePool};
 use std::str::FromStr;
 
-use crate::domain::entities::snapshot::{
-    ExportFormat, Snapshot, SnapshotStatus, SnapshotType,
-};
+use crate::domain::entities::snapshot::{ExportFormat, Snapshot, SnapshotStatus, SnapshotType};
 use crate::domain::errors::DomainError;
 use crate::domain::ports::audit_logger::{AuditEntry, AuditLoggerPort, AuditQuery};
 use crate::domain::ports::snapshot_repository::SnapshotRepositoryPort;
@@ -135,11 +133,12 @@ impl SnapshotRepositoryPort for SqliteSnapshotRepository {
     }
 
     async fn list_by_distro(&self, distro: &DistroName) -> Result<Vec<Snapshot>, DomainError> {
-        let rows = sqlx::query("SELECT * FROM snapshots WHERE distro_name = ? ORDER BY created_at DESC")
-            .bind(distro.as_str())
-            .fetch_all(&self.db.pool)
-            .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+        let rows =
+            sqlx::query("SELECT * FROM snapshots WHERE distro_name = ? ORDER BY created_at DESC")
+                .bind(distro.as_str())
+                .fetch_all(&self.db.pool)
+                .await
+                .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         rows.iter().map(|r| self.row_to_snapshot(r)).collect()
     }
@@ -189,12 +188,14 @@ impl SqliteAuditLogger {
 #[async_trait]
 impl AuditLoggerPort for SqliteAuditLogger {
     async fn log(&self, action: &str, target: &str) -> Result<(), DomainError> {
-        sqlx::query("INSERT INTO audit_log (timestamp, action, target) VALUES (datetime('now'), ?, ?)")
-            .bind(action)
-            .bind(target)
-            .execute(&self.db.pool)
-            .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            "INSERT INTO audit_log (timestamp, action, target) VALUES (datetime('now'), ?, ?)",
+        )
+        .bind(action)
+        .bind(target)
+        .execute(&self.db.pool)
+        .await
+        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
         tracing::info!(action = action, target = target, "Audit log");
         Ok(())
     }
@@ -212,7 +213,12 @@ impl AuditLoggerPort for SqliteAuditLogger {
             .execute(&self.db.pool)
             .await
             .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
-        tracing::info!(action = action, target = target, details = details, "Audit log");
+        tracing::info!(
+            action = action,
+            target = target,
+            details = details,
+            "Audit log"
+        );
         Ok(())
     }
 
