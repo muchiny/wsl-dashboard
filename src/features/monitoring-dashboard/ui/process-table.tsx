@@ -36,14 +36,14 @@ export function ProcessTable({ processes }: ProcessTableProps) {
 
   return (
     <div className="rounded-xl border border-surface-1 bg-mantle">
-      <div className="flex items-center justify-between border-b border-surface-0 p-4">
+      <div className="flex flex-col gap-2 border-b border-surface-0 p-4 sm:flex-row sm:items-center sm:justify-between">
         <h4 className="text-sm font-semibold">Processes ({processes.length})</h4>
         <input
           type="text"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder="Filter processes..."
-          className="w-48 rounded-lg border border-surface-1 bg-base px-2 py-1 text-xs text-text focus:border-blue focus:outline-none"
+          className="w-full rounded-lg border border-surface-1 bg-base px-2 py-1 text-xs text-text focus:border-blue focus:outline-none sm:w-48"
         />
       </div>
       <div className="max-h-80 overflow-auto">

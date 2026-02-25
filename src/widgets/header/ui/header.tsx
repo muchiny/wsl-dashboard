@@ -21,14 +21,14 @@ export function Header() {
   const matchRoute = useMatchRoute();
 
   return (
-    <header className="border-b border-surface-1 bg-mantle">
-      <div className="flex h-16 items-center justify-between px-6">
+    <header className="shrink-0 border-b border-surface-1 bg-mantle">
+      <div className="flex h-14 items-center justify-between gap-2 px-4 sm:h-16 sm:px-6">
         {/* Branding */}
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue/15">
             <Server className="h-5 w-5 text-blue" />
           </div>
-          <div>
+          <div className="hidden sm:block">
             <h1 className="text-base font-bold text-text">WSL Nexus</h1>
             <p className="text-xs text-subtext-0">WSL2 Management</p>
           </div>
@@ -47,14 +47,14 @@ export function Header() {
                 key={tab.to}
                 to={tab.to}
                 className={cn(
-                  "flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all duration-200",
+                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 sm:px-5 sm:py-2.5",
                   isActive
                     ? "bg-blue text-crust shadow-md"
                     : "text-subtext-1 hover:bg-surface-0 hover:text-text",
                 )}
               >
                 <tab.icon className="h-4 w-4" />
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
               </Link>
             );
           })}

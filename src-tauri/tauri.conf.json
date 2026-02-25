@@ -15,8 +15,11 @@
         "title": "WSL Nexus",
         "width": 1280,
         "height": 800,
-        "minWidth": 960,
-        "minHeight": 600,
+        "minWidth": 800,
+        "minHeight": 500,
+        "resizable": true,
+        "maximizable": true,
+        "fullscreen": false,
         "center": true
       }
     ],

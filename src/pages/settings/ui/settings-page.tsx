@@ -11,7 +11,7 @@ export function SettingsPage() {
   const [tab, setTab] = useState<SettingsTab>("config");
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-peach/15">
           <Settings className="h-5 w-5 text-peach" />
@@ -22,7 +22,7 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <div className="flex gap-1 rounded-xl border border-surface-1 bg-mantle p-1">
+      <div className="flex flex-wrap gap-1 rounded-xl border border-surface-1 bg-mantle p-1">
         {(
           [
             { id: "config", label: "WSL Configuration", icon: FileText },
@@ -34,7 +34,7 @@ export function SettingsPage() {
             key={item.id}
             onClick={() => setTab(item.id)}
             className={cn(
-              "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200",
+              "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 sm:gap-2 sm:px-4 sm:py-2.5",
               tab === item.id
                 ? "bg-blue text-crust shadow-md"
                 : "text-subtext-1 hover:bg-surface-0 hover:text-text",

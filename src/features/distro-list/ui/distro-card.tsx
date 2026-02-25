@@ -1,4 +1,4 @@
-import { Play, Square, RotateCw, Star, Archive, Activity } from "lucide-react";
+import { Play, Square, RotateCw, Star, Archive, Activity, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { Distro } from "@/shared/types/distro";
 import { cn } from "@/shared/lib/utils";
@@ -9,10 +9,19 @@ interface DistroCardProps {
   onStop: () => void;
   onRestart: () => void;
   onSnapshot: () => void;
+  pendingAction?: string;
 }
 
-export function DistroCard({ distro, onStart, onStop, onRestart, onSnapshot }: DistroCardProps) {
+export function DistroCard({
+  distro,
+  onStart,
+  onStop,
+  onRestart,
+  onSnapshot,
+  pendingAction,
+}: DistroCardProps) {
   const isRunning = distro.state === "Running";
+  const isPending = !!pendingAction;
 
   return (
     <div className="group rounded-xl border border-surface-1 bg-mantle p-5 transition-all duration-200 hover:border-blue/40 hover:shadow-lg hover:shadow-blue/5">
@@ -30,11 +39,16 @@ export function DistroCard({ distro, onStart, onStop, onRestart, onSnapshot }: D
         </div>
         <span
           className={cn(
-            "rounded-full px-3 py-1 text-xs font-medium",
-            isRunning ? "bg-green/15 text-green" : "bg-surface-0 text-subtext-0",
+            "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
+            isPending
+              ? "bg-yellow/15 text-yellow"
+              : isRunning
+                ? "bg-green/15 text-green"
+                : "bg-surface-0 text-subtext-0",
           )}
         >
-          {distro.state}
+          {isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+          {isPending ? pendingAction : distro.state}
         </span>
       </div>
 
@@ -54,7 +68,8 @@ export function DistroCard({ distro, onStart, onStop, onRestart, onSnapshot }: D
                 e.stopPropagation();
                 onStart();
               }}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-subtext-0 transition-colors hover:bg-green/15 hover:text-green"
+              disabled={isPending}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-subtext-0 transition-colors hover:bg-green/15 hover:text-green disabled:pointer-events-none disabled:opacity-40"
               title="Start"
             >
               <Play className="h-3.5 w-3.5" />
@@ -68,7 +83,8 @@ export function DistroCard({ distro, onStart, onStop, onRestart, onSnapshot }: D
                   e.stopPropagation();
                   onRestart();
                 }}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-subtext-0 transition-colors hover:bg-yellow/15 hover:text-yellow"
+                disabled={isPending}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-subtext-0 transition-colors hover:bg-yellow/15 hover:text-yellow disabled:pointer-events-none disabled:opacity-40"
                 title="Restart"
               >
                 <RotateCw className="h-3.5 w-3.5" />
@@ -79,7 +95,8 @@ export function DistroCard({ distro, onStart, onStop, onRestart, onSnapshot }: D
                   e.stopPropagation();
                   onStop();
                 }}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-subtext-0 transition-colors hover:bg-red/15 hover:text-red"
+                disabled={isPending}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-subtext-0 transition-colors hover:bg-red/15 hover:text-red disabled:pointer-events-none disabled:opacity-40"
                 title="Stop"
               >
                 <Square className="h-3.5 w-3.5" />

@@ -14,7 +14,7 @@ export function DistroList({ onSnapshot }: DistroListProps) {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {[1, 2, 3].map((i) => (
           <div key={i} className="h-36 animate-pulse rounded-xl border border-surface-1 bg-mantle" />
         ))}
@@ -38,8 +38,26 @@ export function DistroList({ onSnapshot }: DistroListProps) {
     );
   }
 
+  const pendingAction =
+    (startDistro.isPending && startDistro.variables) ||
+    (stopDistro.isPending && stopDistro.variables) ||
+    (restartDistro.isPending && restartDistro.variables)
+      ? {
+          distro:
+            (startDistro.isPending && startDistro.variables) ||
+            (stopDistro.isPending && stopDistro.variables) ||
+            (restartDistro.isPending && restartDistro.variables) ||
+            "",
+          action: startDistro.isPending
+            ? "Starting"
+            : stopDistro.isPending
+              ? "Stopping"
+              : "Restarting",
+        }
+      : null;
+
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
       {distros.map((distro) => (
         <DistroCard
           key={distro.name}
@@ -48,6 +66,7 @@ export function DistroList({ onSnapshot }: DistroListProps) {
           onStop={() => stopDistro.mutate(distro.name)}
           onRestart={() => restartDistro.mutate(distro.name)}
           onSnapshot={() => onSnapshot(distro.name)}
+          pendingAction={pendingAction?.distro === distro.name ? pendingAction.action : undefined}
         />
       ))}
     </div>

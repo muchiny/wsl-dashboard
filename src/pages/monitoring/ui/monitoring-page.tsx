@@ -51,8 +51,8 @@ export function MonitoringPage() {
   }, [metrics, push]);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sapphire/15">
             <Activity className="h-5 w-5 text-sapphire" />
@@ -65,7 +65,7 @@ export function MonitoringPage() {
         <select
           value={selectedDistro}
           onChange={(e) => handleDistroChange(e.target.value)}
-          className="rounded-lg border border-surface-1 bg-mantle px-4 py-2 text-sm text-text focus:border-blue focus:outline-none"
+          className="w-full rounded-lg border border-surface-1 bg-mantle px-4 py-2 text-sm text-text focus:border-blue focus:outline-none sm:w-auto"
         >
           <option value="">Select a distro...</option>
           {runningDistros.map((d) => (

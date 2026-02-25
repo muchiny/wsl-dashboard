@@ -40,7 +40,7 @@ export function DebugConsole() {
   }, [filteredLogs.length, isOpen]);
 
   return (
-    <div className="flex flex-col border-t border-surface-1">
+    <div className="flex shrink-0 flex-col border-t border-surface-1">
       {/* Toggle bar — always visible */}
       <button
         onClick={toggle}
@@ -68,7 +68,7 @@ export function DebugConsole() {
 
       {/* Expandable panel */}
       {isOpen && (
-        <div className="flex h-72 flex-col bg-crust">
+        <div className="flex h-[40vh] flex-col bg-crust">
           {/* Toolbar */}
           <div className="flex items-center justify-between border-b border-surface-1 px-3 py-1.5">
             {/* Level filters */}

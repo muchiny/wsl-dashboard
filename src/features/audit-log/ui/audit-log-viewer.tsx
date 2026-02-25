@@ -14,31 +14,31 @@ export function AuditLogViewer() {
 
   return (
     <div className="rounded-xl border border-surface-1 bg-mantle">
-      <div className="flex items-center justify-between border-b border-surface-0 p-4">
+      <div className="flex flex-col gap-3 border-b border-surface-0 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <ScrollText className="h-5 w-5 text-lavender" />
           <h4 className="font-semibold text-text">Audit Log</h4>
           {entries && <span className="text-xs text-subtext-0">({entries.length} entries)</span>}
         </div>
         <div className="flex gap-2">
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-overlay-0" />
             <input
               type="text"
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
               placeholder="Filter action..."
-              className="w-36 rounded-lg border border-surface-1 bg-base py-1 pl-7 pr-2 text-xs text-text focus:border-blue focus:outline-none"
+              className="w-full rounded-lg border border-surface-1 bg-base py-1 pl-7 pr-2 text-xs text-text focus:border-blue focus:outline-none sm:w-36"
             />
           </div>
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-overlay-0" />
             <input
               type="text"
               value={targetFilter}
               onChange={(e) => setTargetFilter(e.target.value)}
               placeholder="Filter target..."
-              className="w-36 rounded-lg border border-surface-1 bg-base py-1 pl-7 pr-2 text-xs text-text focus:border-blue focus:outline-none"
+              className="w-full rounded-lg border border-surface-1 bg-base py-1 pl-7 pr-2 text-xs text-text focus:border-blue focus:outline-none sm:w-36"
             />
           </div>
         </div>

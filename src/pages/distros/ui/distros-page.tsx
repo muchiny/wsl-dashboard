@@ -28,41 +28,41 @@ export function DistrosPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="space-y-6">
       {/* Stats & Actions Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 sm:gap-6">
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-subtext-0">Total</p>
-            <p className="text-2xl font-bold text-text">{total}</p>
+            <p className="text-xl font-bold text-text sm:text-2xl">{total}</p>
           </div>
           <div className="h-8 w-px bg-surface-1" />
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-subtext-0">Running</p>
-            <p className="text-2xl font-bold text-green">{running}</p>
+            <p className="text-xl font-bold text-green sm:text-2xl">{running}</p>
           </div>
           <div className="h-8 w-px bg-surface-1" />
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-subtext-0">Stopped</p>
-            <p className="text-2xl font-bold text-subtext-0">{stopped}</p>
+            <p className="text-xl font-bold text-subtext-0 sm:text-2xl">{stopped}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => {
               setCreateForDistro("");
               setCreateOpen(true);
             }}
-            className="flex items-center gap-2 rounded-lg bg-mauve/15 px-4 py-2.5 text-sm font-medium text-mauve transition-colors hover:bg-mauve/25"
+            className="flex items-center gap-2 rounded-lg bg-mauve/15 px-3 py-2 text-sm font-medium text-mauve transition-colors hover:bg-mauve/25 sm:px-4 sm:py-2.5"
           >
             <Plus className="h-4 w-4" />
-            New Snapshot
+            <span className="hidden sm:inline">New</span> Snapshot
           </button>
           <button
             onClick={() => shutdownAll.mutate()}
             disabled={shutdownAll.isPending || running === 0}
-            className="flex items-center gap-2 rounded-lg bg-red/15 px-4 py-2.5 text-sm font-medium text-red transition-colors hover:bg-red/25 disabled:opacity-40"
+            className="flex items-center gap-2 rounded-lg bg-red/15 px-3 py-2 text-sm font-medium text-red transition-colors hover:bg-red/25 disabled:opacity-40 sm:px-4 sm:py-2.5"
           >
             <Power className="h-4 w-4" />
             {shutdownAll.isPending ? "Shutting down..." : "Shutdown All"}

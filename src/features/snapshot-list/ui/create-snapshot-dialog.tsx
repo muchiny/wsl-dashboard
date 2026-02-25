@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Plus, X, Archive } from "lucide-react";
+import { Plus, X, Archive, FolderOpen } from "lucide-react";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useDistros } from "@/features/distro-list/api/queries";
 import { useCreateSnapshot } from "../api/mutations";
 
@@ -54,7 +55,7 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-crust/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-surface-1 bg-mantle p-6 shadow-2xl">
+      <div className="relative z-10 mx-4 w-full max-w-lg rounded-2xl border border-surface-1 bg-mantle p-6 shadow-2xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Archive className="h-5 w-5 text-mauve" />
@@ -111,7 +112,7 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-subtext-1">Format</label>
               <select
@@ -130,14 +131,27 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
               <label className="mb-1 block text-sm font-medium text-subtext-1">
                 Output Directory
               </label>
-              <input
-                type="text"
-                value={outputDir}
-                onChange={(e) => setOutputDir(e.target.value)}
-                placeholder="/path/to/snapshots"
-                className={inputClass}
-                required
-              />
+              <div className="flex gap-1">
+                <input
+                  type="text"
+                  value={outputDir}
+                  onChange={(e) => setOutputDir(e.target.value)}
+                  placeholder="C:\Users\...\snapshots"
+                  className={`${inputClass} flex-1`}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const dir = await openDialog({ directory: true, title: "Select output directory" });
+                    if (dir) setOutputDir(dir);
+                  }}
+                  className="shrink-0 rounded-lg border border-surface-1 px-2 text-subtext-0 hover:bg-surface-0 hover:text-text"
+                  title="Browse..."
+                >
+                  <FolderOpen className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
 

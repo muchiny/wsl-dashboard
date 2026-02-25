@@ -45,7 +45,7 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-crust/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-surface-1 bg-mantle p-6 shadow-2xl">
+      <div className="relative z-10 mx-4 w-full max-w-lg rounded-2xl border border-surface-1 bg-mantle p-6 shadow-2xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <RotateCw className="h-5 w-5 text-blue" />
@@ -62,7 +62,7 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
             <label className="mb-2 block text-sm font-medium text-subtext-1">Restore Mode</label>
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-lg border border-surface-1 p-3 has-[:checked]:border-blue has-[:checked]:bg-blue/5">
                 <input
                   type="radio"

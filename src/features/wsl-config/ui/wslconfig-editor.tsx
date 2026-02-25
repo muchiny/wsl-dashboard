@@ -57,7 +57,7 @@ export function WslConfigEditor() {
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-xs font-medium text-subtext-0">Memory Limit</label>
           <input
@@ -112,7 +112,7 @@ export function WslConfigEditor() {
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-4">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {(
           [
             ["localhost_forwarding", "Localhost Forwarding"],
