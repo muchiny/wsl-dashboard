@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { mockInvoke } from "@/test/mocks/tauri";
 import { createWrapper } from "@/test/test-utils";
-import { distroKeys, useDistros, useDistroDetails } from "./queries";
+import { distroKeys, useDistros } from "./queries";
 import type { Distro } from "@/shared/types/distro";
 
 beforeEach(() => {
@@ -18,9 +18,6 @@ describe("distroKeys", () => {
     expect(distroKeys.list()).toEqual(["distros", "list"]);
   });
 
-  it("detail returns detail key with name", () => {
-    expect(distroKeys.detail("Ubuntu")).toEqual(["distros", "detail", "Ubuntu"]);
-  });
 });
 
 describe("useDistros", () => {
@@ -48,26 +45,3 @@ describe("useDistros", () => {
   });
 });
 
-describe("useDistroDetails", () => {
-  it("is disabled when name is null", () => {
-    const { result } = renderHook(() => useDistroDetails(null), {
-      wrapper: createWrapper(),
-    });
-    // Query should not fetch
-    expect(result.current.fetchStatus).toBe("idle");
-  });
-
-  it("invokes get_distro_details with name", async () => {
-    const detail = { name: "Ubuntu", state: "Running", wsl_version: 2 };
-    mockInvoke.mockResolvedValue(detail);
-
-    const { result } = renderHook(() => useDistroDetails("Ubuntu"), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(mockInvoke).toHaveBeenCalledWith("get_distro_details", {
-      name: "Ubuntu",
-    });
-  });
-});

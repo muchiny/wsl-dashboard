@@ -17,7 +17,6 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
 tauri-plugin-store = "2"
-tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
 
 # Serialization

@@ -14,10 +14,6 @@ use infrastructure::debug_log::buffer::DebugLogBuffer;
 #[cfg(not(fuzzing))]
 use infrastructure::debug_log::layer::DebugLogLayer;
 #[cfg(not(fuzzing))]
-use infrastructure::docker::adapter::DockerCliAdapter;
-#[cfg(not(fuzzing))]
-use infrastructure::iac::adapter::IacCliAdapter;
-#[cfg(not(fuzzing))]
 use infrastructure::monitoring::adapter::ProcFsMonitoringAdapter;
 #[cfg(not(fuzzing))]
 use infrastructure::sqlite::adapter::{SqliteAuditLogger, SqliteDb, SqliteSnapshotRepository};
@@ -25,8 +21,8 @@ use infrastructure::sqlite::adapter::{SqliteAuditLogger, SqliteDb, SqliteSnapsho
 use infrastructure::wsl_cli::adapter::WslCliAdapter;
 #[cfg(not(fuzzing))]
 use presentation::commands::{
-    audit_commands, debug_commands, distro_commands, docker_commands, iac_commands,
-    monitoring_commands, settings_commands, snapshot_commands,
+    audit_commands, debug_commands, distro_commands, monitoring_commands, settings_commands,
+    snapshot_commands,
 };
 #[cfg(not(fuzzing))]
 use presentation::state::AppState;
@@ -117,16 +113,12 @@ pub fn run() {
                 let wsl_manager = Arc::new(WslCliAdapter::new());
                 let snapshot_repo = Arc::new(SqliteSnapshotRepository::new(db.clone()));
                 let monitoring = Arc::new(ProcFsMonitoringAdapter::new(wsl_manager.clone()));
-                let docker = Arc::new(DockerCliAdapter::new(wsl_manager.clone()));
-                let iac = Arc::new(IacCliAdapter::new(wsl_manager.clone()));
                 let audit_logger = Arc::new(SqliteAuditLogger::new(db));
 
                 let app_state = AppState {
                     wsl_manager,
                     snapshot_repo,
                     monitoring,
-                    docker,
-                    iac,
                     audit_logger,
                 };
 
@@ -150,15 +142,9 @@ pub fn run() {
             snapshot_commands::restore_snapshot,
             monitoring_commands::get_system_metrics,
             monitoring_commands::get_processes,
-            docker_commands::get_docker_status,
-            docker_commands::docker_start_container,
-            docker_commands::docker_stop_container,
             settings_commands::get_wsl_config,
             settings_commands::update_wsl_config,
             settings_commands::compact_vhdx,
-            iac_commands::detect_iac_tools,
-            iac_commands::get_k8s_info,
-            iac_commands::run_playbook,
             audit_commands::search_audit_log,
             debug_commands::get_debug_logs,
             debug_commands::clear_debug_logs,
