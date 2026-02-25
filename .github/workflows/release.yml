@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ──────────────────────────────────────────────
+  # CI gate — reuse the CI workflow
+  # ──────────────────────────────────────────────
+  ci:
+    name: CI checks
+    uses: ./.github/workflows/ci.yml
+
+  # ──────────────────────────────────────────────
+  # Build Windows installer (.msi + .exe NSIS)
+  # ──────────────────────────────────────────────
+  build-windows:
+    name: Build Windows
+    needs: ci
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "WSL Nexus ${{ github.ref_name }}"
+          releaseBody: |
+            See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+
+            ## Installation
+            - **`.msi`** — Windows Installer (recommended)
+            - **`.exe`** — NSIS installer (portable-style)
+          releaseDraft: true
+          prerelease: false

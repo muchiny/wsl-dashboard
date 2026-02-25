@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+target/
+
+# Build output
+dist/
+dist-ssr/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Tauri
+src-tauri/WixTools/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/proptest-regressions/
+
+# SQLite
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Test / Fuzzing
+coverage/
+src-tauri/fuzz/corpus/
+src-tauri/fuzz/artifacts/
+
+# Generated
+src/routeTree.gen.ts

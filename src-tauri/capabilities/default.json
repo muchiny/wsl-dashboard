@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicegui-org/nicegui/main/examples/tauri/src-tauri/gen/schemas/capabilities.json",
+  "identifier": "default",
+  "description": "Default capabilities for WSL Nexus",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:allow-open",
+    "shell:allow-execute",
+    "shell:default",
+    "store:default",
+    "log:default",
+    "dialog:default"
+  ]
+}
