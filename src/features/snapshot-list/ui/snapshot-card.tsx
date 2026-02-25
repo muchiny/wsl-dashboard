@@ -15,15 +15,15 @@ export function SnapshotCard({ snapshot, onDelete, onRestore }: SnapshotCardProp
   const isFailed = snapshot.status.startsWith("failed");
 
   return (
-    <div className="rounded-xl border border-surface-1 bg-base p-4 transition-all hover:border-mauve/40">
+    <div className="border-surface-1 bg-base hover:border-mauve/40 rounded-xl border p-4 transition-all">
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <Archive className="h-4 w-4 shrink-0 text-mauve" />
-            <h4 className="truncate font-semibold text-text">{snapshot.name}</h4>
+            <Archive className="text-mauve h-4 w-4 shrink-0" />
+            <h4 className="text-text truncate font-semibold">{snapshot.name}</h4>
           </div>
           {snapshot.description && (
-            <p className="mt-1 line-clamp-2 text-sm text-subtext-0">{snapshot.description}</p>
+            <p className="text-subtext-0 mt-1 line-clamp-2 text-sm">{snapshot.description}</p>
           )}
         </div>
         <span
@@ -38,7 +38,7 @@ export function SnapshotCard({ snapshot, onDelete, onRestore }: SnapshotCardProp
         </span>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-subtext-0">
+      <div className="text-subtext-0 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
         <span className="flex items-center gap-1">
           <HardDrive className="h-3 w-3" />
           {snapshot.distro_name}
@@ -48,8 +48,8 @@ export function SnapshotCard({ snapshot, onDelete, onRestore }: SnapshotCardProp
           {formatRelativeTime(snapshot.created_at)}
         </span>
         {snapshot.file_size_bytes > 0 && <span>{formatBytes(snapshot.file_size_bytes)}</span>}
-        <span className="rounded-md bg-surface-0 px-1.5 py-0.5">{snapshot.format}</span>
-        <span className="rounded-md bg-surface-0 px-1.5 py-0.5">{snapshot.snapshot_type}</span>
+        <span className="bg-surface-0 rounded-md px-1.5 py-0.5">{snapshot.format}</span>
+        <span className="bg-surface-0 rounded-md px-1.5 py-0.5">{snapshot.snapshot_type}</span>
       </div>
 
       <div className="mt-3 flex justify-end gap-1">
@@ -59,7 +59,7 @@ export function SnapshotCard({ snapshot, onDelete, onRestore }: SnapshotCardProp
               e.stopPropagation();
               onRestore();
             }}
-            className="rounded-lg p-1.5 text-subtext-0 transition-colors hover:bg-blue/15 hover:text-blue"
+            className="text-subtext-0 hover:bg-blue/15 hover:text-blue rounded-lg p-1.5 transition-colors"
             title="Restore snapshot"
           >
             <RotateCw className="h-4 w-4" />
@@ -70,7 +70,7 @@ export function SnapshotCard({ snapshot, onDelete, onRestore }: SnapshotCardProp
             e.stopPropagation();
             onDelete();
           }}
-          className="rounded-lg p-1.5 text-subtext-0 transition-colors hover:bg-red/15 hover:text-red"
+          className="text-subtext-0 hover:bg-red/15 hover:text-red rounded-lg p-1.5 transition-colors"
           title="Delete snapshot"
         >
           <Trash2 className="h-4 w-4" />

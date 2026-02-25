@@ -92,9 +92,7 @@ describe("DistroList", () => {
     });
 
     render(<DistroList onSnapshot={noop} />);
-    expect(
-      screen.getByText(/no wsl distributions found/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/no wsl distributions found/i)).toBeInTheDocument();
   });
 
   it("renders a distro card for each distro", () => {
@@ -140,8 +138,6 @@ describe("DistroList", () => {
     });
 
     render(<DistroList onSnapshot={noop} />);
-    expect(
-      screen.getByText(/no wsl distributions found/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/no wsl distributions found/i)).toBeInTheDocument();
   });
 });

@@ -17,7 +17,6 @@ describe("distroKeys", () => {
   it("list returns list key", () => {
     expect(distroKeys.list()).toEqual(["distros", "list"]);
   });
-
 });
 
 describe("useDistros", () => {
@@ -44,4 +43,3 @@ describe("useDistros", () => {
     expect(result.current.data).toEqual(distros);
   });
 });
-

@@ -44,26 +44,23 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-crust/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 mx-4 w-full max-w-lg rounded-2xl border border-surface-1 bg-mantle p-6 shadow-2xl">
+      <div className="bg-crust/80 fixed inset-0 backdrop-blur-sm" onClick={onClose} />
+      <div className="border-surface-1 bg-mantle relative z-10 mx-4 w-full max-w-lg rounded-2xl border p-6 shadow-2xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <RotateCw className="h-5 w-5 text-blue" />
-            <h3 className="text-lg font-semibold text-text">Restore Snapshot</h3>
+            <RotateCw className="text-blue h-5 w-5" />
+            <h3 className="text-text text-lg font-semibold">Restore Snapshot</h3>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1 text-subtext-0 hover:bg-surface-0"
-          >
+          <button onClick={onClose} className="text-subtext-0 hover:bg-surface-0 rounded-lg p-1">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium text-subtext-1">Restore Mode</label>
+            <label className="text-subtext-1 mb-2 block text-sm font-medium">Restore Mode</label>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-lg border border-surface-1 p-3 has-[:checked]:border-blue has-[:checked]:bg-blue/5">
+              <label className="border-surface-1 has-[:checked]:border-blue has-[:checked]:bg-blue/5 flex flex-1 cursor-pointer items-center gap-2 rounded-lg border p-3">
                 <input
                   type="radio"
                   name="mode"
@@ -73,11 +70,11 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
                   className="accent-blue"
                 />
                 <div>
-                  <p className="text-sm font-medium text-text">Clone</p>
-                  <p className="text-xs text-subtext-0">Create as new distro</p>
+                  <p className="text-text text-sm font-medium">Clone</p>
+                  <p className="text-subtext-0 text-xs">Create as new distro</p>
                 </div>
               </label>
-              <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-lg border border-surface-1 p-3 has-[:checked]:border-blue has-[:checked]:bg-blue/5">
+              <label className="border-surface-1 has-[:checked]:border-blue has-[:checked]:bg-blue/5 flex flex-1 cursor-pointer items-center gap-2 rounded-lg border p-3">
                 <input
                   type="radio"
                   name="mode"
@@ -87,8 +84,8 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
                   className="accent-blue"
                 />
                 <div>
-                  <p className="text-sm font-medium text-text">Overwrite</p>
-                  <p className="text-xs text-subtext-0">Replace original distro</p>
+                  <p className="text-text text-sm font-medium">Overwrite</p>
+                  <p className="text-subtext-0 text-xs">Replace original distro</p>
                 </div>
               </label>
             </div>
@@ -96,7 +93,7 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
 
           {mode === "clone" && (
             <div>
-              <label className="mb-1 block text-sm font-medium text-subtext-1">
+              <label className="text-subtext-1 mb-1 block text-sm font-medium">
                 New Distribution Name
               </label>
               <input
@@ -111,14 +108,14 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
           )}
 
           {mode === "overwrite" && (
-            <div className="rounded-lg border border-yellow/30 bg-yellow/10 p-3 text-sm text-yellow">
+            <div className="border-yellow/30 bg-yellow/10 text-yellow rounded-lg border p-3 text-sm">
               This will terminate and replace the original distribution. Make sure to back up any
               unsaved work.
             </div>
           )}
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-subtext-1">
+            <label className="text-subtext-1 mb-1 block text-sm font-medium">
               Install Location
             </label>
             <input
@@ -129,7 +126,7 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
               className={inputClass}
               required
             />
-            <p className="mt-1 text-xs text-overlay-0">
+            <p className="text-overlay-0 mt-1 text-xs">
               Directory where the distribution&apos;s virtual disk will be stored.
             </p>
           </div>
@@ -138,14 +135,14 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-surface-1 px-4 py-2 text-sm text-subtext-1 transition-colors hover:bg-surface-0"
+              className="border-surface-1 text-subtext-1 hover:bg-surface-0 rounded-lg border px-4 py-2 text-sm transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={restoreSnapshot.isPending}
-              className="flex items-center gap-2 rounded-lg bg-blue px-4 py-2 text-sm font-medium text-crust transition-colors hover:bg-blue/90 disabled:opacity-50"
+              className="bg-blue text-crust hover:bg-blue/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
             >
               <RotateCw className="h-4 w-4" />
               {restoreSnapshot.isPending ? "Restoring..." : "Restore"}
@@ -153,7 +150,7 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
           </div>
 
           {restoreSnapshot.isError && (
-            <p className="text-sm text-red">{restoreSnapshot.error.message}</p>
+            <p className="text-red text-sm">{restoreSnapshot.error.message}</p>
           )}
         </form>
       </div>

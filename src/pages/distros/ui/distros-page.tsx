@@ -33,18 +33,18 @@ export function DistrosPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4 sm:gap-6">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-subtext-0">Total</p>
-            <p className="text-xl font-bold text-text sm:text-2xl">{total}</p>
+            <p className="text-subtext-0 text-xs font-medium tracking-wider uppercase">Total</p>
+            <p className="text-text text-xl font-bold sm:text-2xl">{total}</p>
           </div>
-          <div className="h-8 w-px bg-surface-1" />
+          <div className="bg-surface-1 h-8 w-px" />
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-subtext-0">Running</p>
-            <p className="text-xl font-bold text-green sm:text-2xl">{running}</p>
+            <p className="text-subtext-0 text-xs font-medium tracking-wider uppercase">Running</p>
+            <p className="text-green text-xl font-bold sm:text-2xl">{running}</p>
           </div>
-          <div className="h-8 w-px bg-surface-1" />
+          <div className="bg-surface-1 h-8 w-px" />
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-subtext-0">Stopped</p>
-            <p className="text-xl font-bold text-subtext-0 sm:text-2xl">{stopped}</p>
+            <p className="text-subtext-0 text-xs font-medium tracking-wider uppercase">Stopped</p>
+            <p className="text-subtext-0 text-xl font-bold sm:text-2xl">{stopped}</p>
           </div>
         </div>
 
@@ -54,7 +54,7 @@ export function DistrosPage() {
               setCreateForDistro("");
               setCreateOpen(true);
             }}
-            className="flex items-center gap-2 rounded-lg bg-mauve/15 px-3 py-2 text-sm font-medium text-mauve transition-colors hover:bg-mauve/25 sm:px-4 sm:py-2.5"
+            className="bg-mauve/15 text-mauve hover:bg-mauve/25 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:px-4 sm:py-2.5"
           >
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">New</span> Snapshot
@@ -62,7 +62,7 @@ export function DistrosPage() {
           <button
             onClick={() => shutdownAll.mutate()}
             disabled={shutdownAll.isPending || running === 0}
-            className="flex items-center gap-2 rounded-lg bg-red/15 px-3 py-2 text-sm font-medium text-red transition-colors hover:bg-red/25 disabled:opacity-40 sm:px-4 sm:py-2.5"
+            className="bg-red/15 text-red hover:bg-red/25 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-40 sm:px-4 sm:py-2.5"
           >
             <Power className="h-4 w-4" />
             {shutdownAll.isPending ? "Shutting down..." : "Shutdown All"}
@@ -74,23 +74,23 @@ export function DistrosPage() {
       <DistroList onSnapshot={handleSnapshot} />
 
       {/* Snapshots Section */}
-      <div className="rounded-xl border border-surface-1 bg-mantle">
+      <div className="border-surface-1 bg-mantle rounded-xl border">
         <button
           onClick={() => setShowSnapshots(!showSnapshots)}
-          className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-surface-0/50"
+          className="hover:bg-surface-0/50 flex w-full items-center justify-between px-5 py-4 text-left transition-colors"
         >
           <div className="flex items-center gap-2">
-            <Archive className="h-5 w-5 text-mauve" />
-            <h3 className="text-base font-semibold text-text">Snapshots</h3>
+            <Archive className="text-mauve h-5 w-5" />
+            <h3 className="text-text text-base font-semibold">Snapshots</h3>
           </div>
           {showSnapshots ? (
-            <ChevronUp className="h-4 w-4 text-subtext-0" />
+            <ChevronUp className="text-subtext-0 h-4 w-4" />
           ) : (
-            <ChevronDown className="h-4 w-4 text-subtext-0" />
+            <ChevronDown className="text-subtext-0 h-4 w-4" />
           )}
         </button>
         {showSnapshots && (
-          <div className="border-t border-surface-0 p-5">
+          <div className="border-surface-0 border-t p-5">
             <SnapshotList onRestore={(id) => setRestoreSnapshotId(id)} />
           </div>
         )}

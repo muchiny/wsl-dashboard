@@ -54,24 +54,21 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-crust/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 mx-4 w-full max-w-lg rounded-2xl border border-surface-1 bg-mantle p-6 shadow-2xl">
+      <div className="bg-crust/80 fixed inset-0 backdrop-blur-sm" onClick={onClose} />
+      <div className="border-surface-1 bg-mantle relative z-10 mx-4 w-full max-w-lg rounded-2xl border p-6 shadow-2xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Archive className="h-5 w-5 text-mauve" />
-            <h3 className="text-lg font-semibold text-text">Create Snapshot</h3>
+            <Archive className="text-mauve h-5 w-5" />
+            <h3 className="text-text text-lg font-semibold">Create Snapshot</h3>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1 text-subtext-0 hover:bg-surface-0"
-          >
+          <button onClick={onClose} className="text-subtext-0 hover:bg-surface-0 rounded-lg p-1">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-subtext-1">Distribution</label>
+            <label className="text-subtext-1 mb-1 block text-sm font-medium">Distribution</label>
             <select
               value={distroName}
               onChange={(e) => setDistroName(e.target.value)}
@@ -88,7 +85,7 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-subtext-1">Snapshot Name</label>
+            <label className="text-subtext-1 mb-1 block text-sm font-medium">Snapshot Name</label>
             <input
               type="text"
               value={name}
@@ -100,7 +97,7 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-subtext-1">
+            <label className="text-subtext-1 mb-1 block text-sm font-medium">
               Description <span className="text-overlay-0">(optional)</span>
             </label>
             <textarea
@@ -114,7 +111,7 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-sm font-medium text-subtext-1">Format</label>
+              <label className="text-subtext-1 mb-1 block text-sm font-medium">Format</label>
               <select
                 value={format}
                 onChange={(e) => setFormat(e.target.value as typeof format)}
@@ -128,7 +125,7 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-subtext-1">
+              <label className="text-subtext-1 mb-1 block text-sm font-medium">
                 Output Directory
               </label>
               <div className="flex gap-1">
@@ -143,10 +140,13 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
                 <button
                   type="button"
                   onClick={async () => {
-                    const dir = await openDialog({ directory: true, title: "Select output directory" });
+                    const dir = await openDialog({
+                      directory: true,
+                      title: "Select output directory",
+                    });
                     if (dir) setOutputDir(dir);
                   }}
-                  className="shrink-0 rounded-lg border border-surface-1 px-2 text-subtext-0 hover:bg-surface-0 hover:text-text"
+                  className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
                   title="Browse..."
                 >
                   <FolderOpen className="h-4 w-4" />
@@ -159,14 +159,14 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-surface-1 px-4 py-2 text-sm text-subtext-1 transition-colors hover:bg-surface-0"
+              className="border-surface-1 text-subtext-1 hover:bg-surface-0 rounded-lg border px-4 py-2 text-sm transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={createSnapshot.isPending}
-              className="flex items-center gap-2 rounded-lg bg-mauve px-4 py-2 text-sm font-medium text-crust transition-colors hover:bg-mauve/90 disabled:opacity-50"
+              className="bg-mauve text-crust hover:bg-mauve/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
             >
               <Plus className="h-4 w-4" />
               {createSnapshot.isPending ? "Creating..." : "Create Snapshot"}
@@ -174,7 +174,7 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
           </div>
 
           {createSnapshot.isError && (
-            <p className="text-sm text-red">{createSnapshot.error.message}</p>
+            <p className="text-red text-sm">{createSnapshot.error.message}</p>
           )}
         </form>
       </div>

@@ -8,17 +8,17 @@ interface CpuChartProps {
 
 export function CpuChart({ data, loadAverage }: CpuChartProps) {
   return (
-    <div className="rounded-xl border border-surface-1 bg-mantle p-4">
+    <div className="border-surface-1 bg-mantle rounded-xl border p-4">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="text-sm font-semibold">CPU Usage</h4>
         {data.length > 0 && (
-          <span className="text-lg font-bold text-blue">
+          <span className="text-blue text-lg font-bold">
             {data[data.length - 1]!.cpu.toFixed(1)}%
           </span>
         )}
       </div>
       {loadAverage && (
-        <p className="mb-2 text-xs text-subtext-0">
+        <p className="text-subtext-0 mb-2 text-xs">
           Load: {loadAverage.map((v) => v.toFixed(2)).join(" / ")}
         </p>
       )}

@@ -5,7 +5,9 @@ import type { Distro } from "@/shared/types/distro";
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <a href={props.to as string} title={props.title as string}>{children}</a>
+    <a href={props.to as string} title={props.title as string}>
+      {children}
+    </a>
   ),
 }));
 

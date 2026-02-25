@@ -19,7 +19,11 @@ fn linux_to_windows_path(path: &str) -> String {
     if let Some(rest) = path.strip_prefix("/mnt/") {
         if let Some((drive, remainder)) = rest.split_once('/') {
             if drive.len() == 1 {
-                return format!("{}:\\{}", drive.to_uppercase(), remainder.replace('/', "\\"));
+                return format!(
+                    "{}:\\{}",
+                    drive.to_uppercase(),
+                    remainder.replace('/', "\\")
+                );
             }
         }
     }
@@ -35,8 +39,7 @@ impl WslCliAdapter {
         // On Linux (WSL2), ensure binfmt_misc interop is registered so .exe files can run
         #[cfg(target_os = "linux")]
         {
-            if std::path::Path::new("/proc/sys/fs/binfmt_misc")
-                .exists()
+            if std::path::Path::new("/proc/sys/fs/binfmt_misc").exists()
                 && !std::path::Path::new("/proc/sys/fs/binfmt_misc/WSLInterop").exists()
             {
                 let _ = std::process::Command::new("sh")
@@ -222,8 +225,13 @@ impl WslManagerPort for WslCliAdapter {
     ) -> Result<(), DomainError> {
         let win_loc = linux_to_windows_path(install_location);
         let win_file = linux_to_windows_path(file_path);
-        self.run_wsl_raw(&["--import", name.as_str(), win_loc.as_str(), win_file.as_str()])
-            .await?;
+        self.run_wsl_raw(&[
+            "--import",
+            name.as_str(),
+            win_loc.as_str(),
+            win_file.as_str(),
+        ])
+        .await?;
         Ok(())
     }
 

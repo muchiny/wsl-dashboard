@@ -35,21 +35,21 @@ export function ProcessTable({ processes }: ProcessTableProps) {
   });
 
   return (
-    <div className="rounded-xl border border-surface-1 bg-mantle">
-      <div className="flex flex-col gap-2 border-b border-surface-0 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="border-surface-1 bg-mantle rounded-xl border">
+      <div className="border-surface-0 flex flex-col gap-2 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
         <h4 className="text-sm font-semibold">Processes ({processes.length})</h4>
         <input
           type="text"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder="Filter processes..."
-          className="w-full rounded-lg border border-surface-1 bg-base px-2 py-1 text-xs text-text focus:border-blue focus:outline-none sm:w-48"
+          className="border-surface-1 bg-base text-text focus:border-blue w-full rounded-lg border px-2 py-1 text-xs focus:outline-none sm:w-48"
         />
       </div>
       <div className="max-h-80 overflow-auto">
         <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-mantle">
-            <tr className="border-b border-surface-0 text-left text-subtext-0">
+          <thead className="bg-mantle sticky top-0">
+            <tr className="border-surface-0 text-subtext-0 border-b text-left">
               <th className="px-4 py-2">
                 <button onClick={() => handleSort("pid")} className="flex items-center gap-1">
                   PID <ArrowUpDown className="h-3 w-3" />
@@ -83,7 +83,7 @@ export function ProcessTable({ processes }: ProcessTableProps) {
           </thead>
           <tbody>
             {sorted.slice(0, 100).map((p) => (
-              <tr key={p.pid} className="border-b border-surface-0/50 hover:bg-surface-0/50">
+              <tr key={p.pid} className="border-surface-0/50 hover:bg-surface-0/50 border-b">
                 <td className="px-4 py-1.5 font-mono">{p.pid}</td>
                 <td className="px-4 py-1.5">{p.user}</td>
                 <td className="px-4 py-1.5 font-mono">{p.cpu_percent.toFixed(1)}</td>

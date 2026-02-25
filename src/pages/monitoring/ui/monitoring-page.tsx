@@ -54,18 +54,18 @@ export function MonitoringPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sapphire/15">
-            <Activity className="h-5 w-5 text-sapphire" />
+          <div className="bg-sapphire/15 flex h-9 w-9 items-center justify-center rounded-lg">
+            <Activity className="text-sapphire h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-text">Monitoring</h2>
-            <p className="text-sm text-subtext-0">Real-time system metrics</p>
+            <h2 className="text-text text-xl font-bold">Monitoring</h2>
+            <p className="text-subtext-0 text-sm">Real-time system metrics</p>
           </div>
         </div>
         <select
           value={selectedDistro}
           onChange={(e) => handleDistroChange(e.target.value)}
-          className="w-full rounded-lg border border-surface-1 bg-mantle px-4 py-2 text-sm text-text focus:border-blue focus:outline-none sm:w-auto"
+          className="border-surface-1 bg-mantle text-text focus:border-blue w-full rounded-lg border px-4 py-2 text-sm focus:outline-none sm:w-auto"
         >
           <option value="">Select a distro...</option>
           {runningDistros.map((d) => (
@@ -77,7 +77,7 @@ export function MonitoringPage() {
       </div>
 
       {!selectedDistro && (
-        <div className="rounded-xl border border-surface-1 bg-mantle p-8 text-center text-subtext-0">
+        <div className="border-surface-1 bg-mantle text-subtext-0 rounded-xl border p-8 text-center">
           {runningDistros.length === 0
             ? "No running distributions. Start a distro to view metrics."
             : "Select a distribution to start monitoring."}

@@ -701,10 +701,7 @@ mod tests {
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].action, "snapshot_create");
         assert_eq!(entries[0].target, "Debian");
-        assert_eq!(
-            entries[0].details,
-            Some("Created full backup".to_string())
-        );
+        assert_eq!(entries[0].details, Some("Created full backup".to_string()));
     }
 
     #[tokio::test]

@@ -32,9 +32,7 @@ impl DebugLogBuffer {
         let id = self.counter.fetch_add(1, Ordering::Relaxed);
         let entry = LogEntry {
             id,
-            timestamp: chrono::Local::now()
-                .format("%H:%M:%S%.3f")
-                .to_string(),
+            timestamp: chrono::Local::now().format("%H:%M:%S%.3f").to_string(),
             level,
             message,
             target,
@@ -288,12 +286,8 @@ mod tests {
                 std::thread::spawn(move || {
                     (0..50)
                         .map(|_| {
-                            buf.push(
-                                "DEBUG".to_string(),
-                                "msg".to_string(),
-                                "test".to_string(),
-                            )
-                            .id
+                            buf.push("DEBUG".to_string(), "msg".to_string(), "test".to_string())
+                                .id
                         })
                         .collect::<Vec<_>>()
                 })

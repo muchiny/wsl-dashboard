@@ -90,10 +90,9 @@ describe("useAuditLog", () => {
   it("returns empty array when no entries match", async () => {
     mockInvoke.mockResolvedValue([]);
 
-    const { result } = renderHook(
-      () => useAuditLog({ action_filter: "nonexistent" }),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useAuditLog({ action_filter: "nonexistent" }), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual([]);

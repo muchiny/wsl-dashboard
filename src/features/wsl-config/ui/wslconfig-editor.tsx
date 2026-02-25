@@ -27,7 +27,7 @@ export function WslConfigEditor() {
   }, [config]);
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-xl border border-surface-1 bg-mantle" />;
+    return <div className="border-surface-1 bg-mantle h-64 animate-pulse rounded-xl border" />;
   }
 
   const handleSave = () => {
@@ -38,13 +38,13 @@ export function WslConfigEditor() {
     "w-full rounded-lg border border-surface-1 bg-base px-3 py-1.5 text-sm text-text focus:border-blue focus:outline-none";
 
   return (
-    <div className="rounded-xl border border-surface-1 bg-mantle p-5">
+    <div className="border-surface-1 bg-mantle rounded-xl border p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h4 className="font-semibold text-text">.wslconfig (Global WSL2 Settings)</h4>
+        <h4 className="text-text font-semibold">.wslconfig (Global WSL2 Settings)</h4>
         <button
           onClick={handleSave}
           disabled={updateConfig.isPending}
-          className="flex items-center gap-2 rounded-lg bg-blue px-3 py-1.5 text-sm font-medium text-crust transition-colors hover:bg-blue/90 disabled:opacity-50"
+          className="bg-blue text-crust hover:bg-blue/90 flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
           {updateConfig.isPending ? "Saving..." : "Save"}
@@ -52,14 +52,14 @@ export function WslConfigEditor() {
       </div>
 
       {updateConfig.isSuccess && (
-        <p className="mb-3 text-sm text-green">
+        <p className="text-green mb-3 text-sm">
           Configuration saved. Restart WSL for changes to take effect.
         </p>
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-xs font-medium text-subtext-0">Memory Limit</label>
+          <label className="text-subtext-0 mb-1 block text-xs font-medium">Memory Limit</label>
           <input
             type="text"
             value={form.memory ?? ""}
@@ -69,7 +69,7 @@ export function WslConfigEditor() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-subtext-0">Processors</label>
+          <label className="text-subtext-0 mb-1 block text-xs font-medium">Processors</label>
           <input
             type="number"
             value={form.processors ?? ""}
@@ -84,7 +84,7 @@ export function WslConfigEditor() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-subtext-0">Swap Size</label>
+          <label className="text-subtext-0 mb-1 block text-xs font-medium">Swap Size</label>
           <input
             type="text"
             value={form.swap ?? ""}
@@ -94,7 +94,7 @@ export function WslConfigEditor() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-subtext-0">
+          <label className="text-subtext-0 mb-1 block text-xs font-medium">
             VM Idle Timeout (ms)
           </label>
           <input
@@ -129,7 +129,7 @@ export function WslConfigEditor() {
               onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
               className="accent-blue"
             />
-            <span className="text-sm text-text">{label}</span>
+            <span className="text-text text-sm">{label}</span>
           </label>
         ))}
       </div>

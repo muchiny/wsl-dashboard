@@ -13,16 +13,16 @@ export function SettingsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-peach/15">
-          <Settings className="h-5 w-5 text-peach" />
+        <div className="bg-peach/15 flex h-9 w-9 items-center justify-center rounded-lg">
+          <Settings className="text-peach h-5 w-5" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-text">Settings</h2>
-          <p className="text-sm text-subtext-0">Configure WSL2, optimize disks, and view logs</p>
+          <h2 className="text-text text-xl font-bold">Settings</h2>
+          <p className="text-subtext-0 text-sm">Configure WSL2, optimize disks, and view logs</p>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1 rounded-xl border border-surface-1 bg-mantle p-1">
+      <div className="border-surface-1 bg-mantle flex flex-wrap gap-1 rounded-xl border p-1">
         {(
           [
             { id: "config", label: "WSL Configuration", icon: FileText },

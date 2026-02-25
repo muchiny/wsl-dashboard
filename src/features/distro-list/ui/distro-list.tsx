@@ -16,7 +16,10 @@ export function DistroList({ onSnapshot }: DistroListProps) {
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-36 animate-pulse rounded-xl border border-surface-1 bg-mantle" />
+          <div
+            key={i}
+            className="border-surface-1 bg-mantle h-36 animate-pulse rounded-xl border"
+          />
         ))}
       </div>
     );
@@ -24,7 +27,7 @@ export function DistroList({ onSnapshot }: DistroListProps) {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red/30 bg-red/10 p-4 text-red">
+      <div className="border-red/30 bg-red/10 text-red rounded-xl border p-4">
         Failed to load distributions: {error.message}
       </div>
     );
@@ -32,7 +35,7 @@ export function DistroList({ onSnapshot }: DistroListProps) {
 
   if (!distros?.length) {
     return (
-      <div className="rounded-xl border border-surface-1 bg-mantle p-8 text-center text-subtext-0">
+      <div className="border-surface-1 bg-mantle text-subtext-0 rounded-xl border p-8 text-center">
         No WSL distributions found. Install one to get started.
       </div>
     );

@@ -21,21 +21,21 @@ export function Header() {
   const matchRoute = useMatchRoute();
 
   return (
-    <header className="shrink-0 border-b border-surface-1 bg-mantle">
+    <header className="border-surface-1 bg-mantle shrink-0 border-b">
       <div className="flex h-14 items-center justify-between gap-2 px-4 sm:h-16 sm:px-6">
         {/* Branding */}
         <div className="flex shrink-0 items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue/15">
-            <Server className="h-5 w-5 text-blue" />
+          <div className="bg-blue/15 flex h-9 w-9 items-center justify-center rounded-lg">
+            <Server className="text-blue h-5 w-5" />
           </div>
           <div className="hidden sm:block">
-            <h1 className="text-base font-bold text-text">WSL Nexus</h1>
-            <p className="text-xs text-subtext-0">WSL2 Management</p>
+            <h1 className="text-text text-base font-bold">WSL Nexus</h1>
+            <p className="text-subtext-0 text-xs">WSL2 Management</p>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <nav className="flex items-center gap-1 rounded-xl bg-crust p-1">
+        <nav className="bg-crust flex items-center gap-1 rounded-xl p-1">
           {navTabs.map((tab) => {
             const isActive =
               tab.to === "/"
@@ -64,7 +64,7 @@ export function Header() {
         <div className="flex items-center gap-1">
           <button
             onClick={useDebugConsoleStore.getState().toggle}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-subtext-0 transition-colors hover:bg-surface-0 hover:text-text"
+            className="text-subtext-0 hover:bg-surface-0 hover:text-text flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
             aria-label="Toggle debug console (Ctrl+Shift+D)"
             title="Debug Console (Ctrl+Shift+D)"
           >
@@ -72,7 +72,7 @@ export function Header() {
           </button>
           <button
             onClick={toggleTheme}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-subtext-0 transition-colors hover:bg-surface-0 hover:text-text"
+            className="text-subtext-0 hover:bg-surface-0 hover:text-text flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
             aria-label="Toggle theme"
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

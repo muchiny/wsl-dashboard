@@ -88,9 +88,7 @@ describe("useDebugConsoleStore", () => {
   });
 
   it("keeps exactly MAX_LOGS entries when repeatedly adding beyond limit", () => {
-    const existingLogs = Array.from({ length: 1000 }, (_, i) =>
-      makeEntry({ id: i }),
-    );
+    const existingLogs = Array.from({ length: 1000 }, (_, i) => makeEntry({ id: i }));
     useDebugConsoleStore.setState({ logs: existingLogs });
 
     // Add 5 more entries
