@@ -20,6 +20,12 @@ pub struct DebugLogBuffer {
     counter: AtomicU64,
 }
 
+impl Default for DebugLogBuffer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DebugLogBuffer {
     pub fn new() -> Self {
         Self {
