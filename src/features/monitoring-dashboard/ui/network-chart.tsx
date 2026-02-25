@@ -10,11 +10,11 @@ export function NetworkChart({ data }: NetworkChartProps) {
   const latest = data.length > 0 ? data[data.length - 1] : null;
 
   return (
-    <div className="border-border bg-card rounded-lg border p-4">
+    <div className="rounded-xl border border-surface-1 bg-mantle p-4">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="text-sm font-semibold">Network I/O</h4>
         {latest && (
-          <span className="text-muted-foreground text-xs">
+          <span className="text-xs text-subtext-0">
             RX: {formatBytes(latest.netRx)}/s | TX: {formatBytes(latest.netTx)}/s
           </span>
         )}

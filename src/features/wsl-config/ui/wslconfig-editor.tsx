@@ -27,21 +27,24 @@ export function WslConfigEditor() {
   }, [config]);
 
   if (isLoading) {
-    return <div className="border-border bg-card h-64 animate-pulse rounded-lg border" />;
+    return <div className="h-64 animate-pulse rounded-xl border border-surface-1 bg-mantle" />;
   }
 
   const handleSave = () => {
     updateConfig.mutate(form);
   };
 
+  const inputClass =
+    "w-full rounded-lg border border-surface-1 bg-base px-3 py-1.5 text-sm text-text focus:border-blue focus:outline-none";
+
   return (
-    <div className="border-border bg-card rounded-lg border p-4">
+    <div className="rounded-xl border border-surface-1 bg-mantle p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h4 className="font-semibold">.wslconfig (Global WSL2 Settings)</h4>
+        <h4 className="font-semibold text-text">.wslconfig (Global WSL2 Settings)</h4>
         <button
           onClick={handleSave}
           disabled={updateConfig.isPending}
-          className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-white transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg bg-blue px-3 py-1.5 text-sm font-medium text-crust transition-colors hover:bg-blue/90 disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
           {updateConfig.isPending ? "Saving..." : "Save"}
@@ -49,26 +52,24 @@ export function WslConfigEditor() {
       </div>
 
       {updateConfig.isSuccess && (
-        <p className="text-success mb-3 text-sm">
+        <p className="mb-3 text-sm text-green">
           Configuration saved. Restart WSL for changes to take effect.
         </p>
       )}
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-muted-foreground mb-1 block text-xs font-medium">
-            Memory Limit
-          </label>
+          <label className="mb-1 block text-xs font-medium text-subtext-0">Memory Limit</label>
           <input
             type="text"
             value={form.memory ?? ""}
             onChange={(e) => setForm({ ...form, memory: e.target.value || null })}
             placeholder="e.g. 4GB"
-            className="border-border bg-background focus:border-primary w-full rounded-md border px-3 py-1.5 text-sm focus:outline-none"
+            className={inputClass}
           />
         </div>
         <div>
-          <label className="text-muted-foreground mb-1 block text-xs font-medium">Processors</label>
+          <label className="mb-1 block text-xs font-medium text-subtext-0">Processors</label>
           <input
             type="number"
             value={form.processors ?? ""}
@@ -79,21 +80,21 @@ export function WslConfigEditor() {
               })
             }
             placeholder="All available"
-            className="border-border bg-background focus:border-primary w-full rounded-md border px-3 py-1.5 text-sm focus:outline-none"
+            className={inputClass}
           />
         </div>
         <div>
-          <label className="text-muted-foreground mb-1 block text-xs font-medium">Swap Size</label>
+          <label className="mb-1 block text-xs font-medium text-subtext-0">Swap Size</label>
           <input
             type="text"
             value={form.swap ?? ""}
             onChange={(e) => setForm({ ...form, swap: e.target.value || null })}
             placeholder="e.g. 2GB"
-            className="border-border bg-background focus:border-primary w-full rounded-md border px-3 py-1.5 text-sm focus:outline-none"
+            className={inputClass}
           />
         </div>
         <div>
-          <label className="text-muted-foreground mb-1 block text-xs font-medium">
+          <label className="mb-1 block text-xs font-medium text-subtext-0">
             VM Idle Timeout (ms)
           </label>
           <input
@@ -106,7 +107,7 @@ export function WslConfigEditor() {
               })
             }
             placeholder="60000"
-            className="border-border bg-background focus:border-primary w-full rounded-md border px-3 py-1.5 text-sm focus:outline-none"
+            className={inputClass}
           />
         </div>
       </div>
@@ -126,9 +127,9 @@ export function WslConfigEditor() {
               type="checkbox"
               checked={form[key] ?? false}
               onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
-              className="accent-primary"
+              className="accent-blue"
             />
-            <span className="text-sm">{label}</span>
+            <span className="text-sm text-text">{label}</span>
           </label>
         ))}
       </div>

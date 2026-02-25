@@ -1,4 +1,5 @@
-import { Play, Square, RotateCw, Star } from "lucide-react";
+import { Play, Square, RotateCw, Star, Archive, Activity } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import type { Distro } from "@/shared/types/distro";
 import { cn } from "@/shared/lib/utils";
 
@@ -7,33 +8,45 @@ interface DistroCardProps {
   onStart: () => void;
   onStop: () => void;
   onRestart: () => void;
+  onSnapshot: () => void;
 }
 
-export function DistroCard({ distro, onStart, onStop, onRestart }: DistroCardProps) {
+export function DistroCard({ distro, onStart, onStop, onRestart, onSnapshot }: DistroCardProps) {
   const isRunning = distro.state === "Running";
 
   return (
-    <div className="border-border bg-card hover:border-primary/50 rounded-lg border p-4 transition-colors">
+    <div className="group rounded-xl border border-surface-1 bg-mantle p-5 transition-all duration-200 hover:border-blue/40 hover:shadow-lg hover:shadow-blue/5">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {distro.is_default && <Star className="fill-warning text-warning h-4 w-4" />}
-          <h3 className="font-semibold">{distro.name}</h3>
+        <div className="flex items-center gap-3">
+          <div
+            className={cn(
+              "h-2.5 w-2.5 rounded-full",
+              isRunning ? "bg-green shadow-[0_0_8px] shadow-green/50" : "bg-surface-2",
+            )}
+          />
+          <h3 className="text-base font-semibold text-text">{distro.name}</h3>
+          {distro.is_default && <Star className="h-3.5 w-3.5 fill-yellow text-yellow" />}
         </div>
         <span
           className={cn(
-            "rounded-full px-2.5 py-0.5 text-xs font-medium",
-            isRunning ? "bg-success/20 text-success" : "bg-muted text-muted-foreground",
+            "rounded-full px-3 py-1 text-xs font-medium",
+            isRunning ? "bg-green/15 text-green" : "bg-surface-0 text-subtext-0",
           )}
         >
           {distro.state}
         </span>
       </div>
 
-      <div className="mt-3 flex items-center justify-between">
-        <span className="border-border text-muted-foreground rounded border px-2 py-0.5 text-xs">
+      {/* Info row */}
+      <div className="mt-3 flex items-center gap-2">
+        <span className="rounded-md bg-surface-0 px-2 py-0.5 text-xs text-subtext-0">
           WSL {distro.wsl_version}
         </span>
+      </div>
 
+      {/* Actions */}
+      <div className="mt-4 flex items-center justify-between border-t border-surface-0 pt-4">
         <div className="flex gap-1">
           {!isRunning && (
             <button
@@ -41,10 +54,11 @@ export function DistroCard({ distro, onStart, onStop, onRestart }: DistroCardPro
                 e.stopPropagation();
                 onStart();
               }}
-              className="text-muted-foreground hover:bg-accent hover:text-success rounded p-1.5 transition-colors"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-subtext-0 transition-colors hover:bg-green/15 hover:text-green"
               title="Start"
             >
-              <Play className="h-4 w-4" />
+              <Play className="h-3.5 w-3.5" />
+              Start
             </button>
           )}
           {isRunning && (
@@ -54,22 +68,48 @@ export function DistroCard({ distro, onStart, onStop, onRestart }: DistroCardPro
                   e.stopPropagation();
                   onRestart();
                 }}
-                className="text-muted-foreground hover:bg-accent hover:text-warning rounded p-1.5 transition-colors"
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-subtext-0 transition-colors hover:bg-yellow/15 hover:text-yellow"
                 title="Restart"
               >
-                <RotateCw className="h-4 w-4" />
+                <RotateCw className="h-3.5 w-3.5" />
+                Restart
               </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onStop();
                 }}
-                className="text-muted-foreground hover:bg-accent hover:text-destructive rounded p-1.5 transition-colors"
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-subtext-0 transition-colors hover:bg-red/15 hover:text-red"
                 title="Stop"
               >
-                <Square className="h-4 w-4" />
+                <Square className="h-3.5 w-3.5" />
+                Stop
               </button>
             </>
+          )}
+        </div>
+
+        <div className="flex gap-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSnapshot();
+            }}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-subtext-0 transition-colors hover:bg-mauve/15 hover:text-mauve"
+            title="Create snapshot"
+          >
+            <Archive className="h-3.5 w-3.5" />
+            Snapshot
+          </button>
+          {isRunning && (
+            <Link
+              to="/monitoring"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-subtext-0 transition-colors hover:bg-sapphire/15 hover:text-sapphire"
+              title="View monitoring"
+            >
+              <Activity className="h-3.5 w-3.5" />
+              Monitor
+            </Link>
           )}
         </div>
       </div>

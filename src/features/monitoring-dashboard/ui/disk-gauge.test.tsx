@@ -34,18 +34,18 @@ describe("DiskGauge", () => {
   it("applies warning style when usage > 80%", () => {
     render(<DiskGauge disk={makeDisk({ usage_percent: 85.0 })} />);
     const percentText = screen.getByText("85.0%");
-    expect(percentText.className).toContain("text-warning");
+    expect(percentText.className).toContain("text-yellow");
   });
 
   it("applies critical/destructive style when usage > 90%", () => {
     render(<DiskGauge disk={makeDisk({ usage_percent: 95.0 })} />);
     const percentText = screen.getByText("95.0%");
-    expect(percentText.className).toContain("text-destructive");
+    expect(percentText.className).toContain("text-red");
   });
 
   it("applies normal style when usage <= 80%", () => {
     render(<DiskGauge disk={makeDisk({ usage_percent: 50.0 })} />);
     const percentText = screen.getByText("50.0%");
-    expect(percentText.className).toContain("text-muted-foreground");
+    expect(percentText.className).toContain("text-subtext-0");
   });
 });

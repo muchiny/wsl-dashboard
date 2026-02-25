@@ -34,14 +34,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div className="flex min-h-[300px] items-center justify-center p-8">
           <div className="max-w-md text-center">
-            <AlertTriangle className="text-destructive mx-auto mb-4 h-12 w-12" />
-            <h3 className="mb-2 text-lg font-semibold">Something went wrong</h3>
-            <p className="text-muted-foreground mb-4 text-sm">
+            <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-red" />
+            <h3 className="mb-2 text-lg font-semibold text-text">Something went wrong</h3>
+            <p className="mb-4 text-sm text-subtext-0">
               {this.state.error?.message ?? "An unexpected error occurred."}
             </p>
             <button
               onClick={() => this.setState({ hasError: false, error: null })}
-              className="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue px-4 py-2 text-sm font-medium text-crust transition-colors hover:bg-blue/90"
             >
               <RotateCw className="h-4 w-4" />
               Try Again

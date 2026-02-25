@@ -3,6 +3,12 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { DistroCard } from "./distro-card";
 import type { Distro } from "@/shared/types/distro";
 
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <a href={props.to as string} title={props.title as string}>{children}</a>
+  ),
+}));
+
 function makeDistro(overrides: Partial<Distro> = {}): Distro {
   return {
     name: "Ubuntu",
@@ -26,6 +32,7 @@ describe("DistroCard", () => {
         onStart={noop}
         onStop={noop}
         onRestart={noop}
+        onSnapshot={noop}
       />,
     );
     expect(screen.getByText("Debian")).toBeInTheDocument();
@@ -38,6 +45,7 @@ describe("DistroCard", () => {
         onStart={noop}
         onStop={noop}
         onRestart={noop}
+        onSnapshot={noop}
       />,
     );
     expect(screen.getByText("Running")).toBeInTheDocument();
@@ -50,6 +58,7 @@ describe("DistroCard", () => {
         onStart={noop}
         onStop={noop}
         onRestart={noop}
+        onSnapshot={noop}
       />,
     );
     expect(screen.getByText("Stopped")).toBeInTheDocument();
@@ -62,6 +71,7 @@ describe("DistroCard", () => {
         onStart={noop}
         onStop={noop}
         onRestart={noop}
+        onSnapshot={noop}
       />,
     );
     expect(screen.getByText("WSL 2")).toBeInTheDocument();
@@ -74,6 +84,7 @@ describe("DistroCard", () => {
         onStart={noop}
         onStop={noop}
         onRestart={noop}
+        onSnapshot={noop}
       />,
     );
     expect(screen.getByTitle("Start")).toBeInTheDocument();
@@ -88,6 +99,7 @@ describe("DistroCard", () => {
         onStart={noop}
         onStop={noop}
         onRestart={noop}
+        onSnapshot={noop}
       />,
     );
     expect(screen.getByTitle("Stop")).toBeInTheDocument();
@@ -103,6 +115,7 @@ describe("DistroCard", () => {
         onStart={onStart}
         onStop={noop}
         onRestart={noop}
+        onSnapshot={noop}
       />,
     );
     fireEvent.click(screen.getByTitle("Start"));
@@ -117,6 +130,7 @@ describe("DistroCard", () => {
         onStart={noop}
         onStop={onStop}
         onRestart={noop}
+        onSnapshot={noop}
       />,
     );
     fireEvent.click(screen.getByTitle("Stop"));
@@ -131,6 +145,7 @@ describe("DistroCard", () => {
         onStart={noop}
         onStop={noop}
         onRestart={onRestart}
+        onSnapshot={noop}
       />,
     );
     fireEvent.click(screen.getByTitle("Restart"));
@@ -144,10 +159,11 @@ describe("DistroCard", () => {
         onStart={noop}
         onStop={noop}
         onRestart={noop}
+        onSnapshot={noop}
       />,
     );
-    // Star icon from lucide-react renders as an SVG with class fill-warning
-    const starSvg = container.querySelector(".fill-warning");
+    // Star icon from lucide-react renders as an SVG with class fill-yellow
+    const starSvg = container.querySelector(".fill-yellow");
     expect(starSvg).toBeTruthy();
   });
 });

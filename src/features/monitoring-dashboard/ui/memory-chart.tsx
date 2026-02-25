@@ -10,15 +10,15 @@ export function MemoryChart({ data }: MemoryChartProps) {
   const latest = data.length > 0 ? data[data.length - 1] : null;
 
   return (
-    <div className="border-border bg-card rounded-lg border p-4">
+    <div className="rounded-xl border border-surface-1 bg-mantle p-4">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="text-sm font-semibold">Memory Usage</h4>
         {latest && (
-          <span className="text-success text-lg font-bold">{latest.memPercent.toFixed(1)}%</span>
+          <span className="text-lg font-bold text-green">{latest.memPercent.toFixed(1)}%</span>
         )}
       </div>
       {latest && (
-        <p className="text-muted-foreground mb-2 text-xs">
+        <p className="mb-2 text-xs text-subtext-0">
           {formatBytes(latest.memUsed)} / {formatBytes(latest.memTotal)}
         </p>
       )}

@@ -13,34 +13,32 @@ export function AuditLogViewer() {
   });
 
   return (
-    <div className="border-border bg-card rounded-lg border">
-      <div className="border-border flex items-center justify-between border-b p-4">
+    <div className="rounded-xl border border-surface-1 bg-mantle">
+      <div className="flex items-center justify-between border-b border-surface-0 p-4">
         <div className="flex items-center gap-2">
-          <ScrollText className="text-primary h-5 w-5" />
-          <h4 className="font-semibold">Audit Log</h4>
-          {entries && (
-            <span className="text-muted-foreground text-xs">({entries.length} entries)</span>
-          )}
+          <ScrollText className="h-5 w-5 text-lavender" />
+          <h4 className="font-semibold text-text">Audit Log</h4>
+          {entries && <span className="text-xs text-subtext-0">({entries.length} entries)</span>}
         </div>
         <div className="flex gap-2">
           <div className="relative">
-            <Search className="text-muted-foreground absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2" />
+            <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-overlay-0" />
             <input
               type="text"
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
               placeholder="Filter action..."
-              className="border-border bg-background focus:border-primary w-36 rounded-md border py-1 pr-2 pl-7 text-xs focus:outline-none"
+              className="w-36 rounded-lg border border-surface-1 bg-base py-1 pl-7 pr-2 text-xs text-text focus:border-blue focus:outline-none"
             />
           </div>
           <div className="relative">
-            <Search className="text-muted-foreground absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2" />
+            <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-overlay-0" />
             <input
               type="text"
               value={targetFilter}
               onChange={(e) => setTargetFilter(e.target.value)}
               placeholder="Filter target..."
-              className="border-border bg-background focus:border-primary w-36 rounded-md border py-1 pr-2 pl-7 text-xs focus:outline-none"
+              className="w-36 rounded-lg border border-surface-1 bg-base py-1 pl-7 pr-2 text-xs text-text focus:border-blue focus:outline-none"
             />
           </div>
         </div>
@@ -49,20 +47,20 @@ export function AuditLogViewer() {
       {isLoading && (
         <div className="space-y-2 p-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-muted h-8 animate-pulse rounded" />
+            <div key={i} className="h-8 animate-pulse rounded-lg bg-surface-0" />
           ))}
         </div>
       )}
 
       {entries && entries.length === 0 && (
-        <div className="text-muted-foreground p-8 text-center text-sm">No audit entries found.</div>
+        <div className="p-8 text-center text-sm text-subtext-0">No audit entries found.</div>
       )}
 
       {entries && entries.length > 0 && (
         <div className="max-h-96 overflow-auto">
           <table className="w-full text-xs">
-            <thead className="bg-card sticky top-0">
-              <tr className="border-border text-muted-foreground border-b text-left">
+            <thead className="sticky top-0 bg-mantle">
+              <tr className="border-b border-surface-0 text-left text-subtext-0">
                 <th className="px-4 py-2">Time</th>
                 <th className="px-4 py-2">Action</th>
                 <th className="px-4 py-2">Target</th>
@@ -71,17 +69,20 @@ export function AuditLogViewer() {
             </thead>
             <tbody>
               {entries.map((entry) => (
-                <tr key={entry.id} className="border-border/50 hover:bg-accent/50 border-b">
-                  <td className="text-muted-foreground px-4 py-1.5 whitespace-nowrap">
+                <tr
+                  key={entry.id}
+                  className="border-b border-surface-0/50 hover:bg-surface-0/50"
+                >
+                  <td className="whitespace-nowrap px-4 py-1.5 text-overlay-1">
                     {formatRelativeTime(entry.timestamp)}
                   </td>
                   <td className="px-4 py-1.5">
-                    <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 font-mono">
+                    <span className="rounded-md bg-blue/10 px-1.5 py-0.5 font-mono text-blue">
                       {entry.action}
                     </span>
                   </td>
-                  <td className="px-4 py-1.5 font-mono">{entry.target}</td>
-                  <td className="text-muted-foreground max-w-xs truncate px-4 py-1.5">
+                  <td className="px-4 py-1.5 font-mono text-text">{entry.target}</td>
+                  <td className="max-w-xs truncate px-4 py-1.5 text-subtext-0">
                     {entry.details ?? "-"}
                   </td>
                 </tr>

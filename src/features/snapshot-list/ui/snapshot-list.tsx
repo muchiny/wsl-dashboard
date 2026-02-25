@@ -15,7 +15,7 @@ export function SnapshotList({ distroName, onRestore }: SnapshotListProps) {
     return (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="border-border bg-card h-32 animate-pulse rounded-lg border" />
+          <div key={i} className="h-32 animate-pulse rounded-xl border border-surface-1 bg-base" />
         ))}
       </div>
     );
@@ -23,7 +23,7 @@ export function SnapshotList({ distroName, onRestore }: SnapshotListProps) {
 
   if (error) {
     return (
-      <div className="border-destructive/50 bg-destructive/10 text-destructive rounded-lg border p-4">
+      <div className="rounded-xl border border-red/30 bg-red/10 p-4 text-red">
         Failed to load snapshots: {error.message}
       </div>
     );
@@ -31,8 +31,8 @@ export function SnapshotList({ distroName, onRestore }: SnapshotListProps) {
 
   if (!snapshots?.length) {
     return (
-      <div className="border-border bg-card text-muted-foreground rounded-lg border p-8 text-center">
-        No snapshots yet. Create one to get started.
+      <div className="py-6 text-center text-sm text-subtext-0">
+        No snapshots yet. Use the Snapshot button on a distribution to create one.
       </div>
     );
   }

@@ -11,26 +11,26 @@ export function VhdxCompactPanel() {
   const wsl2Distros = distros?.filter((d) => d.wsl_version === 2) ?? [];
 
   return (
-    <div className="border-border bg-card rounded-lg border p-4">
+    <div className="rounded-xl border border-surface-1 bg-mantle p-5">
       <div className="mb-4 flex items-center gap-2">
-        <HardDrive className="text-primary h-5 w-5" />
-        <h4 className="font-semibold">VHDX Optimization</h4>
+        <HardDrive className="h-5 w-5 text-teal" />
+        <h4 className="font-semibold text-text">VHDX Optimization</h4>
       </div>
 
-      <p className="text-muted-foreground mb-4 text-sm">
+      <p className="mb-4 text-sm text-subtext-0">
         Enable sparse mode on a WSL2 distribution&apos;s virtual disk. This allows the VHDX to
         automatically shrink when space is freed, reducing disk usage on the host.
       </p>
 
       <div className="flex items-end gap-3">
         <div className="flex-1">
-          <label className="text-muted-foreground mb-1 block text-xs font-medium">
+          <label className="mb-1 block text-xs font-medium text-subtext-0">
             Distribution (WSL2 only)
           </label>
           <select
             value={selectedDistro}
             onChange={(e) => setSelectedDistro(e.target.value)}
-            className="border-border bg-background focus:border-primary w-full rounded-md border px-3 py-2 text-sm focus:outline-none"
+            className="w-full rounded-lg border border-surface-1 bg-base px-3 py-2 text-sm text-text focus:border-blue focus:outline-none"
           >
             <option value="">Select a distribution...</option>
             {wsl2Distros.map((d) => (
@@ -45,7 +45,7 @@ export function VhdxCompactPanel() {
             if (selectedDistro) compactVhdx.mutate(selectedDistro);
           }}
           disabled={!selectedDistro || compactVhdx.isPending}
-          className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg bg-teal px-4 py-2 text-sm font-medium text-crust transition-colors hover:bg-teal/90 disabled:opacity-50"
         >
           <Zap className="h-4 w-4" />
           {compactVhdx.isPending ? "Optimizing..." : "Enable Sparse"}
@@ -53,16 +53,16 @@ export function VhdxCompactPanel() {
       </div>
 
       {compactVhdx.isSuccess && (
-        <p className="text-success mt-3 text-sm">
+        <p className="mt-3 text-sm text-green">
           Sparse mode enabled successfully. The distro was terminated during the process.
         </p>
       )}
 
       {compactVhdx.isError && (
-        <p className="text-destructive mt-3 text-sm">{compactVhdx.error.message}</p>
+        <p className="mt-3 text-sm text-red">{compactVhdx.error.message}</p>
       )}
 
-      <div className="border-border bg-muted/50 text-muted-foreground mt-4 rounded-md border p-3 text-xs">
+      <div className="mt-4 rounded-lg border border-surface-0 bg-base/50 p-3 text-xs text-subtext-0">
         <strong>Note:</strong> The distro will be terminated before enabling sparse mode. This
         operation is safe and non-destructive.
       </div>

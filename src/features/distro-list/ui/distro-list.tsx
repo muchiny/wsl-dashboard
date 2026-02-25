@@ -2,7 +2,11 @@ import { useDistros } from "../api/queries";
 import { useStartDistro, useStopDistro, useRestartDistro } from "../api/mutations";
 import { DistroCard } from "./distro-card";
 
-export function DistroList() {
+interface DistroListProps {
+  onSnapshot: (distroName: string) => void;
+}
+
+export function DistroList({ onSnapshot }: DistroListProps) {
   const { data: distros, isLoading, error } = useDistros();
   const startDistro = useStartDistro();
   const stopDistro = useStopDistro();
@@ -10,9 +14,9 @@ export function DistroList() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="border-border bg-card h-24 animate-pulse rounded-lg border" />
+          <div key={i} className="h-36 animate-pulse rounded-xl border border-surface-1 bg-mantle" />
         ))}
       </div>
     );
@@ -20,7 +24,7 @@ export function DistroList() {
 
   if (error) {
     return (
-      <div className="border-destructive/50 bg-destructive/10 text-destructive rounded-lg border p-4">
+      <div className="rounded-xl border border-red/30 bg-red/10 p-4 text-red">
         Failed to load distributions: {error.message}
       </div>
     );
@@ -28,14 +32,14 @@ export function DistroList() {
 
   if (!distros?.length) {
     return (
-      <div className="border-border bg-card text-muted-foreground rounded-lg border p-8 text-center">
+      <div className="rounded-xl border border-surface-1 bg-mantle p-8 text-center text-subtext-0">
         No WSL distributions found. Install one to get started.
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       {distros.map((distro) => (
         <DistroCard
           key={distro.name}
@@ -43,6 +47,7 @@ export function DistroList() {
           onStart={() => startDistro.mutate(distro.name)}
           onStop={() => stopDistro.mutate(distro.name)}
           onRestart={() => restartDistro.mutate(distro.name)}
+          onSnapshot={() => onSnapshot(distro.name)}
         />
       ))}
     </div>

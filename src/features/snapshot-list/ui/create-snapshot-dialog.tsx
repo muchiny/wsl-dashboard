@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, X, Archive } from "lucide-react";
 import { useDistros } from "@/features/distro-list/api/queries";
 import { useCreateSnapshot } from "../api/mutations";
@@ -6,14 +6,20 @@ import { useCreateSnapshot } from "../api/mutations";
 interface CreateSnapshotDialogProps {
   open: boolean;
   onClose: () => void;
+  defaultDistro?: string;
 }
 
-export function CreateSnapshotDialog({ open, onClose }: CreateSnapshotDialogProps) {
+export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSnapshotDialogProps) {
   const { data: distros } = useDistros();
   const createSnapshot = useCreateSnapshot();
 
-  const [distroName, setDistroName] = useState("");
+  const [distroName, setDistroName] = useState(defaultDistro ?? "");
   const [name, setName] = useState("");
+
+  useEffect(() => {
+    if (defaultDistro) setDistroName(defaultDistro);
+  }, [defaultDistro]);
+
   const [description, setDescription] = useState("");
   const [format, setFormat] = useState<"tar" | "tar.gz" | "tar.xz" | "vhdx">("tar");
   const [outputDir, setOutputDir] = useState("");
@@ -42,27 +48,33 @@ export function CreateSnapshotDialog({ open, onClose }: CreateSnapshotDialogProp
     );
   };
 
+  const inputClass =
+    "w-full rounded-lg border border-surface-1 bg-base px-3 py-2 text-sm text-text focus:border-blue focus:outline-none";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/60" onClick={onClose} />
-      <div className="border-border bg-card relative z-10 w-full max-w-lg rounded-lg border p-6 shadow-xl">
+      <div className="fixed inset-0 bg-crust/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-surface-1 bg-mantle p-6 shadow-2xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Archive className="text-primary h-5 w-5" />
-            <h3 className="text-lg font-semibold">Create Snapshot</h3>
+            <Archive className="h-5 w-5 text-mauve" />
+            <h3 className="text-lg font-semibold text-text">Create Snapshot</h3>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:bg-accent rounded p-1">
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1 text-subtext-0 hover:bg-surface-0"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium">Distribution</label>
+            <label className="mb-1 block text-sm font-medium text-subtext-1">Distribution</label>
             <select
               value={distroName}
               onChange={(e) => setDistroName(e.target.value)}
-              className="border-border bg-background focus:border-primary w-full rounded-md border px-3 py-2 text-sm focus:outline-none"
+              className={inputClass}
               required
             >
               <option value="">Select a distribution...</option>
@@ -75,37 +87,37 @@ export function CreateSnapshotDialog({ open, onClose }: CreateSnapshotDialogProp
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">Snapshot Name</label>
+            <label className="mb-1 block text-sm font-medium text-subtext-1">Snapshot Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Pre-upgrade backup"
-              className="border-border bg-background focus:border-primary w-full rounded-md border px-3 py-2 text-sm focus:outline-none"
+              className={inputClass}
               required
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">
-              Description <span className="text-muted-foreground">(optional)</span>
+            <label className="mb-1 block text-sm font-medium text-subtext-1">
+              Description <span className="text-overlay-0">(optional)</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what this snapshot captures..."
               rows={2}
-              className="border-border bg-background focus:border-primary w-full resize-none rounded-md border px-3 py-2 text-sm focus:outline-none"
+              className={`${inputClass} resize-none`}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-medium">Format</label>
+              <label className="mb-1 block text-sm font-medium text-subtext-1">Format</label>
               <select
                 value={format}
                 onChange={(e) => setFormat(e.target.value as typeof format)}
-                className="border-border bg-background focus:border-primary w-full rounded-md border px-3 py-2 text-sm focus:outline-none"
+                className={inputClass}
               >
                 <option value="tar">tar (fastest)</option>
                 <option value="tar.gz">tar.gz (compressed)</option>
@@ -115,13 +127,15 @@ export function CreateSnapshotDialog({ open, onClose }: CreateSnapshotDialogProp
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium">Output Directory</label>
+              <label className="mb-1 block text-sm font-medium text-subtext-1">
+                Output Directory
+              </label>
               <input
                 type="text"
                 value={outputDir}
                 onChange={(e) => setOutputDir(e.target.value)}
                 placeholder="/path/to/snapshots"
-                className="border-border bg-background focus:border-primary w-full rounded-md border px-3 py-2 text-sm focus:outline-none"
+                className={inputClass}
                 required
               />
             </div>
@@ -131,14 +145,14 @@ export function CreateSnapshotDialog({ open, onClose }: CreateSnapshotDialogProp
             <button
               type="button"
               onClick={onClose}
-              className="border-border text-muted-foreground hover:bg-accent rounded-md border px-4 py-2 text-sm transition-colors"
+              className="rounded-lg border border-surface-1 px-4 py-2 text-sm text-subtext-1 transition-colors hover:bg-surface-0"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={createSnapshot.isPending}
-              className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg bg-mauve px-4 py-2 text-sm font-medium text-crust transition-colors hover:bg-mauve/90 disabled:opacity-50"
             >
               <Plus className="h-4 w-4" />
               {createSnapshot.isPending ? "Creating..." : "Create Snapshot"}
@@ -146,7 +160,7 @@ export function CreateSnapshotDialog({ open, onClose }: CreateSnapshotDialogProp
           </div>
 
           {createSnapshot.isError && (
-            <p className="text-destructive text-sm">{createSnapshot.error.message}</p>
+            <p className="text-sm text-red">{createSnapshot.error.message}</p>
           )}
         </form>
       </div>

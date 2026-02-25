@@ -35,21 +35,21 @@ export function ProcessTable({ processes }: ProcessTableProps) {
   });
 
   return (
-    <div className="border-border bg-card rounded-lg border">
-      <div className="border-border flex items-center justify-between border-b p-4">
+    <div className="rounded-xl border border-surface-1 bg-mantle">
+      <div className="flex items-center justify-between border-b border-surface-0 p-4">
         <h4 className="text-sm font-semibold">Processes ({processes.length})</h4>
         <input
           type="text"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder="Filter processes..."
-          className="border-border bg-background focus:border-primary w-48 rounded-md border px-2 py-1 text-xs focus:outline-none"
+          className="w-48 rounded-lg border border-surface-1 bg-base px-2 py-1 text-xs text-text focus:border-blue focus:outline-none"
         />
       </div>
       <div className="max-h-80 overflow-auto">
         <table className="w-full text-xs">
-          <thead className="bg-card sticky top-0">
-            <tr className="border-border text-muted-foreground border-b text-left">
+          <thead className="sticky top-0 bg-mantle">
+            <tr className="border-b border-surface-0 text-left text-subtext-0">
               <th className="px-4 py-2">
                 <button onClick={() => handleSort("pid")} className="flex items-center gap-1">
                   PID <ArrowUpDown className="h-3 w-3" />
@@ -83,7 +83,7 @@ export function ProcessTable({ processes }: ProcessTableProps) {
           </thead>
           <tbody>
             {sorted.slice(0, 100).map((p) => (
-              <tr key={p.pid} className="border-border/50 hover:bg-accent/50 border-b">
+              <tr key={p.pid} className="border-b border-surface-0/50 hover:bg-surface-0/50">
                 <td className="px-4 py-1.5 font-mono">{p.pid}</td>
                 <td className="px-4 py-1.5">{p.user}</td>
                 <td className="px-4 py-1.5 font-mono">{p.cpu_percent.toFixed(1)}</td>

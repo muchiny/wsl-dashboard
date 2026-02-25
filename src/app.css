@@ -1,66 +1,97 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: oklch(0.145 0 0);
-  --color-foreground: oklch(0.985 0 0);
-  --color-card: oklch(0.17 0 0);
-  --color-card-foreground: oklch(0.985 0 0);
-  --color-popover: oklch(0.17 0 0);
-  --color-popover-foreground: oklch(0.985 0 0);
-  --color-primary: oklch(0.7 0.15 250);
-  --color-primary-foreground: oklch(0.145 0 0);
-  --color-secondary: oklch(0.25 0 0);
-  --color-secondary-foreground: oklch(0.985 0 0);
-  --color-muted: oklch(0.25 0 0);
-  --color-muted-foreground: oklch(0.65 0 0);
-  --color-accent: oklch(0.25 0 0);
-  --color-accent-foreground: oklch(0.985 0 0);
-  --color-destructive: oklch(0.6 0.2 25);
-  --color-destructive-foreground: oklch(0.985 0 0);
-  --color-border: oklch(0.3 0 0);
-  --color-input: oklch(0.3 0 0);
-  --color-ring: oklch(0.7 0.15 250);
-  --color-success: oklch(0.7 0.18 145);
-  --color-warning: oklch(0.75 0.15 75);
-  --color-chart-primary: oklch(0.7 0.15 250);
-  --color-chart-success: oklch(0.7 0.17 150);
-  --color-chart-accent: oklch(0.7 0.15 30);
+  /* Catppuccin Mocha (dark) — default */
+  --color-base: #1e1e2e;
+  --color-mantle: #181825;
+  --color-crust: #11111b;
+  --color-surface-0: #313244;
+  --color-surface-1: #45475a;
+  --color-surface-2: #585b70;
+  --color-overlay-0: #6c7086;
+  --color-overlay-1: #7f849c;
+  --color-overlay-2: #9399b2;
+  --color-subtext-0: #a6adc8;
+  --color-subtext-1: #bac2de;
+  --color-text: #cdd6f4;
+  --color-rosewater: #f5e0dc;
+  --color-flamingo: #f2cdcd;
+  --color-pink: #f5c2e7;
+  --color-mauve: #cba6f7;
+  --color-red: #f38ba8;
+  --color-maroon: #eba0ac;
+  --color-peach: #fab387;
+  --color-yellow: #f9e2af;
+  --color-green: #a6e3a1;
+  --color-teal: #94e2d5;
+  --color-sky: #89dceb;
+  --color-sapphire: #74c7ec;
+  --color-blue: #89b4fa;
+  --color-lavender: #b4befe;
 
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
+  /* Semantic mappings (used by components) */
+  --color-background: var(--color-base);
+  --color-foreground: var(--color-text);
+  --color-card: var(--color-mantle);
+  --color-card-foreground: var(--color-text);
+  --color-popover: var(--color-surface-0);
+  --color-popover-foreground: var(--color-text);
+  --color-primary: var(--color-blue);
+  --color-primary-foreground: var(--color-crust);
+  --color-secondary: var(--color-surface-0);
+  --color-secondary-foreground: var(--color-text);
+  --color-muted: var(--color-surface-0);
+  --color-muted-foreground: var(--color-subtext-0);
+  --color-accent: var(--color-surface-1);
+  --color-accent-foreground: var(--color-text);
+  --color-destructive: var(--color-red);
+  --color-destructive-foreground: var(--color-crust);
+  --color-border: var(--color-surface-1);
+  --color-input: var(--color-surface-0);
+  --color-ring: var(--color-lavender);
+  --color-success: var(--color-green);
+  --color-warning: var(--color-yellow);
+  --color-chart-primary: var(--color-blue);
+  --color-chart-success: var(--color-green);
+  --color-chart-accent: var(--color-peach);
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
-/* Light mode overrides */
+/* Catppuccin Latte (light) */
 [data-theme="light"] {
-  --color-background: oklch(0.98 0 0);
-  --color-foreground: oklch(0.145 0 0);
-  --color-card: oklch(1 0 0);
-  --color-card-foreground: oklch(0.145 0 0);
-  --color-popover: oklch(1 0 0);
-  --color-popover-foreground: oklch(0.145 0 0);
-  --color-primary: oklch(0.55 0.2 250);
-  --color-primary-foreground: oklch(0.985 0 0);
-  --color-secondary: oklch(0.93 0 0);
-  --color-secondary-foreground: oklch(0.2 0 0);
-  --color-muted: oklch(0.93 0 0);
-  --color-muted-foreground: oklch(0.45 0 0);
-  --color-accent: oklch(0.93 0 0);
-  --color-accent-foreground: oklch(0.2 0 0);
-  --color-destructive: oklch(0.55 0.22 25);
-  --color-destructive-foreground: oklch(0.985 0 0);
-  --color-border: oklch(0.87 0 0);
-  --color-input: oklch(0.87 0 0);
-  --color-ring: oklch(0.55 0.2 250);
-  --color-success: oklch(0.5 0.18 150);
-  --color-warning: oklch(0.6 0.16 75);
-  --color-chart-primary: oklch(0.55 0.2 250);
-  --color-chart-success: oklch(0.5 0.18 150);
-  --color-chart-accent: oklch(0.6 0.18 30);
+  --color-base: #eff1f5;
+  --color-mantle: #e6e9ef;
+  --color-crust: #dce0e8;
+  --color-surface-0: #ccd0da;
+  --color-surface-1: #bcc0cc;
+  --color-surface-2: #acb0be;
+  --color-overlay-0: #9ca0b0;
+  --color-overlay-1: #8c8fa1;
+  --color-overlay-2: #7c7f93;
+  --color-subtext-0: #6c6f85;
+  --color-subtext-1: #5c5f77;
+  --color-text: #4c4f69;
+  --color-rosewater: #dc8a78;
+  --color-flamingo: #dd7878;
+  --color-pink: #ea76cb;
+  --color-mauve: #8839ef;
+  --color-red: #d20f39;
+  --color-maroon: #e64553;
+  --color-peach: #fe640b;
+  --color-yellow: #df8e1d;
+  --color-green: #40a02b;
+  --color-teal: #179299;
+  --color-sky: #04a5e5;
+  --color-sapphire: #209fb5;
+  --color-blue: #1e66f5;
+  --color-lavender: #7287fd;
 }
 
 * {
@@ -74,4 +105,23 @@ body {
   transition:
     background-color 0.2s ease,
     color 0.2s ease;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-mantle);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-overlay-0);
 }

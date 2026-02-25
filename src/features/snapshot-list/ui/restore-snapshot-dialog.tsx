@@ -39,50 +39,56 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
     );
   };
 
+  const inputClass =
+    "w-full rounded-lg border border-surface-1 bg-base px-3 py-2 text-sm text-text focus:border-blue focus:outline-none";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/60" onClick={onClose} />
-      <div className="border-border bg-card relative z-10 w-full max-w-lg rounded-lg border p-6 shadow-xl">
+      <div className="fixed inset-0 bg-crust/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-surface-1 bg-mantle p-6 shadow-2xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <RotateCw className="text-primary h-5 w-5" />
-            <h3 className="text-lg font-semibold">Restore Snapshot</h3>
+            <RotateCw className="h-5 w-5 text-blue" />
+            <h3 className="text-lg font-semibold text-text">Restore Snapshot</h3>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:bg-accent rounded p-1">
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1 text-subtext-0 hover:bg-surface-0"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium">Restore Mode</label>
+            <label className="mb-2 block text-sm font-medium text-subtext-1">Restore Mode</label>
             <div className="flex gap-3">
-              <label className="border-border has-[:checked]:border-primary has-[:checked]:bg-primary/5 flex flex-1 cursor-pointer items-center gap-2 rounded-md border p-3">
+              <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-lg border border-surface-1 p-3 has-[:checked]:border-blue has-[:checked]:bg-blue/5">
                 <input
                   type="radio"
                   name="mode"
                   value="clone"
                   checked={mode === "clone"}
                   onChange={() => setMode("clone")}
-                  className="accent-primary"
+                  className="accent-blue"
                 />
                 <div>
-                  <p className="text-sm font-medium">Clone</p>
-                  <p className="text-muted-foreground text-xs">Create as new distro</p>
+                  <p className="text-sm font-medium text-text">Clone</p>
+                  <p className="text-xs text-subtext-0">Create as new distro</p>
                 </div>
               </label>
-              <label className="border-border has-[:checked]:border-primary has-[:checked]:bg-primary/5 flex flex-1 cursor-pointer items-center gap-2 rounded-md border p-3">
+              <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-lg border border-surface-1 p-3 has-[:checked]:border-blue has-[:checked]:bg-blue/5">
                 <input
                   type="radio"
                   name="mode"
                   value="overwrite"
                   checked={mode === "overwrite"}
                   onChange={() => setMode("overwrite")}
-                  className="accent-primary"
+                  className="accent-blue"
                 />
                 <div>
-                  <p className="text-sm font-medium">Overwrite</p>
-                  <p className="text-muted-foreground text-xs">Replace original distro</p>
+                  <p className="text-sm font-medium text-text">Overwrite</p>
+                  <p className="text-xs text-subtext-0">Replace original distro</p>
                 </div>
               </label>
             </div>
@@ -90,36 +96,40 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
 
           {mode === "clone" && (
             <div>
-              <label className="mb-1 block text-sm font-medium">New Distribution Name</label>
+              <label className="mb-1 block text-sm font-medium text-subtext-1">
+                New Distribution Name
+              </label>
               <input
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="e.g. Ubuntu-restored"
-                className="border-border bg-background focus:border-primary w-full rounded-md border px-3 py-2 text-sm focus:outline-none"
+                className={inputClass}
                 required
               />
             </div>
           )}
 
           {mode === "overwrite" && (
-            <div className="border-warning/50 bg-warning/10 text-warning rounded-md border p-3 text-sm">
+            <div className="rounded-lg border border-yellow/30 bg-yellow/10 p-3 text-sm text-yellow">
               This will terminate and replace the original distribution. Make sure to back up any
               unsaved work.
             </div>
           )}
 
           <div>
-            <label className="mb-1 block text-sm font-medium">Install Location</label>
+            <label className="mb-1 block text-sm font-medium text-subtext-1">
+              Install Location
+            </label>
             <input
               type="text"
               value={installLocation}
               onChange={(e) => setInstallLocation(e.target.value)}
               placeholder="/path/to/install"
-              className="border-border bg-background focus:border-primary w-full rounded-md border px-3 py-2 text-sm focus:outline-none"
+              className={inputClass}
               required
             />
-            <p className="text-muted-foreground mt-1 text-xs">
+            <p className="mt-1 text-xs text-overlay-0">
               Directory where the distribution&apos;s virtual disk will be stored.
             </p>
           </div>
@@ -128,14 +138,14 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
             <button
               type="button"
               onClick={onClose}
-              className="border-border text-muted-foreground hover:bg-accent rounded-md border px-4 py-2 text-sm transition-colors"
+              className="rounded-lg border border-surface-1 px-4 py-2 text-sm text-subtext-1 transition-colors hover:bg-surface-0"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={restoreSnapshot.isPending}
-              className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg bg-blue px-4 py-2 text-sm font-medium text-crust transition-colors hover:bg-blue/90 disabled:opacity-50"
             >
               <RotateCw className="h-4 w-4" />
               {restoreSnapshot.isPending ? "Restoring..." : "Restore"}
@@ -143,7 +153,7 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
           </div>
 
           {restoreSnapshot.isError && (
-            <p className="text-destructive text-sm">{restoreSnapshot.error.message}</p>
+            <p className="text-sm text-red">{restoreSnapshot.error.message}</p>
           )}
         </form>
       </div>
