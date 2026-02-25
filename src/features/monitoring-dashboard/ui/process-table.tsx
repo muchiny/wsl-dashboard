@@ -1,0 +1,101 @@
+import { useState } from "react";
+import { ArrowUpDown } from "lucide-react";
+import { formatBytes } from "@/shared/lib/formatters";
+import type { ProcessInfo } from "../api/queries";
+
+interface ProcessTableProps {
+  processes: ProcessInfo[];
+}
+
+type SortKey = "cpu_percent" | "mem_percent" | "pid" | "rss_bytes";
+
+export function ProcessTable({ processes }: ProcessTableProps) {
+  const [sortKey, setSortKey] = useState<SortKey>("cpu_percent");
+  const [sortAsc, setSortAsc] = useState(false);
+  const [filter, setFilter] = useState("");
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortKey(key);
+      setSortAsc(false);
+    }
+  };
+
+  const filtered = processes.filter(
+    (p) =>
+      p.command.toLowerCase().includes(filter.toLowerCase()) ||
+      p.user.toLowerCase().includes(filter.toLowerCase()),
+  );
+
+  const sorted = [...filtered].sort((a, b) => {
+    const mult = sortAsc ? 1 : -1;
+    return (a[sortKey] - b[sortKey]) * mult;
+  });
+
+  return (
+    <div className="border-border bg-card rounded-lg border">
+      <div className="border-border flex items-center justify-between border-b p-4">
+        <h4 className="text-sm font-semibold">Processes ({processes.length})</h4>
+        <input
+          type="text"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="Filter processes..."
+          className="border-border bg-background focus:border-primary w-48 rounded-md border px-2 py-1 text-xs focus:outline-none"
+        />
+      </div>
+      <div className="max-h-80 overflow-auto">
+        <table className="w-full text-xs">
+          <thead className="bg-card sticky top-0">
+            <tr className="border-border text-muted-foreground border-b text-left">
+              <th className="px-4 py-2">
+                <button onClick={() => handleSort("pid")} className="flex items-center gap-1">
+                  PID <ArrowUpDown className="h-3 w-3" />
+                </button>
+              </th>
+              <th className="px-4 py-2">User</th>
+              <th className="px-4 py-2">
+                <button
+                  onClick={() => handleSort("cpu_percent")}
+                  className="flex items-center gap-1"
+                >
+                  CPU% <ArrowUpDown className="h-3 w-3" />
+                </button>
+              </th>
+              <th className="px-4 py-2">
+                <button
+                  onClick={() => handleSort("mem_percent")}
+                  className="flex items-center gap-1"
+                >
+                  MEM% <ArrowUpDown className="h-3 w-3" />
+                </button>
+              </th>
+              <th className="px-4 py-2">
+                <button onClick={() => handleSort("rss_bytes")} className="flex items-center gap-1">
+                  RSS <ArrowUpDown className="h-3 w-3" />
+                </button>
+              </th>
+              <th className="px-4 py-2">State</th>
+              <th className="px-4 py-2">Command</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.slice(0, 100).map((p) => (
+              <tr key={p.pid} className="border-border/50 hover:bg-accent/50 border-b">
+                <td className="px-4 py-1.5 font-mono">{p.pid}</td>
+                <td className="px-4 py-1.5">{p.user}</td>
+                <td className="px-4 py-1.5 font-mono">{p.cpu_percent.toFixed(1)}</td>
+                <td className="px-4 py-1.5 font-mono">{p.mem_percent.toFixed(1)}</td>
+                <td className="px-4 py-1.5 font-mono">{formatBytes(p.rss_bytes)}</td>
+                <td className="px-4 py-1.5">{p.state}</td>
+                <td className="max-w-xs truncate px-4 py-1.5 font-mono">{p.command}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
