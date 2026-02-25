@@ -1,47 +1,36 @@
 import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/react-router";
-import { Sidebar } from "@/widgets/sidebar/ui/sidebar";
 import { Header } from "@/widgets/header/ui/header";
-import { DashboardPage } from "@/pages/dashboard/ui/dashboard-page";
+import { DebugConsole } from "@/widgets/debug-console/ui/debug-console";
 import { DistrosPage } from "@/pages/distros/ui/distros-page";
-import { SnapshotsPage } from "@/pages/snapshots/ui/snapshots-page";
 import { MonitoringPage } from "@/pages/monitoring/ui/monitoring-page";
-import { DockerPage } from "@/pages/docker/ui/docker-page";
 import { SettingsPage } from "@/pages/settings/ui/settings-page";
-import { IacPage } from "@/pages/iac/ui/iac-page";
 import { ErrorBoundary } from "@/shared/ui/error-boundary";
+import { useDebugConsoleSetup } from "@/shared/hooks/use-debug-console";
+
+function RootLayout() {
+  useDebugConsoleSetup();
+
+  return (
+    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+      <Header />
+      <main className="min-h-0 flex-1 overflow-y-auto p-6">
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
+      </main>
+      <DebugConsole />
+    </div>
+  );
+}
 
 const rootRoute = createRootRoute({
-  component: () => (
-    <div className="bg-background text-foreground flex h-screen overflow-hidden">
-      <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto p-6">
-          <ErrorBoundary>
-            <Outlet />
-          </ErrorBoundary>
-        </main>
-      </div>
-    </div>
-  ),
-});
-
-const dashboardRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/",
-  component: DashboardPage,
+  component: RootLayout,
 });
 
 const distrosRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/distros",
+  path: "/",
   component: DistrosPage,
-});
-
-const snapshotsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/snapshots",
-  component: SnapshotsPage,
 });
 
 const monitoringRoute = createRoute({
@@ -50,33 +39,13 @@ const monitoringRoute = createRoute({
   component: MonitoringPage,
 });
 
-const dockerRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/docker",
-  component: DockerPage,
-});
-
-const iacRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/iac",
-  component: IacPage,
-});
-
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/settings",
   component: SettingsPage,
 });
 
-const routeTree = rootRoute.addChildren([
-  dashboardRoute,
-  distrosRoute,
-  snapshotsRoute,
-  monitoringRoute,
-  dockerRoute,
-  iacRoute,
-  settingsRoute,
-]);
+const routeTree = rootRoute.addChildren([distrosRoute, monitoringRoute, settingsRoute]);
 
 export const router = createRouter({ routeTree });
 

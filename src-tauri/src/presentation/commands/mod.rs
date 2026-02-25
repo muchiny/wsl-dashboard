@@ -1,4 +1,5 @@
 pub mod audit_commands;
+pub mod debug_commands;
 pub mod distro_commands;
 pub mod docker_commands;
 pub mod iac_commands;

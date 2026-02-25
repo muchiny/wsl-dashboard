@@ -9,7 +9,6 @@
     "shell:allow-execute",
     "shell:default",
     "store:default",
-    "log:default",
     "dialog:default"
   ]
 }

@@ -10,6 +10,10 @@ use std::sync::Arc;
 use tauri::Manager;
 
 #[cfg(not(fuzzing))]
+use infrastructure::debug_log::buffer::DebugLogBuffer;
+#[cfg(not(fuzzing))]
+use infrastructure::debug_log::layer::DebugLogLayer;
+#[cfg(not(fuzzing))]
 use infrastructure::docker::adapter::DockerCliAdapter;
 #[cfg(not(fuzzing))]
 use infrastructure::iac::adapter::IacCliAdapter;
@@ -21,8 +25,8 @@ use infrastructure::sqlite::adapter::{SqliteAuditLogger, SqliteDb, SqliteSnapsho
 use infrastructure::wsl_cli::adapter::WslCliAdapter;
 #[cfg(not(fuzzing))]
 use presentation::commands::{
-    audit_commands, distro_commands, docker_commands, iac_commands, monitoring_commands,
-    settings_commands, snapshot_commands,
+    audit_commands, debug_commands, distro_commands, docker_commands, iac_commands,
+    monitoring_commands, settings_commands, snapshot_commands,
 };
 #[cfg(not(fuzzing))]
 use presentation::state::AppState;
@@ -30,6 +34,18 @@ use presentation::state::AppState;
 #[cfg(not(fuzzing))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // ── Debug log infrastructure (must be set up before anything logs) ──
+    let debug_buffer = Arc::new(DebugLogBuffer::new());
+    let debug_layer = DebugLogLayer::new(debug_buffer.clone());
+    let handle_slot = debug_layer.app_handle_slot();
+
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::util::SubscriberInitExt;
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer().with_target(true))
+        .with(debug_layer)
+        .init();
+
     // Panic hook: write crash info to a log file so silent crashes are diagnosable
     let default_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
@@ -67,13 +83,18 @@ pub fn run() {
         default_hook(info);
     }));
 
+    let buffer_for_state = debug_buffer.clone();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_store::Builder::new().build())
-        .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
-        .setup(|app| {
+        .setup(move |app| {
             let app_handle = app.handle().clone();
+
+            // Wire the AppHandle into the debug log layer for real-time events
+            let _ = handle_slot.set(app_handle.clone());
+            app_handle.manage(buffer_for_state);
 
             // Async initialization of SQLite and hexagonal wiring
             tauri::async_runtime::block_on(async move {
@@ -110,6 +131,7 @@ pub fn run() {
                 Ok::<(), Box<dyn std::error::Error>>(())
             })?;
 
+            tracing::info!("WSL Nexus started successfully");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -135,6 +157,8 @@ pub fn run() {
             iac_commands::get_k8s_info,
             iac_commands::run_playbook,
             audit_commands::search_audit_log,
+            debug_commands::get_debug_logs,
+            debug_commands::clear_debug_logs,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
