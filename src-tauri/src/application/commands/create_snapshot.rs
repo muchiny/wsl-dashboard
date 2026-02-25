@@ -67,9 +67,10 @@ impl CreateSnapshotHandler {
             .await
         {
             Ok(()) => {
-                let metadata = std::fs::metadata(&file_path)
-                    .map_err(|e| DomainError::SnapshotError(e.to_string()))?;
-                snapshot.file_size = MemorySize::from_bytes(metadata.len());
+                // Try to read file size; non-critical if it fails (cross-filesystem)
+                snapshot.file_size = std::fs::metadata(&file_path)
+                    .map(|m| MemorySize::from_bytes(m.len()))
+                    .unwrap_or_else(|_| MemorySize::zero());
                 snapshot.status = SnapshotStatus::Completed;
             }
             Err(e) => {

@@ -12,12 +12,42 @@ use crate::domain::value_objects::DistroName;
 use super::encoding::decode_wsl_output;
 use super::parser::parse_distro_list;
 
+/// Convert a Linux /mnt/X/... path to Windows X:\... for wsl.exe commands.
+/// Passes through paths that are already Windows-style or don't match /mnt/.
+fn linux_to_windows_path(path: &str) -> String {
+    // Match /mnt/c/Users/... -> C:\Users\...
+    if let Some(rest) = path.strip_prefix("/mnt/") {
+        if let Some((drive, remainder)) = rest.split_once('/') {
+            if drive.len() == 1 {
+                return format!("{}:\\{}", drive.to_uppercase(), remainder.replace('/', "\\"));
+            }
+        }
+    }
+    path.to_string()
+}
+
 pub struct WslCliAdapter {
     wsl_exe: String,
 }
 
 impl WslCliAdapter {
     pub fn new() -> Self {
+        // On Linux (WSL2), ensure binfmt_misc interop is registered so .exe files can run
+        #[cfg(target_os = "linux")]
+        {
+            if std::path::Path::new("/proc/sys/fs/binfmt_misc")
+                .exists()
+                && !std::path::Path::new("/proc/sys/fs/binfmt_misc/WSLInterop").exists()
+            {
+                let _ = std::process::Command::new("sh")
+                    .args([
+                        "-c",
+                        "echo ':WSLInterop:M::MZ::/init:PF' > /proc/sys/fs/binfmt_misc/register 2>/dev/null",
+                    ])
+                    .status();
+            }
+        }
+
         Self {
             wsl_exe: "wsl.exe".to_string(),
         }
@@ -49,7 +79,26 @@ impl WslCliAdapter {
         if !output.status.success() {
             let stderr = decode_wsl_output(&output.stderr)
                 .unwrap_or_else(|_| String::from_utf8_lossy(&output.stderr).to_string());
-            return Err(DomainError::WslCliError(stderr.trim().to_string()));
+            let stderr = stderr.trim();
+
+            // When stderr is empty, try stdout or include the exit code
+            let msg = if stderr.is_empty() {
+                let stdout = decode_wsl_output(&output.stdout)
+                    .unwrap_or_else(|_| String::from_utf8_lossy(&output.stdout).to_string());
+                let stdout = stdout.trim();
+                if stdout.is_empty() {
+                    format!(
+                        "wsl.exe exited with code {} (no output)",
+                        output.status.code().unwrap_or(-1)
+                    )
+                } else {
+                    stdout.to_string()
+                }
+            } else {
+                stderr.to_string()
+            };
+
+            return Err(DomainError::WslCliError(msg));
         }
 
         Ok(output.stdout)
@@ -155,7 +204,9 @@ impl WslManagerPort for WslCliAdapter {
         path: &str,
         format: ExportFormat,
     ) -> Result<(), DomainError> {
-        let mut args = vec!["--export", name.as_str(), path];
+        // Convert Linux /mnt/X/... paths to Windows X:\... for wsl.exe
+        let win_path = linux_to_windows_path(path);
+        let mut args = vec!["--export", name.as_str(), win_path.as_str()];
         if let Some(flag) = format.wsl_flag() {
             args.push(flag);
         }
@@ -169,7 +220,9 @@ impl WslManagerPort for WslCliAdapter {
         install_location: &str,
         file_path: &str,
     ) -> Result<(), DomainError> {
-        self.run_wsl_raw(&["--import", name.as_str(), install_location, file_path])
+        let win_loc = linux_to_windows_path(install_location);
+        let win_file = linux_to_windows_path(file_path);
+        self.run_wsl_raw(&["--import", name.as_str(), win_loc.as_str(), win_file.as_str()])
             .await?;
         Ok(())
     }

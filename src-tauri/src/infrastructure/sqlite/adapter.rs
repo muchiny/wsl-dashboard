@@ -275,3 +275,574 @@ impl AuditLoggerPort for SqliteAuditLogger {
         Ok(entries)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::entities::snapshot::{ExportFormat, Snapshot, SnapshotStatus, SnapshotType};
+    use crate::domain::ports::audit_logger::{AuditLoggerPort, AuditQuery};
+    use crate::domain::ports::snapshot_repository::SnapshotRepositoryPort;
+    use crate::domain::value_objects::{DistroName, MemorySize, SnapshotId};
+
+    /// Helper: create an in-memory SqliteDb for testing.
+    async fn test_db() -> SqliteDb {
+        SqliteDb::new("sqlite::memory:").await.unwrap()
+    }
+
+    /// Helper: build a Snapshot with sensible defaults. Accepts overrides for common fields.
+    fn make_snapshot(
+        id: &str,
+        distro: &str,
+        name: &str,
+        created_at: chrono::DateTime<chrono::Utc>,
+    ) -> Snapshot {
+        Snapshot {
+            id: SnapshotId::from_string(id.to_string()),
+            distro_name: DistroName::new(distro).unwrap(),
+            name: name.to_string(),
+            description: Some(format!("Description for {}", name)),
+            snapshot_type: SnapshotType::Full,
+            format: ExportFormat::Tar,
+            file_path: format!("/tmp/{}.tar", id),
+            file_size: MemorySize::from_bytes(1024),
+            parent_id: None,
+            created_at,
+            status: SnapshotStatus::Completed,
+        }
+    }
+
+    // ---- SqliteDb tests ----
+
+    #[tokio::test]
+    async fn test_sqlite_db_new_creates_tables_successfully() {
+        let db = test_db().await;
+
+        // Verify the snapshots table exists by querying it
+        let result = sqlx::query("SELECT COUNT(*) as cnt FROM snapshots")
+            .fetch_one(&db.pool)
+            .await;
+        assert!(result.is_ok(), "snapshots table should exist");
+
+        // Verify the audit_log table exists
+        let result = sqlx::query("SELECT COUNT(*) as cnt FROM audit_log")
+            .fetch_one(&db.pool)
+            .await;
+        assert!(result.is_ok(), "audit_log table should exist");
+    }
+
+    // ---- SqliteSnapshotRepository::save tests ----
+
+    #[tokio::test]
+    async fn test_save_creates_new_snapshot() {
+        let db = test_db().await;
+        let repo = SqliteSnapshotRepository::new(db);
+
+        let snapshot = make_snapshot("snap-001", "Ubuntu", "backup-1", chrono::Utc::now());
+        let result = repo.save(&snapshot).await;
+        assert!(result.is_ok());
+
+        // Verify it was persisted
+        let retrieved = repo
+            .get_by_id(&SnapshotId::from_string("snap-001".to_string()))
+            .await
+            .unwrap();
+        assert_eq!(retrieved.name, "backup-1");
+        assert_eq!(retrieved.distro_name.as_str(), "Ubuntu");
+        assert_eq!(retrieved.file_path, "/tmp/snap-001.tar");
+        assert_eq!(retrieved.file_size.bytes(), 1024);
+    }
+
+    #[tokio::test]
+    async fn test_save_upserts_existing_snapshot() {
+        let db = test_db().await;
+        let repo = SqliteSnapshotRepository::new(db);
+
+        let now = chrono::Utc::now();
+        let snapshot = make_snapshot("snap-upsert", "Ubuntu", "original-name", now);
+        repo.save(&snapshot).await.unwrap();
+
+        // Update the snapshot with the same ID but different data
+        let updated = Snapshot {
+            name: "updated-name".to_string(),
+            description: Some("updated description".to_string()),
+            file_size: MemorySize::from_bytes(2048),
+            status: SnapshotStatus::Failed("disk full".to_string()),
+            ..snapshot
+        };
+        let result = repo.save(&updated).await;
+        assert!(result.is_ok());
+
+        // Verify the update took effect and there's only one row
+        let retrieved = repo
+            .get_by_id(&SnapshotId::from_string("snap-upsert".to_string()))
+            .await
+            .unwrap();
+        assert_eq!(retrieved.name, "updated-name");
+        assert_eq!(
+            retrieved.description,
+            Some("updated description".to_string())
+        );
+        assert_eq!(retrieved.file_size.bytes(), 2048);
+        match retrieved.status {
+            SnapshotStatus::Failed(reason) => assert_eq!(reason, "disk full"),
+            other => panic!("Expected Failed status, got: {:?}", other),
+        }
+
+        // Confirm only one snapshot exists (upsert, not duplicate insert)
+        let all = repo.list_all().await.unwrap();
+        assert_eq!(all.len(), 1);
+    }
+
+    // ---- SqliteSnapshotRepository::list_all tests ----
+
+    #[tokio::test]
+    async fn test_list_all_returns_snapshots_ordered_by_created_at_desc() {
+        let db = test_db().await;
+        let repo = SqliteSnapshotRepository::new(db);
+
+        let t1 = chrono::Utc::now() - chrono::Duration::hours(3);
+        let t2 = chrono::Utc::now() - chrono::Duration::hours(2);
+        let t3 = chrono::Utc::now() - chrono::Duration::hours(1);
+
+        // Insert in non-chronological order
+        repo.save(&make_snapshot("snap-a", "Ubuntu", "oldest", t1))
+            .await
+            .unwrap();
+        repo.save(&make_snapshot("snap-c", "Debian", "newest", t3))
+            .await
+            .unwrap();
+        repo.save(&make_snapshot("snap-b", "Fedora", "middle", t2))
+            .await
+            .unwrap();
+
+        let all = repo.list_all().await.unwrap();
+        assert_eq!(all.len(), 3);
+        // Ordered by created_at DESC: newest first
+        assert_eq!(all[0].name, "newest");
+        assert_eq!(all[1].name, "middle");
+        assert_eq!(all[2].name, "oldest");
+    }
+
+    #[tokio::test]
+    async fn test_list_all_returns_empty_when_no_snapshots() {
+        let db = test_db().await;
+        let repo = SqliteSnapshotRepository::new(db);
+
+        let all = repo.list_all().await.unwrap();
+        assert!(all.is_empty());
+    }
+
+    // ---- SqliteSnapshotRepository::list_by_distro tests ----
+
+    #[tokio::test]
+    async fn test_list_by_distro_filters_correctly() {
+        let db = test_db().await;
+        let repo = SqliteSnapshotRepository::new(db);
+
+        let now = chrono::Utc::now();
+        repo.save(&make_snapshot("s1", "Ubuntu", "ubuntu-snap-1", now))
+            .await
+            .unwrap();
+        repo.save(&make_snapshot(
+            "s2",
+            "Ubuntu",
+            "ubuntu-snap-2",
+            now - chrono::Duration::hours(1),
+        ))
+        .await
+        .unwrap();
+        repo.save(&make_snapshot("s3", "Debian", "debian-snap-1", now))
+            .await
+            .unwrap();
+
+        let ubuntu = DistroName::new("Ubuntu").unwrap();
+        let ubuntu_snaps = repo.list_by_distro(&ubuntu).await.unwrap();
+        assert_eq!(ubuntu_snaps.len(), 2);
+        for snap in &ubuntu_snaps {
+            assert_eq!(snap.distro_name.as_str(), "Ubuntu");
+        }
+        // Should be ordered by created_at DESC
+        assert_eq!(ubuntu_snaps[0].name, "ubuntu-snap-1");
+        assert_eq!(ubuntu_snaps[1].name, "ubuntu-snap-2");
+
+        let debian = DistroName::new("Debian").unwrap();
+        let debian_snaps = repo.list_by_distro(&debian).await.unwrap();
+        assert_eq!(debian_snaps.len(), 1);
+        assert_eq!(debian_snaps[0].distro_name.as_str(), "Debian");
+    }
+
+    #[tokio::test]
+    async fn test_list_by_distro_returns_empty_for_unknown_distro() {
+        let db = test_db().await;
+        let repo = SqliteSnapshotRepository::new(db);
+
+        repo.save(&make_snapshot("s1", "Ubuntu", "snap", chrono::Utc::now()))
+            .await
+            .unwrap();
+
+        let arch = DistroName::new("Arch").unwrap();
+        let snaps = repo.list_by_distro(&arch).await.unwrap();
+        assert!(snaps.is_empty());
+    }
+
+    // ---- SqliteSnapshotRepository::get_by_id tests ----
+
+    #[tokio::test]
+    async fn test_get_by_id_returns_correct_snapshot() {
+        let db = test_db().await;
+        let repo = SqliteSnapshotRepository::new(db);
+
+        let now = chrono::Utc::now();
+        let snapshot = Snapshot {
+            id: SnapshotId::from_string("specific-id".to_string()),
+            distro_name: DistroName::new("Fedora").unwrap(),
+            name: "fedora-backup".to_string(),
+            description: None,
+            snapshot_type: SnapshotType::PseudoIncremental,
+            format: ExportFormat::TarGz,
+            file_path: "/backups/fedora.tar.gz".to_string(),
+            file_size: MemorySize::from_bytes(5_000_000),
+            parent_id: None,
+            created_at: now,
+            status: SnapshotStatus::InProgress,
+        };
+        repo.save(&snapshot).await.unwrap();
+
+        let retrieved = repo
+            .get_by_id(&SnapshotId::from_string("specific-id".to_string()))
+            .await
+            .unwrap();
+
+        assert_eq!(retrieved.id.as_str(), "specific-id");
+        assert_eq!(retrieved.distro_name.as_str(), "Fedora");
+        assert_eq!(retrieved.name, "fedora-backup");
+        assert_eq!(retrieved.description, None);
+        assert_eq!(retrieved.file_path, "/backups/fedora.tar.gz");
+        assert_eq!(retrieved.file_size.bytes(), 5_000_000);
+        match retrieved.snapshot_type {
+            SnapshotType::PseudoIncremental => {}
+            other => panic!("Expected PseudoIncremental, got: {:?}", other),
+        }
+        match retrieved.format {
+            ExportFormat::TarGz => {}
+            other => panic!("Expected TarGz, got: {:?}", other),
+        }
+        match retrieved.status {
+            SnapshotStatus::InProgress => {}
+            other => panic!("Expected InProgress, got: {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_by_id_returns_error_for_nonexistent_id() {
+        let db = test_db().await;
+        let repo = SqliteSnapshotRepository::new(db);
+
+        let result = repo
+            .get_by_id(&SnapshotId::from_string("does-not-exist".to_string()))
+            .await;
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("Snapshot not found"),
+            "Expected SnapshotNotFound error, got: {}",
+            msg
+        );
+    }
+
+    // ---- SqliteSnapshotRepository::delete tests ----
+
+    #[tokio::test]
+    async fn test_delete_removes_snapshot() {
+        let db = test_db().await;
+        let repo = SqliteSnapshotRepository::new(db);
+
+        let snapshot = make_snapshot("del-me", "Ubuntu", "to-delete", chrono::Utc::now());
+        repo.save(&snapshot).await.unwrap();
+
+        // Confirm it exists
+        let retrieved = repo
+            .get_by_id(&SnapshotId::from_string("del-me".to_string()))
+            .await;
+        assert!(retrieved.is_ok());
+
+        // Delete it
+        repo.delete(&SnapshotId::from_string("del-me".to_string()))
+            .await
+            .unwrap();
+
+        // Confirm it's gone
+        let result = repo
+            .get_by_id(&SnapshotId::from_string("del-me".to_string()))
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_delete_nonexistent_snapshot_does_not_error() {
+        let db = test_db().await;
+        let repo = SqliteSnapshotRepository::new(db);
+
+        // Deleting a non-existent row should succeed silently (DELETE WHERE with no match)
+        let result = repo
+            .delete(&SnapshotId::from_string("ghost".to_string()))
+            .await;
+        assert!(result.is_ok());
+    }
+
+    // ---- Snapshot round-trip: format and status variants ----
+
+    #[tokio::test]
+    async fn test_save_and_retrieve_all_format_variants() {
+        let db = test_db().await;
+        let repo = SqliteSnapshotRepository::new(db);
+        let now = chrono::Utc::now();
+
+        let formats = vec![
+            ("fmt-tar", ExportFormat::Tar),
+            ("fmt-targz", ExportFormat::TarGz),
+            ("fmt-tarxz", ExportFormat::TarXz),
+            ("fmt-vhd", ExportFormat::Vhd),
+        ];
+
+        for (id, format) in &formats {
+            let snap = Snapshot {
+                id: SnapshotId::from_string(id.to_string()),
+                distro_name: DistroName::new("Ubuntu").unwrap(),
+                name: id.to_string(),
+                description: None,
+                snapshot_type: SnapshotType::Full,
+                format: format.clone(),
+                file_path: format!("/tmp/{}", id),
+                file_size: MemorySize::from_bytes(100),
+                parent_id: None,
+                created_at: now,
+                status: SnapshotStatus::Completed,
+            };
+            repo.save(&snap).await.unwrap();
+        }
+
+        // Verify each format round-trips correctly
+        let retrieved = repo
+            .get_by_id(&SnapshotId::from_string("fmt-tar".to_string()))
+            .await
+            .unwrap();
+        assert_eq!(retrieved.format.extension(), "tar");
+
+        let retrieved = repo
+            .get_by_id(&SnapshotId::from_string("fmt-targz".to_string()))
+            .await
+            .unwrap();
+        assert_eq!(retrieved.format.extension(), "tar.gz");
+
+        let retrieved = repo
+            .get_by_id(&SnapshotId::from_string("fmt-tarxz".to_string()))
+            .await
+            .unwrap();
+        assert_eq!(retrieved.format.extension(), "tar.xz");
+
+        let retrieved = repo
+            .get_by_id(&SnapshotId::from_string("fmt-vhd".to_string()))
+            .await
+            .unwrap();
+        assert_eq!(retrieved.format.extension(), "vhdx");
+    }
+
+    // ---- SqliteAuditLogger tests ----
+
+    #[tokio::test]
+    async fn test_audit_log_writes_entry() {
+        let db = test_db().await;
+        let logger = SqliteAuditLogger::new(db);
+
+        let result = logger.log("start_distro", "Ubuntu").await;
+        assert!(result.is_ok());
+
+        // Verify the entry was written
+        let entries = logger
+            .search(AuditQuery {
+                action_filter: None,
+                target_filter: None,
+                since: None,
+                until: None,
+                limit: 100,
+                offset: 0,
+            })
+            .await
+            .unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].action, "start_distro");
+        assert_eq!(entries[0].target, "Ubuntu");
+        assert_eq!(entries[0].details, None);
+    }
+
+    #[tokio::test]
+    async fn test_audit_log_with_details() {
+        let db = test_db().await;
+        let logger = SqliteAuditLogger::new(db);
+
+        logger
+            .log_with_details("snapshot_create", "Debian", "Created full backup")
+            .await
+            .unwrap();
+
+        let entries = logger
+            .search(AuditQuery {
+                action_filter: None,
+                target_filter: None,
+                since: None,
+                until: None,
+                limit: 100,
+                offset: 0,
+            })
+            .await
+            .unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].action, "snapshot_create");
+        assert_eq!(entries[0].target, "Debian");
+        assert_eq!(
+            entries[0].details,
+            Some("Created full backup".to_string())
+        );
+    }
+
+    #[tokio::test]
+    async fn test_audit_get_logs_returns_entries_ordered_desc() {
+        let db = test_db().await;
+        let logger = SqliteAuditLogger::new(db);
+
+        logger.log("action_1", "target_a").await.unwrap();
+        logger.log("action_2", "target_b").await.unwrap();
+        logger.log("action_3", "target_c").await.unwrap();
+
+        let entries = logger
+            .search(AuditQuery {
+                action_filter: None,
+                target_filter: None,
+                since: None,
+                until: None,
+                limit: 100,
+                offset: 0,
+            })
+            .await
+            .unwrap();
+        assert_eq!(entries.len(), 3);
+        // ORDER BY timestamp DESC: most recent first
+        assert_eq!(entries[0].action, "action_3");
+        assert_eq!(entries[1].action, "action_2");
+        assert_eq!(entries[2].action, "action_1");
+    }
+
+    #[tokio::test]
+    async fn test_audit_search_with_action_filter() {
+        let db = test_db().await;
+        let logger = SqliteAuditLogger::new(db);
+
+        logger.log("start_distro", "Ubuntu").await.unwrap();
+        logger.log("stop_distro", "Ubuntu").await.unwrap();
+        logger.log("start_distro", "Debian").await.unwrap();
+
+        let entries = logger
+            .search(AuditQuery {
+                action_filter: Some("start".to_string()),
+                target_filter: None,
+                since: None,
+                until: None,
+                limit: 100,
+                offset: 0,
+            })
+            .await
+            .unwrap();
+        assert_eq!(entries.len(), 2);
+        for entry in &entries {
+            assert!(entry.action.contains("start"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_audit_search_with_target_filter() {
+        let db = test_db().await;
+        let logger = SqliteAuditLogger::new(db);
+
+        logger.log("start_distro", "Ubuntu").await.unwrap();
+        logger.log("stop_distro", "Debian").await.unwrap();
+        logger.log("restart_distro", "Ubuntu").await.unwrap();
+
+        let entries = logger
+            .search(AuditQuery {
+                action_filter: None,
+                target_filter: Some("Ubuntu".to_string()),
+                since: None,
+                until: None,
+                limit: 100,
+                offset: 0,
+            })
+            .await
+            .unwrap();
+        assert_eq!(entries.len(), 2);
+        for entry in &entries {
+            assert_eq!(entry.target, "Ubuntu");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_audit_search_with_limit_and_offset() {
+        let db = test_db().await;
+        let logger = SqliteAuditLogger::new(db);
+
+        for i in 0..5 {
+            logger
+                .log(&format!("action_{}", i), "target")
+                .await
+                .unwrap();
+        }
+
+        // Limit to 2
+        let entries = logger
+            .search(AuditQuery {
+                action_filter: None,
+                target_filter: None,
+                since: None,
+                until: None,
+                limit: 2,
+                offset: 0,
+            })
+            .await
+            .unwrap();
+        assert_eq!(entries.len(), 2);
+
+        // Offset by 3, should get 2 remaining (indices 3 and 4 from the end)
+        let entries = logger
+            .search(AuditQuery {
+                action_filter: None,
+                target_filter: None,
+                since: None,
+                until: None,
+                limit: 10,
+                offset: 3,
+            })
+            .await
+            .unwrap();
+        assert_eq!(entries.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_audit_search_returns_empty_when_no_entries() {
+        let db = test_db().await;
+        let logger = SqliteAuditLogger::new(db);
+
+        let entries = logger
+            .search(AuditQuery {
+                action_filter: None,
+                target_filter: None,
+                since: None,
+                until: None,
+                limit: 100,
+                offset: 0,
+            })
+            .await
+            .unwrap();
+        assert!(entries.is_empty());
+    }
+}
