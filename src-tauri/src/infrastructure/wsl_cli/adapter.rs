@@ -23,9 +23,22 @@ impl WslCliAdapter {
         }
     }
 
+    /// Build a Command with CREATE_NO_WINDOW on Windows to prevent console popups
+    fn wsl_command(&self) -> Command {
+        #[allow(unused_mut)]
+        let mut cmd = Command::new(&self.wsl_exe);
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
+        cmd
+    }
+
     /// Run a wsl.exe command and return raw stdout bytes
     async fn run_wsl_raw(&self, args: &[&str]) -> Result<Vec<u8>, DomainError> {
-        let output = Command::new(&self.wsl_exe)
+        let output = self
+            .wsl_command()
             .args(args)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -44,7 +57,8 @@ impl WslCliAdapter {
 
     /// Run a command inside a distro and return UTF-8 output
     async fn exec_in_distro_raw(&self, distro: &str, command: &str) -> Result<String, DomainError> {
-        let output = Command::new(&self.wsl_exe)
+        let output = self
+            .wsl_command()
             .args(["-d", distro, "-e", "sh", "-c", command])
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
