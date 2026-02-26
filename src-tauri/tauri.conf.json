@@ -46,7 +46,6 @@
     "publisher": "muchini",
     "category": "DeveloperTool",
     "windows": {
-      "signCommand": "powershell.exe -ExecutionPolicy Bypass -File scripts\\sign.ps1 \"%1\"",
       "nsis": {
         "installMode": "both",
         "displayLanguageSelector": false,
