@@ -47,5 +47,8 @@ coverage/
 src-tauri/fuzz/corpus/
 src-tauri/fuzz/artifacts/
 
+# Certificates
+certs/
+
 # Generated
 src/routeTree.gen.ts
