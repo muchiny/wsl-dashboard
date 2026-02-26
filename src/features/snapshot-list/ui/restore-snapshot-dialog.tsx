@@ -32,11 +32,13 @@ export function RestoreSnapshotDialog({
   // Fetch distro install path when switching to overwrite mode
   useEffect(() => {
     if (mode !== "overwrite" || !distroName || !open) return;
+    let cancelled = false;
     setOverwritePathLoading(true);
     tauriInvoke<string>("get_distro_install_path", { name: distroName })
-      .then((path) => setOverwritePath(path))
-      .catch(() => setOverwritePath(null))
-      .finally(() => setOverwritePathLoading(false));
+      .then((path) => { if (!cancelled) setOverwritePath(path); })
+      .catch(() => { if (!cancelled) setOverwritePath(null); })
+      .finally(() => { if (!cancelled) setOverwritePathLoading(false); });
+    return () => { cancelled = true; };
   }, [mode, distroName, open]);
 
   // Focus trap + Escape key

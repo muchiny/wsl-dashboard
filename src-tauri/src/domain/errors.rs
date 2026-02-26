@@ -27,17 +27,11 @@ pub enum DomainError {
     #[error("Monitoring error: {0}")]
     MonitoringError(String),
 
-    #[error("Docker error: {0}")]
-    DockerError(String),
-
     #[error("Database error: {0}")]
     DatabaseError(String),
 
     #[error("Configuration error: {0}")]
     ConfigError(String),
-
-    #[error("IaC error: {0}")]
-    IacError(String),
 
     #[error("IO error: {0}")]
     IoError(String),
@@ -113,20 +107,12 @@ mod tests {
             "Monitoring error: x"
         );
         assert_eq!(
-            DomainError::DockerError("x".into()).to_string(),
-            "Docker error: x"
-        );
-        assert_eq!(
             DomainError::DatabaseError("x".into()).to_string(),
             "Database error: x"
         );
         assert_eq!(
             DomainError::ConfigError("x".into()).to_string(),
             "Configuration error: x"
-        );
-        assert_eq!(
-            DomainError::IacError("x".into()).to_string(),
-            "IaC error: x"
         );
         assert_eq!(
             DomainError::Internal("x".into()).to_string(),
