@@ -31,6 +31,18 @@ fn linux_to_windows_path(path: &str) -> String {
     path.to_string()
 }
 
+/// Convert a Windows X:\... path to Linux /mnt/x/... for WSL2 filesystem access.
+/// Passes through paths that are already Linux-style.
+fn windows_to_linux_path(path: &str) -> String {
+    let bytes = path.as_bytes();
+    if bytes.len() >= 3 && bytes[1] == b':' && (bytes[2] == b'\\' || bytes[2] == b'/') {
+        let drive = (bytes[0] as char).to_lowercase().next().unwrap();
+        let rest = path[3..].replace('\\', "/");
+        return format!("/mnt/{}/{}", drive, rest);
+    }
+    path.to_string()
+}
+
 pub struct WslCliAdapter {
     wsl_exe: String,
 }
@@ -133,12 +145,38 @@ impl WslCliAdapter {
         Ok(stdout)
     }
 
-    /// Resolve the Windows user profile path
+    /// Resolve the Windows user profile path.
+    /// On Windows, reads USERPROFILE directly. On WSL2, resolves it via cmd.exe.
     fn get_wslconfig_path() -> Result<std::path::PathBuf, DomainError> {
-        let userprofile = std::env::var("USERPROFILE")
-            .or_else(|_| std::env::var("HOME"))
-            .map_err(|_| DomainError::ConfigError("Cannot find user profile directory".into()))?;
-        Ok(std::path::PathBuf::from(userprofile).join(".wslconfig"))
+        // On Windows, USERPROFILE is always set
+        if let Ok(profile) = std::env::var("USERPROFILE") {
+            return Ok(std::path::PathBuf::from(profile).join(".wslconfig"));
+        }
+
+        // On WSL2, resolve the Windows USERPROFILE via cmd.exe interop
+        let output = std::process::Command::new("cmd.exe")
+            .args(["/C", "echo", "%USERPROFILE%"])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .output()
+            .map_err(|e| {
+                DomainError::ConfigError(format!("Cannot resolve Windows USERPROFILE: {}", e))
+            })?;
+
+        let win_path = String::from_utf8_lossy(&output.stdout)
+            .trim()
+            .trim_end_matches('\r')
+            .to_string();
+
+        if win_path.is_empty() || win_path.contains('%') {
+            return Err(DomainError::ConfigError(
+                "Cannot find Windows user profile directory".into(),
+            ));
+        }
+
+        // Convert Windows path to WSL-accessible path: C:\Users\foo -> /mnt/c/Users/foo
+        let wsl_path = windows_to_linux_path(&win_path);
+        Ok(std::path::PathBuf::from(wsl_path).join(".wslconfig"))
     }
 
     /// Parse a simple INI-style config into a map of section -> key -> value
@@ -413,6 +451,68 @@ impl WslManagerPort for WslCliAdapter {
         }
 
         Ok(info)
+    }
+
+    async fn get_distro_install_path(&self, name: &DistroName) -> Result<String, DomainError> {
+        let output = Command::new("reg.exe")
+            .args([
+                "query",
+                r"HKCU\Software\Microsoft\Windows\CurrentVersion\Lxss",
+                "/s",
+            ])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .output()
+            .await
+            .map_err(|e| DomainError::WslCliError(format!("Failed to query registry: {}", e)))?;
+
+        let text = String::from_utf8_lossy(&output.stdout);
+
+        // Parse registry output blocks. Each block starts with HKEY_... line
+        // followed by indented key-value pairs like:
+        //     DistributionName    REG_SZ    Ubuntu
+        //     BasePath    REG_SZ    C:\Users\user\AppData\...
+        let mut current_distro_name: Option<String> = None;
+        let mut current_base_path: Option<String> = None;
+
+        for line in text.lines() {
+            let trimmed = line.trim();
+
+            if trimmed.starts_with("HKEY_") {
+                // Check if previous block matched our target
+                if current_distro_name.as_deref() == Some(name.as_str()) {
+                    if let Some(path) = current_base_path.take() {
+                        return Ok(path);
+                    }
+                }
+                current_distro_name = None;
+                current_base_path = None;
+                continue;
+            }
+
+            if trimmed.contains("DistributionName") && trimmed.contains("REG_SZ") {
+                if let Some(val) = trimmed.split("REG_SZ").nth(1) {
+                    current_distro_name = Some(val.trim().to_string());
+                }
+            }
+            if trimmed.contains("BasePath") && trimmed.contains("REG_SZ") {
+                if let Some(val) = trimmed.split("REG_SZ").nth(1) {
+                    current_base_path = Some(val.trim().to_string());
+                }
+            }
+        }
+
+        // Check the last block
+        if current_distro_name.as_deref() == Some(name.as_str()) {
+            if let Some(path) = current_base_path {
+                return Ok(path);
+            }
+        }
+
+        Err(DomainError::DistroNotFound(format!(
+            "Could not find install path for '{}'",
+            name
+        )))
     }
 }
 

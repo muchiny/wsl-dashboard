@@ -134,6 +134,7 @@ pub fn run() {
             distro_commands::stop_distro,
             distro_commands::restart_distro,
             distro_commands::shutdown_all,
+            distro_commands::get_distro_install_path,
             snapshot_commands::list_snapshots,
             snapshot_commands::create_snapshot,
             snapshot_commands::delete_snapshot,

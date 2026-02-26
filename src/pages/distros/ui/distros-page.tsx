@@ -17,6 +17,7 @@ export function DistrosPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createForDistro, setCreateForDistro] = useState("");
   const [restoreSnapshotId, setRestoreSnapshotId] = useState<string | null>(null);
+  const [restoreDistroName, setRestoreDistroName] = useState("");
   const [showShutdownConfirm, setShowShutdownConfirm] = useState(false);
 
   const running = distros?.filter((d) => d.state === "Running").length ?? 0;
@@ -72,7 +73,13 @@ export function DistrosPage() {
       </div>
 
       {/* Distro Grid with per-distro snapshot panels */}
-      <DistroList onSnapshot={handleSnapshot} onRestore={(id) => setRestoreSnapshotId(id)} />
+      <DistroList
+        onSnapshot={handleSnapshot}
+        onRestore={(id, distroName) => {
+          setRestoreSnapshotId(id);
+          setRestoreDistroName(distroName);
+        }}
+      />
 
       {/* Dialogs */}
       <CreateSnapshotDialog
@@ -83,6 +90,7 @@ export function DistrosPage() {
       <RestoreSnapshotDialog
         open={!!restoreSnapshotId}
         snapshotId={restoreSnapshotId}
+        distroName={restoreDistroName}
         onClose={() => setRestoreSnapshotId(null)}
       />
       <ConfirmDialog

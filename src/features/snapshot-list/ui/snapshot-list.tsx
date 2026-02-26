@@ -7,7 +7,7 @@ import { toast } from "@/shared/ui/toast";
 
 interface SnapshotListProps {
   distroName?: string;
-  onRestore: (snapshotId: string) => void;
+  onRestore: (snapshotId: string, distroName: string) => void;
   hideDistroName?: boolean;
 }
 
@@ -50,7 +50,7 @@ export function SnapshotList({ distroName, onRestore, hideDistroName }: Snapshot
             key={snapshot.id}
             snapshot={snapshot}
             onDelete={() => setDeleteTarget({ id: snapshot.id, name: snapshot.name })}
-            onRestore={() => onRestore(snapshot.id)}
+            onRestore={() => onRestore(snapshot.id, snapshot.distro_name)}
             hideDistroName={hideDistroName}
           />
         ))}

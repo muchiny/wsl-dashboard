@@ -85,7 +85,7 @@ pub struct RestoreSnapshotArgs {
     pub snapshot_id: String,
     pub mode: String,
     pub new_name: Option<String>,
-    pub install_location: String,
+    pub install_location: Option<String>,
 }
 
 #[tauri::command]
@@ -102,6 +102,26 @@ pub async fn restore_snapshot(
         RestoreMode::Overwrite
     };
 
+    // For overwrite mode without an explicit path, auto-detect from registry
+    let install_location = match (&mode, args.install_location) {
+        (_, Some(loc)) if !loc.is_empty() => loc,
+        (RestoreMode::Overwrite, _) => {
+            let snapshot = state
+                .snapshot_repo
+                .get_by_id(&SnapshotId::from_string(args.snapshot_id.clone()))
+                .await?;
+            state
+                .wsl_manager
+                .get_distro_install_path(&snapshot.distro_name)
+                .await?
+        }
+        _ => {
+            return Err(DomainError::Internal(
+                "Clone mode requires an install_location".into(),
+            ))
+        }
+    };
+
     let handler = RestoreSnapshotHandler::new(
         state.wsl_manager.clone(),
         state.snapshot_repo.clone(),
@@ -112,7 +132,7 @@ pub async fn restore_snapshot(
         .handle(RestoreSnapshotCommand {
             snapshot_id: SnapshotId::from_string(args.snapshot_id),
             mode,
-            install_location: args.install_location,
+            install_location,
         })
         .await
 }

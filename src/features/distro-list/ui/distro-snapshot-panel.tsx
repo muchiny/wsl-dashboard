@@ -3,7 +3,7 @@ import { SnapshotList } from "@/features/snapshot-list/ui/snapshot-list";
 
 interface DistroSnapshotPanelProps {
   distroName: string;
-  onRestore: (snapshotId: string) => void;
+  onRestore: (snapshotId: string, distroName: string) => void;
   onCreateSnapshot: () => void;
 }
 

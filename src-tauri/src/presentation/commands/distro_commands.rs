@@ -57,3 +57,15 @@ pub async fn shutdown_all(state: State<'_, AppState>) -> Result<(), DomainError>
     state.audit_logger.log("wsl.shutdown_all", "all").await?;
     Ok(())
 }
+
+#[tauri::command]
+pub async fn get_distro_install_path(
+    name: String,
+    state: State<'_, AppState>,
+) -> Result<String, DomainError> {
+    let distro_name = DistroName::new(&name)?;
+    state
+        .wsl_manager
+        .get_distro_install_path(&distro_name)
+        .await
+}

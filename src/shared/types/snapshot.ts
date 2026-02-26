@@ -24,5 +24,5 @@ export interface RestoreSnapshotArgs {
   snapshot_id: string;
   mode: "clone" | "overwrite";
   new_name?: string;
-  install_location: string;
+  install_location?: string;
 }

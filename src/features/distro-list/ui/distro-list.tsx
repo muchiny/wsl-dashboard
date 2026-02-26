@@ -8,7 +8,7 @@ import { DistroSnapshotPanel } from "./distro-snapshot-panel";
 
 interface DistroListProps {
   onSnapshot: (distroName: string) => void;
-  onRestore: (snapshotId: string) => void;
+  onRestore: (snapshotId: string, distroName: string) => void;
 }
 
 export function DistroList({ onSnapshot, onRestore }: DistroListProps) {

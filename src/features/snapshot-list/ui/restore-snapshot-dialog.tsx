@@ -1,17 +1,24 @@
 import { useState, useEffect, useRef } from "react";
-import { RotateCw, X, FolderOpen } from "lucide-react";
+import { RotateCw, X, FolderOpen, Loader2 } from "lucide-react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useRestoreSnapshot } from "../api/mutations";
 import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
+import { tauriInvoke } from "@/shared/api/tauri-client";
 import { cn } from "@/shared/lib/utils";
 
 interface RestoreSnapshotDialogProps {
   open: boolean;
   snapshotId: string | null;
+  distroName: string;
   onClose: () => void;
 }
 
-export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnapshotDialogProps) {
+export function RestoreSnapshotDialog({
+  open,
+  snapshotId,
+  distroName,
+  onClose,
+}: RestoreSnapshotDialogProps) {
   const restoreSnapshot = useRestoreSnapshot();
   const { defaultInstallLocation } = usePreferencesStore();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -19,6 +26,18 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
   const [mode, setMode] = useState<"clone" | "overwrite">("clone");
   const [newName, setNewName] = useState("");
   const [installLocation, setInstallLocation] = useState(defaultInstallLocation);
+  const [overwritePath, setOverwritePath] = useState<string | null>(null);
+  const [overwritePathLoading, setOverwritePathLoading] = useState(false);
+
+  // Fetch distro install path when switching to overwrite mode
+  useEffect(() => {
+    if (mode !== "overwrite" || !distroName || !open) return;
+    setOverwritePathLoading(true);
+    tauriInvoke<string>("get_distro_install_path", { name: distroName })
+      .then((path) => setOverwritePath(path))
+      .catch(() => setOverwritePath(null))
+      .finally(() => setOverwritePathLoading(false));
+  }, [mode, distroName, open]);
 
   // Focus trap + Escape key
   useEffect(() => {
@@ -56,17 +75,19 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
       ? "Only letters, numbers, dots, hyphens and underscores allowed"
       : null;
 
+  const effectiveInstallLocation = mode === "overwrite" ? overwritePath : installLocation;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!installLocation) return;
     if (mode === "clone" && (!newName || nameError)) return;
+    if (mode === "clone" && !installLocation) return;
 
     restoreSnapshot.mutate(
       {
         snapshot_id: snapshotId,
         mode,
         new_name: mode === "clone" ? newName : undefined,
-        install_location: installLocation,
+        install_location: effectiveInstallLocation ?? undefined,
       },
       {
         onSuccess: () => {
@@ -165,38 +186,63 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
             </div>
           )}
 
-          <div>
-            <label className="text-subtext-1 mb-1 block text-sm font-medium">
-              Install Location
-            </label>
-            <div className="flex gap-1">
-              <input
-                type="text"
-                value={installLocation}
-                onChange={(e) => setInstallLocation(e.target.value)}
-                placeholder="C:\WSL\..."
-                className={`${inputClass} flex-1`}
-                required
-              />
-              <button
-                type="button"
-                onClick={async () => {
-                  const dir = await openDialog({
-                    directory: true,
-                    title: "Select install location",
-                  });
-                  if (dir) setInstallLocation(dir);
-                }}
-                className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
-                aria-label="Browse install location"
-              >
-                <FolderOpen className="h-4 w-4" />
-              </button>
+          {mode === "clone" && (
+            <div>
+              <label className="text-subtext-1 mb-1 block text-sm font-medium">
+                Install Location
+              </label>
+              <div className="flex gap-1">
+                <input
+                  type="text"
+                  value={installLocation}
+                  onChange={(e) => setInstallLocation(e.target.value)}
+                  placeholder="C:\WSL\..."
+                  className={`${inputClass} flex-1`}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const dir = await openDialog({
+                      directory: true,
+                      title: "Select install location",
+                    });
+                    if (dir) setInstallLocation(dir);
+                  }}
+                  className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
+                  aria-label="Browse install location"
+                >
+                  <FolderOpen className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="text-overlay-0 mt-1 text-xs">
+                Directory where the distribution&apos;s virtual disk will be stored.
+              </p>
             </div>
-            <p className="text-overlay-0 mt-1 text-xs">
-              Directory where the distribution&apos;s virtual disk will be stored.
-            </p>
-          </div>
+          )}
+
+          {mode === "overwrite" && (
+            <div>
+              <label className="text-subtext-1 mb-1 block text-sm font-medium">
+                Install Location
+              </label>
+              {overwritePathLoading ? (
+                <div className="text-subtext-0 flex items-center gap-2 text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Detecting install path...
+                </div>
+              ) : overwritePath ? (
+                <p className="text-text bg-surface-0 rounded-lg px-3 py-2 font-mono text-xs">
+                  {overwritePath}
+                </p>
+              ) : (
+                <p className="text-overlay-0 text-xs">
+                  Could not detect the original install path. The distro will be restored to its
+                  default location.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <button
@@ -208,7 +254,7 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
             </button>
             <button
               type="submit"
-              disabled={restoreSnapshot.isPending || !!nameError}
+              disabled={restoreSnapshot.isPending || !!nameError || overwritePathLoading}
               className="bg-blue text-crust hover:bg-blue/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
             >
               <RotateCw className="h-4 w-4" />

@@ -62,4 +62,7 @@ pub trait WslManagerPort: Send + Sync {
 
     /// Get WSL version information (wsl --version)
     async fn get_version_info(&self) -> Result<WslVersionInfo, DomainError>;
+
+    /// Get the install path (BasePath) for an existing distribution from the Windows registry
+    async fn get_distro_install_path(&self, name: &DistroName) -> Result<String, DomainError>;
 }
