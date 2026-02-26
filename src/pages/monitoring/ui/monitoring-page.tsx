@@ -60,10 +60,7 @@ export function MonitoringPage() {
   );
 
   // Historical metrics via TanStack Query
-  const { data: historyData } = useMetricsHistoryQuery(
-    selectedDistro || null,
-    timeRange,
-  );
+  const { data: historyData } = useMetricsHistoryQuery(selectedDistro || null, timeRange);
 
   // Processes (always polling-based)
   const { data: processes } = useProcesses(selectedDistro || null);
@@ -89,7 +86,7 @@ export function MonitoringPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-sapphire/15">
+          <div className="bg-sapphire/15 relative flex h-9 w-9 items-center justify-center rounded-lg">
             <Activity className="text-sapphire h-5 w-5" />
             <AlertBadge />
           </div>

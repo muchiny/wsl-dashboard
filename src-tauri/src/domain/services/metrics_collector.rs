@@ -62,7 +62,10 @@ impl MetricsCollector {
             for distro in distros.iter().filter(|d| d.state.is_running()) {
                 let name = &distro.name;
 
-                match self.collect_and_store(name, &app_handle, &mut alert_cooldowns).await {
+                match self
+                    .collect_and_store(name, &app_handle, &mut alert_cooldowns)
+                    .await
+                {
                     Ok(_) => {}
                     Err(e) => {
                         tracing::debug!("Metrics collection failed for {}: {e}", name.as_str());

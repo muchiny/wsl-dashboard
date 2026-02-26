@@ -9,10 +9,7 @@ import { RestoreSnapshotDialog } from "@/features/snapshot-list/ui/restore-snaps
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { toast } from "@/shared/ui/toast-store";
 import { useDebounce } from "@/shared/hooks/use-debounce";
-import {
-  usePreferencesStore,
-  type SortKey,
-} from "@/shared/stores/use-preferences-store";
+import { usePreferencesStore, type SortKey } from "@/shared/stores/use-preferences-store";
 import type { Distro } from "@/shared/types/distro";
 
 const SORT_COMPARATORS: Record<SortKey, (a: Distro, b: Distro) => number> = {
@@ -67,8 +64,7 @@ export function DistrosPage() {
   const stopped = (distros?.length ?? 0) - running;
   const total = distros?.length ?? 0;
 
-  const isFiltered =
-    debouncedSearch !== "" || statusFilter !== "all" || wslVersionFilter !== "all";
+  const isFiltered = debouncedSearch !== "" || statusFilter !== "all" || wslVersionFilter !== "all";
 
   const processedDistros = useMemo(() => {
     let result = distros ?? [];

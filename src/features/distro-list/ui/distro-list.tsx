@@ -64,9 +64,7 @@ export function DistroList({
       <div className="border-surface-1 bg-mantle flex flex-col items-center rounded-xl border px-8 py-12 text-center">
         <Search className="text-surface-2 mb-3 h-10 w-10" />
         <p className="text-text font-medium">No distributions match your filters</p>
-        <p className="text-subtext-0 mt-1 text-sm">
-          Try adjusting your search or filter criteria.
-        </p>
+        <p className="text-subtext-0 mt-1 text-sm">Try adjusting your search or filter criteria.</p>
       </div>
     );
   }
@@ -116,11 +114,7 @@ export function DistroList({
             onStop={() => stopDistro.mutate(distro.name)}
             onRestart={() => restartDistro.mutate(distro.name)}
             onSnapshot={() => onSnapshot(distro.name)}
-            pendingAction={
-              pendingAction?.distro === distro.name
-                ? pendingAction.action
-                : undefined
-            }
+            pendingAction={pendingAction?.distro === distro.name ? pendingAction.action : undefined}
             snapshotCount={snapshotCounts[distro.name] ?? 0}
           />
         ))}
@@ -138,11 +132,7 @@ export function DistroList({
         onStop={() => stopDistro.mutate(distro.name)}
         onRestart={() => restartDistro.mutate(distro.name)}
         onSnapshot={() => onSnapshot(distro.name)}
-        pendingAction={
-          pendingAction?.distro === distro.name
-            ? pendingAction.action
-            : undefined
-        }
+        pendingAction={pendingAction?.distro === distro.name ? pendingAction.action : undefined}
         onExpand={() => handleExpand(distro.name)}
         isExpanded={expandedDistro === distro.name}
         snapshotCount={snapshotCounts[distro.name] ?? 0}

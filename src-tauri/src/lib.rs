@@ -10,6 +10,12 @@ use std::sync::Arc;
 use tauri::Manager;
 
 #[cfg(not(fuzzing))]
+use domain::ports::alerting::AlertThreshold;
+#[cfg(not(fuzzing))]
+use domain::services::metrics_aggregator::MetricsAggregator;
+#[cfg(not(fuzzing))]
+use domain::services::metrics_collector::MetricsCollector;
+#[cfg(not(fuzzing))]
 use infrastructure::debug_log::buffer::DebugLogBuffer;
 #[cfg(not(fuzzing))]
 use infrastructure::debug_log::layer::DebugLogLayer;
@@ -28,12 +34,6 @@ use presentation::commands::{
     audit_commands, debug_commands, distro_commands, monitoring_commands, settings_commands,
     snapshot_commands,
 };
-#[cfg(not(fuzzing))]
-use domain::ports::alerting::AlertThreshold;
-#[cfg(not(fuzzing))]
-use domain::services::metrics_aggregator::MetricsAggregator;
-#[cfg(not(fuzzing))]
-use domain::services::metrics_collector::MetricsCollector;
 #[cfg(not(fuzzing))]
 use presentation::state::AppState;
 
@@ -141,9 +141,21 @@ pub fn run() {
 
                 // Shared alert thresholds (read by collector, written by Tauri commands)
                 let alert_thresholds = Arc::new(tokio::sync::RwLock::new(vec![
-                    AlertThreshold { alert_type: domain::ports::alerting::AlertType::Cpu, threshold_percent: 90.0, enabled: true },
-                    AlertThreshold { alert_type: domain::ports::alerting::AlertType::Memory, threshold_percent: 85.0, enabled: true },
-                    AlertThreshold { alert_type: domain::ports::alerting::AlertType::Disk, threshold_percent: 90.0, enabled: true },
+                    AlertThreshold {
+                        alert_type: domain::ports::alerting::AlertType::Cpu,
+                        threshold_percent: 90.0,
+                        enabled: true,
+                    },
+                    AlertThreshold {
+                        alert_type: domain::ports::alerting::AlertType::Memory,
+                        threshold_percent: 85.0,
+                        enabled: true,
+                    },
+                    AlertThreshold {
+                        alert_type: domain::ports::alerting::AlertType::Disk,
+                        threshold_percent: 90.0,
+                        enabled: true,
+                    },
                 ]));
 
                 // Spawn background metrics collector (2s loop)
@@ -160,10 +172,7 @@ pub fn run() {
                 });
 
                 // Spawn background metrics aggregator (60s loop)
-                let aggregator = MetricsAggregator::new(
-                    metrics_repo.clone(),
-                    alerting.clone(),
-                );
+                let aggregator = MetricsAggregator::new(metrics_repo.clone(), alerting.clone());
                 tokio::spawn(async move {
                     aggregator.run().await;
                 });

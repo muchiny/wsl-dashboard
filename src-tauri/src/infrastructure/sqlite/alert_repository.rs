@@ -67,7 +67,8 @@ impl AlertingPort for SqliteAlertRepository {
                 Ok(AlertRecord {
                     id: row.get("id"),
                     distro_name: row.get("distro_name"),
-                    alert_type: alert_type_str.parse::<AlertType>()
+                    alert_type: alert_type_str
+                        .parse::<AlertType>()
                         .unwrap_or(AlertType::Cpu),
                     threshold: row.get("threshold"),
                     actual_value: row.get("actual_value"),

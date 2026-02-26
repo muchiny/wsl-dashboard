@@ -35,10 +35,18 @@ export function RestoreSnapshotDialog({
     let cancelled = false;
     setOverwritePathLoading(true);
     tauriInvoke<string>("get_distro_install_path", { name: distroName })
-      .then((path) => { if (!cancelled) setOverwritePath(path); })
-      .catch(() => { if (!cancelled) setOverwritePath(null); })
-      .finally(() => { if (!cancelled) setOverwritePathLoading(false); });
-    return () => { cancelled = true; };
+      .then((path) => {
+        if (!cancelled) setOverwritePath(path);
+      })
+      .catch(() => {
+        if (!cancelled) setOverwritePath(null);
+      })
+      .finally(() => {
+        if (!cancelled) setOverwritePathLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [mode, distroName, open]);
 
   // Focus trap + Escape key

@@ -15,10 +15,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useDistros, distroKeys } from "../api/queries";
 import { useStartAll } from "../api/mutations";
-import {
-  usePreferencesStore,
-  type SortKey,
-} from "@/shared/stores/use-preferences-store";
+import { usePreferencesStore, type SortKey } from "@/shared/stores/use-preferences-store";
 import { cn } from "@/shared/lib/utils";
 import type { Distro } from "@/shared/types/distro";
 
@@ -82,8 +79,7 @@ export function DistrosToolbar({
   const queryClient = useQueryClient();
   const { isFetching } = useDistros();
   const startAll = useStartAll();
-  const { sortKey, setSortKey, viewMode, setViewMode } =
-    usePreferencesStore();
+  const { sortKey, setSortKey, viewMode, setViewMode } = usePreferencesStore();
   const [sortOpen, setSortOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
 
@@ -99,15 +95,14 @@ export function DistrosToolbar({
     }
   }, [sortOpen]);
 
-  const stoppedNames =
-    distros?.filter((d) => d.state === "Stopped").map((d) => d.name) ?? [];
+  const stoppedNames = distros?.filter((d) => d.state === "Stopped").map((d) => d.name) ?? [];
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: distroKeys.list() });
   };
 
   return (
-    <div className="bg-mantle rounded-xl p-3 space-y-3">
+    <div className="bg-mantle space-y-3 rounded-xl p-3">
       {/* Row 1: Stats + Search + Actions */}
       <div className="flex items-center gap-2">
         {/* Inline stats */}
@@ -128,7 +123,7 @@ export function DistrosToolbar({
             placeholder="Search distributions..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="bg-base text-text placeholder:text-overlay-0 focus:ring-blue/40 w-full rounded-lg py-2 pr-8 pl-9 text-sm focus:outline-none focus:ring-2"
+            className="bg-base text-text placeholder:text-overlay-0 focus:ring-blue/40 w-full rounded-lg py-2 pr-8 pl-9 text-sm focus:ring-2 focus:outline-none"
           />
           {searchQuery && (
             <button
@@ -146,9 +141,7 @@ export function DistrosToolbar({
           className="text-subtext-0 hover:bg-surface-0 hover:text-text rounded-lg p-2 transition-colors disabled:opacity-40"
           aria-label="Refresh distributions"
         >
-          <RefreshCw
-            className={cn("h-4 w-4", isFetching && "animate-spin")}
-          />
+          <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
         </button>
 
         <div className="bg-surface-0 flex gap-0.5 rounded-lg p-0.5">
@@ -156,9 +149,7 @@ export function DistrosToolbar({
             onClick={() => setViewMode("grid")}
             className={cn(
               "rounded-md p-1.5 transition-colors",
-              viewMode === "grid"
-                ? "bg-blue text-crust"
-                : "text-subtext-0 hover:text-text",
+              viewMode === "grid" ? "bg-blue text-crust" : "text-subtext-0 hover:text-text",
             )}
             aria-label="Grid view"
           >
@@ -168,9 +159,7 @@ export function DistrosToolbar({
             onClick={() => setViewMode("list")}
             className={cn(
               "rounded-md p-1.5 transition-colors",
-              viewMode === "list"
-                ? "bg-blue text-crust"
-                : "text-subtext-0 hover:text-text",
+              viewMode === "list" ? "bg-blue text-crust" : "text-subtext-0 hover:text-text",
             )}
             aria-label="List view"
           >
@@ -187,10 +176,7 @@ export function DistrosToolbar({
             <button
               key={opt.value}
               onClick={() => onStatusFilterChange(opt.value)}
-              className={cn(
-                pill,
-                statusFilter === opt.value ? pillActive : pillInactive,
-              )}
+              className={cn(pill, statusFilter === opt.value ? pillActive : pillInactive)}
             >
               {opt.label}
             </button>
@@ -203,10 +189,7 @@ export function DistrosToolbar({
             <button
               key={opt.value}
               onClick={() => onWslVersionFilterChange(opt.value)}
-              className={cn(
-                pill,
-                wslVersionFilter === opt.value ? pillActive : pillInactive,
-              )}
+              className={cn(pill, wslVersionFilter === opt.value ? pillActive : pillInactive)}
             >
               {opt.label}
             </button>
@@ -240,10 +223,7 @@ export function DistrosToolbar({
                   )}
                 >
                   <Check
-                    className={cn(
-                      "h-3 w-3",
-                      sortKey === opt.value ? "opacity-100" : "opacity-0",
-                    )}
+                    className={cn("h-3 w-3", sortKey === opt.value ? "opacity-100" : "opacity-0")}
                   />
                   {opt.label}
                 </button>

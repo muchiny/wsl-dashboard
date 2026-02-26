@@ -2,7 +2,13 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { mockInvoke } from "@/test/mocks/tauri";
 import { createWrapper } from "@/test/test-utils";
-import { useStartDistro, useStopDistro, useRestartDistro, useShutdownAll, useStartAll } from "./mutations";
+import {
+  useStartDistro,
+  useStopDistro,
+  useRestartDistro,
+  useShutdownAll,
+  useStartAll,
+} from "./mutations";
 
 beforeEach(() => {
   mockInvoke.mockReset();
@@ -100,9 +106,7 @@ describe("useStartAll", () => {
   });
 
   it("reports partial failures without rejecting the mutation", async () => {
-    mockInvoke
-      .mockResolvedValueOnce(undefined)
-      .mockRejectedValueOnce(new Error("Failed"));
+    mockInvoke.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("Failed"));
 
     const { result } = renderHook(() => useStartAll(), {
       wrapper: createWrapper(),

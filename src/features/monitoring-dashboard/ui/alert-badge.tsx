@@ -24,7 +24,7 @@ export function AlertBadge() {
   if (count === 0) return null;
 
   return (
-    <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-red)] px-1 text-[10px] font-bold text-[var(--color-base)]">
+    <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-red)] px-1 text-[10px] font-bold text-[var(--color-base)]">
       {count > 99 ? "99+" : count}
     </span>
   );

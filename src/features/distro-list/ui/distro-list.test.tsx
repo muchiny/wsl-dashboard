@@ -78,17 +78,13 @@ describe("DistroList", () => {
   });
 
   it("shows loading skeletons when loading", () => {
-    const { container } = render(
-      <DistroList {...defaultProps} isLoading={true} />,
-    );
+    const { container } = render(<DistroList {...defaultProps} isLoading={true} />);
     const skeletons = container.querySelectorAll(".animate-pulse");
     expect(skeletons).toHaveLength(3);
   });
 
   it("shows error message when query fails", () => {
-    render(
-      <DistroList {...defaultProps} error={new Error("Connection refused")} />,
-    );
+    render(<DistroList {...defaultProps} error={new Error("Connection refused")} />);
     expect(screen.getByText(/failed to load distributions/i)).toBeInTheDocument();
     expect(screen.getByText(/connection refused/i)).toBeInTheDocument();
   });

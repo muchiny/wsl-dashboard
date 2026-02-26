@@ -71,10 +71,7 @@ function getTimeRangeMs(range: TimeRange): number {
   }
 }
 
-export function useMetricsHistory(
-  distroName: string | null,
-  timeRange: TimeRange,
-) {
+export function useMetricsHistory(distroName: string | null, timeRange: TimeRange) {
   return useQuery({
     queryKey: monitoringKeys.history(distroName ?? "", timeRange),
     queryFn: () => {
@@ -96,8 +93,7 @@ export function useMetricsHistory(
 export function useAlertThresholds() {
   return useQuery({
     queryKey: monitoringKeys.alertThresholds,
-    queryFn: () =>
-      tauriInvoke<AlertThreshold[]>("get_alert_thresholds", {}),
+    queryFn: () => tauriInvoke<AlertThreshold[]>("get_alert_thresholds", {}),
   });
 }
 
@@ -132,8 +128,7 @@ export function useRecentAlerts(distroName: string | null) {
 export function useAcknowledgeAlert() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (alertId: number) =>
-      tauriInvoke("acknowledge_alert", { alertId }),
+    mutationFn: (alertId: number) => tauriInvoke("acknowledge_alert", { alertId }),
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: monitoringKeys.all,

@@ -3,11 +3,11 @@ use chrono::{DateTime, Utc};
 use sqlx::Row;
 
 use super::adapter::SqliteDb;
+use crate::domain::entities::monitoring::SystemMetrics;
 use crate::domain::errors::DomainError;
 use crate::domain::ports::metrics_repository::{
     AggregatedMetricsPoint, MetricsRepositoryPort, RawMetricsRow,
 };
-use crate::domain::entities::monitoring::SystemMetrics;
 use crate::domain::value_objects::DistroName;
 
 pub struct SqliteMetricsRepository {

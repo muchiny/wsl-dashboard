@@ -1,12 +1,4 @@
-import {
-  Play,
-  Square,
-  RotateCw,
-  Star,
-  Archive,
-  Activity,
-  Loader2,
-} from "lucide-react";
+import { Play, Square, RotateCw, Star, Archive, Activity, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { Distro } from "@/shared/types/distro";
 import { cn } from "@/shared/lib/utils";
@@ -41,15 +33,11 @@ export function DistroRow({
         <div
           className={cn(
             "h-2.5 w-2.5 shrink-0 rounded-full",
-            isRunning
-              ? "bg-green shadow-green/50 shadow-[0_0_8px]"
-              : "bg-surface-2",
+            isRunning ? "bg-green shadow-green/50 shadow-[0_0_8px]" : "bg-surface-2",
           )}
           aria-hidden="true"
         />
-        <span className="text-text truncate text-sm font-semibold">
-          {distro.name}
-        </span>
+        <span className="text-text truncate text-sm font-semibold">{distro.name}</span>
         {distro.is_default && (
           <Star
             className="fill-yellow text-yellow h-3.5 w-3.5 shrink-0"
@@ -86,9 +74,7 @@ export function DistroRow({
 
       {/* VHDX size */}
       <span className="text-subtext-0 w-20 shrink-0 text-right text-xs">
-        {distro.vhdx_size_bytes != null
-          ? formatBytes(distro.vhdx_size_bytes)
-          : "—"}
+        {distro.vhdx_size_bytes != null ? formatBytes(distro.vhdx_size_bytes) : "—"}
       </span>
 
       {/* Actions */}

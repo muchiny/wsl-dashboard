@@ -31,14 +31,8 @@ export function useLiveMetrics(distroName: string | null) {
 
       latestMetricsRef.current = metrics;
 
-      const totalRx = metrics.network.interfaces.reduce(
-        (sum, i) => sum + i.rx_bytes,
-        0,
-      );
-      const totalTx = metrics.network.interfaces.reduce(
-        (sum, i) => sum + i.tx_bytes,
-        0,
-      );
+      const totalRx = metrics.network.interfaces.reduce((sum, i) => sum + i.rx_bytes, 0);
+      const totalTx = metrics.network.interfaces.reduce((sum, i) => sum + i.tx_bytes, 0);
 
       let netRxRate = 0;
       let netTxRate = 0;
