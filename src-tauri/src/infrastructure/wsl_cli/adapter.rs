@@ -63,7 +63,6 @@ impl WslCliAdapter {
         let mut cmd = Command::new(&self.wsl_exe);
         #[cfg(windows)]
         {
-            use std::os::windows::process::CommandExt;
             cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
         }
         cmd
