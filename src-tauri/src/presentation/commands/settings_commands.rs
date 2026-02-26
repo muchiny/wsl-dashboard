@@ -41,8 +41,6 @@ pub async fn compact_vhdx(
 }
 
 #[tauri::command]
-pub async fn get_wsl_version(
-    state: State<'_, AppState>,
-) -> Result<WslVersionInfo, DomainError> {
+pub async fn get_wsl_version(state: State<'_, AppState>) -> Result<WslVersionInfo, DomainError> {
     state.wsl_manager.get_version_info().await
 }
