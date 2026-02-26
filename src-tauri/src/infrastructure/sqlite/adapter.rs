@@ -44,6 +44,11 @@ impl SqliteDb {
             .await
             .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
+        sqlx::query(include_str!("migrations/003_port_forwarding.sql"))
+            .execute(&pool)
+            .await
+            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+
         Ok(Self { pool })
     }
 }

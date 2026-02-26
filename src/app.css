@@ -94,6 +94,13 @@
   --color-lavender: #7287fd;
 }
 
+/* Allow interactive elements inside the drag region to remain clickable */
+[data-tauri-drag-region] button,
+[data-tauri-drag-region] a,
+[data-tauri-drag-region] nav {
+  -webkit-app-region: no-drag;
+}
+
 * {
   border-color: var(--color-border);
 }

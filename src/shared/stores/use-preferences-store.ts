@@ -20,6 +20,7 @@ interface PreferencesStore {
   sortKey: SortKey;
   viewMode: ViewMode;
   alertThresholds: AlertThreshold[];
+  minimizeToTray: boolean;
   setMetricsInterval: (ms: number) => void;
   setProcessesInterval: (ms: number) => void;
   setDefaultSnapshotDir: (path: string) => void;
@@ -27,6 +28,7 @@ interface PreferencesStore {
   setSortKey: (key: SortKey) => void;
   setViewMode: (mode: ViewMode) => void;
   setAlertThresholds: (thresholds: AlertThreshold[]) => void;
+  setMinimizeToTray: (enabled: boolean) => void;
 }
 
 export const usePreferencesStore = create<PreferencesStore>()(
@@ -43,6 +45,7 @@ export const usePreferencesStore = create<PreferencesStore>()(
         { alert_type: "memory", threshold_percent: 85, enabled: true },
         { alert_type: "disk", threshold_percent: 90, enabled: true },
       ],
+      minimizeToTray: true,
       setMetricsInterval: (ms) => set({ metricsInterval: ms }),
       setProcessesInterval: (ms) => set({ processesInterval: ms }),
       setDefaultSnapshotDir: (path) => set({ defaultSnapshotDir: path }),
@@ -50,6 +53,7 @@ export const usePreferencesStore = create<PreferencesStore>()(
       setSortKey: (key) => set({ sortKey: key }),
       setViewMode: (mode) => set({ viewMode: mode }),
       setAlertThresholds: (thresholds) => set({ alertThresholds: thresholds }),
+      setMinimizeToTray: (enabled) => set({ minimizeToTray: enabled }),
     }),
     { name: "wsl-nexus-preferences" },
   ),

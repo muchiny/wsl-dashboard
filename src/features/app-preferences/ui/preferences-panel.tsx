@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Moon, Sun, Timer, Archive, FolderOpen, Bell } from "lucide-react";
+import { Moon, Sun, Timer, Archive, FolderOpen, Bell, MonitorDown } from "lucide-react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useThemeStore } from "@/shared/hooks/use-theme";
 import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
@@ -30,11 +30,13 @@ export function PreferencesPanel() {
     defaultSnapshotDir,
     defaultInstallLocation,
     alertThresholds,
+    minimizeToTray,
     setMetricsInterval,
     setProcessesInterval,
     setDefaultSnapshotDir,
     setDefaultInstallLocation,
     setAlertThresholds,
+    setMinimizeToTray,
   } = usePreferencesStore();
 
   // Sync thresholds from backend on mount
@@ -90,6 +92,37 @@ export function PreferencesPanel() {
               <p className="text-subtext-0 text-xs">Light theme for bright environments</p>
             </div>
           </button>
+        </div>
+      </div>
+
+      <div className="border-surface-1 bg-mantle rounded-xl border p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <MonitorDown className="text-mauve h-5 w-5" />
+          <h4 className="text-text font-semibold">System Tray</h4>
+        </div>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => setMinimizeToTray(!minimizeToTray)}
+            className={cn(
+              "relative h-6 w-11 shrink-0 rounded-full transition-colors",
+              minimizeToTray ? "bg-blue" : "bg-surface-1",
+            )}
+            aria-label="Toggle minimize to tray"
+          >
+            <span
+              className={cn(
+                "bg-text absolute top-0.5 left-0.5 h-5 w-5 rounded-full transition-transform",
+                minimizeToTray && "translate-x-5",
+              )}
+            />
+          </button>
+          <div>
+            <p className="text-text text-sm font-medium">Minimize to tray on close</p>
+            <p className="text-subtext-0 text-xs">
+              Keep WSL Nexus running in the background when closing the window.
+            </p>
+          </div>
         </div>
       </div>
 

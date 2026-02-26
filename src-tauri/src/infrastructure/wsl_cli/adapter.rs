@@ -43,6 +43,25 @@ fn windows_to_linux_path(path: &str) -> String {
     path.to_string()
 }
 
+/// Extract a WSL-style Windows home directory from a path entry.
+/// Matches patterns like `/mnt/c/Users/username/...` and returns `/mnt/c/Users/username`.
+fn extract_wsl_user_home(path: &str) -> Option<String> {
+    let lower = path.to_lowercase();
+    let idx = lower.find("/mnt/")?;
+    let after_mnt = &path[idx + 5..]; // after "/mnt/" e.g. "c/Users/loicw/AppData/..."
+    let mut parts = after_mnt.splitn(4, '/');
+    let drive = parts.next()?; // "c"
+    let users_dir = parts.next()?; // "Users"
+    if users_dir.to_lowercase() != "users" {
+        return None;
+    }
+    let username = parts.next()?; // "loicw"
+    if username.is_empty() {
+        return None;
+    }
+    Some(format!("/mnt/{}/{}/{}", drive, users_dir, username))
+}
+
 pub struct WslCliAdapter {
     wsl_exe: String,
 }
@@ -148,35 +167,85 @@ impl WslCliAdapter {
     /// Resolve the Windows user profile path.
     /// On Windows, reads USERPROFILE directly. On WSL2, resolves it via cmd.exe.
     fn get_wslconfig_path() -> Result<std::path::PathBuf, DomainError> {
-        // On Windows, USERPROFILE is always set
+        // 1) On Windows, USERPROFILE is always set
         if let Ok(profile) = std::env::var("USERPROFILE") {
             return Ok(std::path::PathBuf::from(profile).join(".wslconfig"));
         }
 
-        // On WSL2, resolve the Windows USERPROFILE via cmd.exe interop
-        let output = std::process::Command::new("cmd.exe")
+        // 2) On WSL2, try cmd.exe interop (requires binfmt_misc WSLInterop)
+        if let Ok(output) = std::process::Command::new("cmd.exe")
             .args(["/C", "echo", "%USERPROFILE%"])
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::null())
             .output()
-            .map_err(|e| {
-                DomainError::ConfigError(format!("Cannot resolve Windows USERPROFILE: {}", e))
-            })?;
+        {
+            let win_path = String::from_utf8_lossy(&output.stdout)
+                .trim()
+                .trim_end_matches('\r')
+                .to_string();
 
-        let win_path = String::from_utf8_lossy(&output.stdout)
-            .trim()
-            .trim_end_matches('\r')
-            .to_string();
-
-        if win_path.is_empty() || win_path.contains('%') {
-            return Err(DomainError::ConfigError(
-                "Cannot find Windows user profile directory".into(),
-            ));
+            if !win_path.is_empty() && !win_path.contains('%') {
+                let wsl_path = windows_to_linux_path(&win_path);
+                return Ok(std::path::PathBuf::from(wsl_path).join(".wslconfig"));
+            }
         }
 
-        // Convert Windows path to WSL-accessible path: C:\Users\foo -> /mnt/c/Users/foo
-        let wsl_path = windows_to_linux_path(&win_path);
-        Ok(std::path::PathBuf::from(wsl_path).join(".wslconfig"))
+        // 3) Parse PATH for /mnt/<drive>/Users/<username>/ pattern
+        if let Some(home) = Self::windows_home_from_path() {
+            return Ok(std::path::PathBuf::from(home).join(".wslconfig"));
+        }
+
+        // 4) Scan /mnt/c/Users/ for a non-system user directory
+        if let Some(home) = Self::windows_home_from_scan() {
+            return Ok(std::path::PathBuf::from(home).join(".wslconfig"));
+        }
+
+        Err(DomainError::ConfigError(
+            "Cannot find Windows user profile directory".into(),
+        ))
+    }
+
+    /// Extract the Windows home directory from the PATH environment variable.
+    /// WSL2 appends the Windows PATH, which contains entries like
+    /// `/mnt/c/Users/username/AppData/Local/...`
+    fn windows_home_from_path() -> Option<String> {
+        let path = std::env::var("PATH").ok()?;
+        for entry in path.split(':') {
+            if let Some(home) = extract_wsl_user_home(entry) {
+                if std::path::Path::new(&home).is_dir() {
+                    return Some(home);
+                }
+            }
+        }
+        None
+    }
+
+    /// Scan /mnt/c/Users/ for a real user directory (exclude system profiles).
+    fn windows_home_from_scan() -> Option<String> {
+        let users_dir = std::path::Path::new("/mnt/c/Users");
+        if !users_dir.is_dir() {
+            return None;
+        }
+        let system_dirs: &[&str] = &[
+            "default",
+            "default user",
+            "public",
+            "all users",
+            "defaultapppool",
+        ];
+        let entries = std::fs::read_dir(users_dir).ok()?;
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let name_str = name.to_string_lossy();
+            if system_dirs.contains(&name_str.to_lowercase().as_str()) {
+                continue;
+            }
+            let path = entry.path();
+            if path.is_dir() && path.join("AppData").is_dir() {
+                return Some(path.to_string_lossy().to_string());
+            }
+        }
+        None
     }
 
     /// Parse a simple INI-style config into a map of section -> key -> value
@@ -425,6 +494,18 @@ impl WslManagerPort for WslCliAdapter {
 
         let mut info = WslVersionInfo::default();
 
+        // Extract version value after the last ':' on a line
+        fn extract_version(line: &str) -> Option<String> {
+            let val = line.rsplit_once(':')?.1.trim();
+            if val.is_empty() {
+                None
+            } else {
+                Some(val.to_string())
+            }
+        }
+
+        // wsl --version output uses locale-dependent labels, so we match on
+        // language-invariant keywords: "wsl", "wslg", "kernel", "windows".
         for line in text.lines() {
             let line = line.trim();
             if line.is_empty() {
@@ -432,26 +513,14 @@ impl WslManagerPort for WslCliAdapter {
             }
 
             let lower = line.to_lowercase();
-            if let Some(pos) = lower.find("wsl version") {
-                if lower[pos..].contains("wslg") {
-                    // "WSLg version: X.Y.Z"
-                    if let Some(val) = line.split(':').nth(1) {
-                        info.wslg_version = Some(val.trim().to_string());
-                    }
-                } else {
-                    // "WSL version: X.Y.Z"
-                    if let Some(val) = line.split(':').nth(1) {
-                        info.wsl_version = Some(val.trim().to_string());
-                    }
-                }
-            } else if lower.contains("kernel version") {
-                if let Some(val) = line.split(':').nth(1) {
-                    info.kernel_version = Some(val.trim().to_string());
-                }
-            } else if lower.contains("windows version") {
-                if let Some(val) = line.split(':').nth(1) {
-                    info.windows_version = Some(val.trim().to_string());
-                }
+            if lower.contains("wslg") {
+                info.wslg_version = extract_version(line);
+            } else if lower.contains("wsl") && !lower.contains("kernel") {
+                info.wsl_version = extract_version(line);
+            } else if lower.contains("kernel") {
+                info.kernel_version = extract_version(line);
+            } else if lower.contains("windows") {
+                info.windows_version = extract_version(line);
             }
         }
 
@@ -593,6 +662,68 @@ mod tests {
         assert_eq!(sections.get("").unwrap().get("key").unwrap(), "val");
     }
 
+    #[test]
+    fn test_windows_to_linux_path_basic() {
+        assert_eq!(windows_to_linux_path(r"C:\Users\foo"), "/mnt/c/Users/foo");
+    }
+
+    #[test]
+    fn test_windows_to_linux_path_forward_slash() {
+        assert_eq!(
+            windows_to_linux_path("D:/Projects/bar"),
+            "/mnt/d/Projects/bar"
+        );
+    }
+
+    #[test]
+    fn test_windows_to_linux_path_passthrough() {
+        assert_eq!(
+            windows_to_linux_path("/mnt/c/Users/foo"),
+            "/mnt/c/Users/foo"
+        );
+    }
+
+    #[test]
+    fn test_extract_wsl_user_home_basic() {
+        assert_eq!(
+            extract_wsl_user_home("/mnt/c/Users/loicw/AppData/Local/Microsoft/WindowsApps"),
+            Some("/mnt/c/Users/loicw".to_string()),
+        );
+    }
+
+    #[test]
+    fn test_extract_wsl_user_home_exact_path() {
+        // Minimal path with just /mnt/c/Users/name (no trailing components)
+        // splitn(4, '/') gives ["c", "Users", "name"] - username is present
+        assert_eq!(
+            extract_wsl_user_home("/mnt/c/Users/name"),
+            Some("/mnt/c/Users/name".to_string()),
+        );
+    }
+
+    #[test]
+    fn test_extract_wsl_user_home_no_match() {
+        assert_eq!(extract_wsl_user_home("/usr/bin/something"), None);
+    }
+
+    #[test]
+    fn test_extract_wsl_user_home_no_username() {
+        assert_eq!(extract_wsl_user_home("/mnt/c/Users/"), None);
+    }
+
+    #[test]
+    fn test_extract_wsl_user_home_not_users_dir() {
+        assert_eq!(extract_wsl_user_home("/mnt/c/Program Files/app"), None);
+    }
+
+    #[test]
+    fn test_extract_wsl_user_home_case_insensitive_users() {
+        assert_eq!(
+            extract_wsl_user_home("/mnt/c/users/john/AppData"),
+            Some("/mnt/c/users/john".to_string()),
+        );
+    }
+
     mod proptests {
         use super::*;
         use proptest::prelude::*;
@@ -609,6 +740,11 @@ mod tests {
                 for key in result.keys() {
                     prop_assert_eq!(key, &key.to_lowercase());
                 }
+            }
+
+            #[test]
+            fn extract_wsl_user_home_never_panics(s in "\\PC{0,200}") {
+                let _ = extract_wsl_user_home(&s);
             }
         }
     }

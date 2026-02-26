@@ -1,5 +1,19 @@
+import { useEffect, useState } from "react";
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { Moon, Sun, Server, Activity, Settings, Terminal, type LucideIcon } from "lucide-react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import {
+  Moon,
+  Sun,
+  Server,
+  Activity,
+  Settings,
+  Terminal,
+  Minus,
+  Maximize2,
+  Minimize2,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { useThemeStore } from "@/shared/hooks/use-theme";
 import { useDebugConsoleStore } from "@/shared/hooks/use-debug-console";
 import { cn } from "@/shared/lib/utils";
@@ -19,10 +33,27 @@ const navTabs: NavTab[] = [
 export function Header() {
   const { theme, toggleTheme } = useThemeStore();
   const matchRoute = useMatchRoute();
+  const [isMaximized, setIsMaximized] = useState(false);
+
+  useEffect(() => {
+    const appWindow = getCurrentWindow();
+    // Check initial maximized state
+    appWindow.isMaximized().then(setIsMaximized);
+    // Listen for resize events to track maximize/restore
+    const unlisten = appWindow.onResized(() => {
+      appWindow.isMaximized().then(setIsMaximized);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
 
   return (
-    <header className="border-surface-1 bg-mantle shrink-0 border-b">
-      <div className="flex h-14 items-center justify-between gap-2 px-4 sm:h-16 sm:px-6">
+    <header className="border-surface-1 bg-mantle shrink-0 border-b" data-tauri-drag-region>
+      <div
+        className="flex h-14 items-center justify-between gap-2 px-4 sm:h-16 sm:px-6"
+        data-tauri-drag-region
+      >
         {/* Branding */}
         <div className="flex shrink-0 items-center gap-3">
           <div className="bg-blue/15 flex h-9 w-9 items-center justify-center rounded-lg">
@@ -60,7 +91,7 @@ export function Header() {
           })}
         </nav>
 
-        {/* Actions */}
+        {/* Actions + Window Controls */}
         <div className="flex items-center gap-1">
           <button
             onClick={useDebugConsoleStore.getState().toggle}
@@ -76,6 +107,36 @@ export function Header() {
             aria-label="Toggle theme"
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+
+          {/* Divider */}
+          <div className="bg-surface-1 mx-1 h-5 w-px" />
+
+          {/* Window Controls */}
+          <button
+            onClick={() => getCurrentWindow().minimize()}
+            className="text-subtext-0 hover:bg-surface-0 hover:text-text flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+            aria-label="Minimize"
+          >
+            <Minus className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => getCurrentWindow().toggleMaximize()}
+            className="text-subtext-0 hover:bg-surface-0 hover:text-text flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+            aria-label={isMaximized ? "Restore" : "Maximize"}
+          >
+            {isMaximized ? (
+              <Minimize2 className="h-3.5 w-3.5" />
+            ) : (
+              <Maximize2 className="h-3.5 w-3.5" />
+            )}
+          </button>
+          <button
+            onClick={() => getCurrentWindow().hide()}
+            className="text-subtext-0 hover:bg-red/20 hover:text-red flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+            aria-label="Close"
+          >
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>

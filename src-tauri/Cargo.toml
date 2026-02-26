@@ -14,7 +14,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 # Tauri core
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-shell = "2"
 tauri-plugin-store = "2"
 tauri-plugin-dialog = "2"
@@ -47,6 +47,9 @@ tracing-subscriber = "0.3"
 
 # Platform utilities
 dirs = "6"
+
+# Terminal PTY
+portable-pty = "0.8"
 
 [dev-dependencies]
 mockall = "0.14"

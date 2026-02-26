@@ -7,10 +7,13 @@ import {
   Activity,
   Loader2,
   ChevronDown,
+  TerminalSquare,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { Distro } from "@/shared/types/distro";
 import { cn } from "@/shared/lib/utils";
+import { createTerminal } from "@/features/terminal/api/mutations";
+import { useTerminalStore } from "@/features/terminal/model/use-terminal-store";
 
 interface DistroCardProps {
   distro: Distro;
@@ -171,6 +174,28 @@ export function DistroCard({
             <Archive className="h-3.5 w-3.5" aria-hidden="true" />
             Snapshot
           </button>
+          {isRunning && (
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                try {
+                  const sessionId = await createTerminal(distro.name);
+                  useTerminalStore.getState().addSession({
+                    id: sessionId,
+                    distroName: distro.name,
+                    title: distro.name,
+                  });
+                } catch (err) {
+                  console.error("Failed to open terminal:", err);
+                }
+              }}
+              className="text-subtext-0 hover:bg-teal/15 hover:text-teal flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+              aria-label={`Open terminal in ${distro.name}`}
+            >
+              <TerminalSquare className="h-3.5 w-3.5" aria-hidden="true" />
+              Terminal
+            </button>
+          )}
           {isRunning && (
             <Link
               to="/monitoring"

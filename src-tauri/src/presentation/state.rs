@@ -4,6 +4,7 @@ use crate::domain::ports::alerting::{AlertThreshold, AlertingPort};
 use crate::domain::ports::audit_logger::AuditLoggerPort;
 use crate::domain::ports::metrics_repository::MetricsRepositoryPort;
 use crate::domain::ports::monitoring_provider::MonitoringProviderPort;
+use crate::domain::ports::port_forwarding::{PortForwardRulesRepository, PortForwardingPort};
 use crate::domain::ports::snapshot_repository::SnapshotRepositoryPort;
 use crate::domain::ports::wsl_manager::WslManagerPort;
 
@@ -17,4 +18,6 @@ pub struct AppState {
     pub alerting: Arc<dyn AlertingPort>,
     pub audit_logger: Arc<dyn AuditLoggerPort>,
     pub alert_thresholds: Arc<tokio::sync::RwLock<Vec<AlertThreshold>>>,
+    pub port_forwarding: Arc<dyn PortForwardingPort>,
+    pub port_rules_repo: Arc<dyn PortForwardRulesRepository>,
 }

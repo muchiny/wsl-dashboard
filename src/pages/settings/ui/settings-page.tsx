@@ -1,14 +1,23 @@
 import { useState } from "react";
-import { Settings, FileText, HardDrive, ScrollText, SlidersHorizontal } from "lucide-react";
+import {
+  Settings,
+  FileText,
+  HardDrive,
+  ScrollText,
+  SlidersHorizontal,
+  Network,
+} from "lucide-react";
 import { WslConfigEditor } from "@/features/wsl-config/ui/wslconfig-editor";
 import { WslInfoPanel } from "@/features/wsl-config/ui/wsl-info-panel";
 import { VhdxCompactPanel } from "@/features/wsl-config/ui/vhdx-compact-panel";
 import { AuditLogViewer } from "@/features/audit-log/ui/audit-log-viewer";
 import { PreferencesPanel } from "@/features/app-preferences/ui/preferences-panel";
+import { PortForwardingPanel } from "@/features/port-forwarding/ui/port-forwarding-panel";
 import { cn } from "@/shared/lib/utils";
 
 const tabs = [
   { id: "config", label: "WSL Configuration", icon: FileText },
+  { id: "network", label: "Network", icon: Network },
   { id: "optimization", label: "Optimization", icon: HardDrive },
   { id: "audit", label: "Audit Log", icon: ScrollText },
   { id: "preferences", label: "Preferences", icon: SlidersHorizontal },
@@ -66,6 +75,11 @@ export function SettingsPage() {
         >
           <WslInfoPanel />
           <WslConfigEditor />
+        </div>
+      )}
+      {tab === "network" && (
+        <div role="tabpanel" id="tabpanel-network" aria-labelledby="tab-network">
+          <PortForwardingPanel />
         </div>
       )}
       {tab === "optimization" && (

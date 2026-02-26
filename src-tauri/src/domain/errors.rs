@@ -36,6 +36,9 @@ pub enum DomainError {
     #[error("IO error: {0}")]
     IoError(String),
 
+    #[error("Terminal error: {0}")]
+    TerminalError(String),
+
     #[error("Internal error: {0}")]
     Internal(String),
 }

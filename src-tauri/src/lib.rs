@@ -22,20 +22,27 @@ use infrastructure::debug_log::layer::DebugLogLayer;
 #[cfg(not(fuzzing))]
 use infrastructure::monitoring::adapter::ProcFsMonitoringAdapter;
 #[cfg(not(fuzzing))]
+use infrastructure::port_forwarding::adapter::NetshAdapter;
+#[cfg(not(fuzzing))]
 use infrastructure::sqlite::adapter::{SqliteAuditLogger, SqliteDb, SqliteSnapshotRepository};
 #[cfg(not(fuzzing))]
 use infrastructure::sqlite::alert_repository::SqliteAlertRepository;
 #[cfg(not(fuzzing))]
 use infrastructure::sqlite::metrics_repository::SqliteMetricsRepository;
 #[cfg(not(fuzzing))]
-use infrastructure::wsl_cli::adapter::WslCliAdapter;
+use infrastructure::sqlite::port_forwarding_repository::SqlitePortForwardingRepository;
 #[cfg(not(fuzzing))]
+use infrastructure::terminal::adapter::TerminalSessionManager;
+#[cfg(not(fuzzing))]
+use infrastructure::wsl_cli::adapter::WslCliAdapter;
 use presentation::commands::{
-    audit_commands, debug_commands, distro_commands, monitoring_commands, settings_commands,
-    snapshot_commands,
+    audit_commands, debug_commands, distro_commands, monitoring_commands, port_forwarding_commands,
+    settings_commands, snapshot_commands, terminal_commands,
 };
 #[cfg(not(fuzzing))]
 use presentation::state::AppState;
+#[cfg(not(fuzzing))]
+use presentation::tray;
 
 #[cfg(not(fuzzing))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -137,6 +144,8 @@ pub fn run() {
                 let monitoring = Arc::new(ProcFsMonitoringAdapter::new(wsl_manager.clone()));
                 let metrics_repo = Arc::new(SqliteMetricsRepository::new(db.clone()));
                 let alerting = Arc::new(SqliteAlertRepository::new(db.clone()));
+                let port_rules_repo = Arc::new(SqlitePortForwardingRepository::new(db.clone()));
+                let port_forwarding = Arc::new(NetshAdapter::new());
                 let audit_logger = Arc::new(SqliteAuditLogger::new(db));
 
                 // Shared alert thresholds (read by collector, written by Tauri commands)
@@ -185,11 +194,53 @@ pub fn run() {
                     alerting,
                     audit_logger,
                     alert_thresholds,
+                    port_forwarding,
+                    port_rules_repo,
                 };
 
                 app_handle.manage(app_state);
+
+                // Terminal session manager (separate from AppState for independent lifecycle)
+                app_handle.manage(TerminalSessionManager::new());
+
                 Ok::<(), Box<dyn std::error::Error>>(())
             })?;
+
+            // Set up system tray icon with context menu
+            if let Err(e) = tray::setup_tray(app) {
+                tracing::warn!("System tray setup failed: {e}");
+            }
+
+            // Populate tray menu with distros after state is ready
+            let tray_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                // Small delay to ensure state is fully managed
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                if let Err(e) = tray::update_tray_menu(&tray_handle).await {
+                    tracing::warn!("Initial tray menu update failed: {e}");
+                }
+            });
+
+            // Periodically refresh the tray menu (every 10s to match distro polling)
+            let refresh_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let mut interval = tokio::time::interval(std::time::Duration::from_secs(10));
+                loop {
+                    interval.tick().await;
+                    let _ = tray::update_tray_menu(&refresh_handle).await;
+                }
+            });
+
+            // Intercept window close → minimize to tray instead of quitting
+            if let Some(window) = app.get_webview_window("main") {
+                let win = window.clone();
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = win.hide();
+                    }
+                });
+            }
 
             tracing::info!("WSL Nexus started successfully");
             Ok(())
@@ -220,6 +271,15 @@ pub fn run() {
             audit_commands::search_audit_log,
             debug_commands::get_debug_logs,
             debug_commands::clear_debug_logs,
+            terminal_commands::terminal_create,
+            terminal_commands::terminal_write,
+            terminal_commands::terminal_resize,
+            terminal_commands::terminal_close,
+            port_forwarding_commands::list_listening_ports,
+            port_forwarding_commands::get_port_forwarding_rules,
+            port_forwarding_commands::add_port_forwarding,
+            port_forwarding_commands::remove_port_forwarding,
+            port_forwarding_commands::get_wsl_ip,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
