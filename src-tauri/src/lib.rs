@@ -18,12 +18,22 @@ use infrastructure::monitoring::adapter::ProcFsMonitoringAdapter;
 #[cfg(not(fuzzing))]
 use infrastructure::sqlite::adapter::{SqliteAuditLogger, SqliteDb, SqliteSnapshotRepository};
 #[cfg(not(fuzzing))]
+use infrastructure::sqlite::alert_repository::SqliteAlertRepository;
+#[cfg(not(fuzzing))]
+use infrastructure::sqlite::metrics_repository::SqliteMetricsRepository;
+#[cfg(not(fuzzing))]
 use infrastructure::wsl_cli::adapter::WslCliAdapter;
 #[cfg(not(fuzzing))]
 use presentation::commands::{
     audit_commands, debug_commands, distro_commands, monitoring_commands, settings_commands,
     snapshot_commands,
 };
+#[cfg(not(fuzzing))]
+use domain::ports::alerting::AlertThreshold;
+#[cfg(not(fuzzing))]
+use domain::services::metrics_aggregator::MetricsAggregator;
+#[cfg(not(fuzzing))]
+use domain::services::metrics_collector::MetricsCollector;
 #[cfg(not(fuzzing))]
 use presentation::state::AppState;
 
@@ -35,12 +45,25 @@ pub fn run() {
     let debug_layer = DebugLogLayer::new(debug_buffer.clone());
     let handle_slot = debug_layer.app_handle_slot();
 
+    use tracing_subscriber::filter::Targets;
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
     use tracing_subscriber::Layer as _;
+
+    // INFO by default; suppress noisy tao/wry event-loop warnings on WSL2/Linux
+    let target_filter = Targets::new()
+        .with_default(tracing::Level::INFO)
+        .with_target("tao", tracing::Level::ERROR)
+        .with_target("wry", tracing::Level::ERROR)
+        .with_target("log", tracing::Level::ERROR);
+
     tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer().with_target(true))
-        .with(debug_layer.with_filter(tracing_subscriber::filter::LevelFilter::INFO))
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_target(true)
+                .with_filter(target_filter.clone()),
+        )
+        .with(debug_layer.with_filter(target_filter))
         .init();
 
     // Panic hook: write crash info to a log file so silent crashes are diagnosable
@@ -86,6 +109,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(move |app| {
             let app_handle = app.handle().clone();
 
@@ -111,13 +135,47 @@ pub fn run() {
                 let wsl_manager = Arc::new(WslCliAdapter::new());
                 let snapshot_repo = Arc::new(SqliteSnapshotRepository::new(db.clone()));
                 let monitoring = Arc::new(ProcFsMonitoringAdapter::new(wsl_manager.clone()));
+                let metrics_repo = Arc::new(SqliteMetricsRepository::new(db.clone()));
+                let alerting = Arc::new(SqliteAlertRepository::new(db.clone()));
                 let audit_logger = Arc::new(SqliteAuditLogger::new(db));
+
+                // Shared alert thresholds (read by collector, written by Tauri commands)
+                let alert_thresholds = Arc::new(tokio::sync::RwLock::new(vec![
+                    AlertThreshold { alert_type: domain::ports::alerting::AlertType::Cpu, threshold_percent: 90.0, enabled: true },
+                    AlertThreshold { alert_type: domain::ports::alerting::AlertType::Memory, threshold_percent: 85.0, enabled: true },
+                    AlertThreshold { alert_type: domain::ports::alerting::AlertType::Disk, threshold_percent: 90.0, enabled: true },
+                ]));
+
+                // Spawn background metrics collector (2s loop)
+                let collector = MetricsCollector::new(
+                    monitoring.clone(),
+                    metrics_repo.clone(),
+                    alerting.clone(),
+                    wsl_manager.clone(),
+                    alert_thresholds.clone(),
+                );
+                let collector_handle = app_handle.clone();
+                tokio::spawn(async move {
+                    collector.run(collector_handle).await;
+                });
+
+                // Spawn background metrics aggregator (60s loop)
+                let aggregator = MetricsAggregator::new(
+                    metrics_repo.clone(),
+                    alerting.clone(),
+                );
+                tokio::spawn(async move {
+                    aggregator.run().await;
+                });
 
                 let app_state = AppState {
                     wsl_manager,
                     snapshot_repo,
                     monitoring,
+                    metrics_repo,
+                    alerting,
                     audit_logger,
+                    alert_thresholds,
                 };
 
                 app_handle.manage(app_state);
@@ -141,6 +199,11 @@ pub fn run() {
             snapshot_commands::restore_snapshot,
             monitoring_commands::get_system_metrics,
             monitoring_commands::get_processes,
+            monitoring_commands::get_metrics_history,
+            monitoring_commands::get_alert_thresholds,
+            monitoring_commands::set_alert_thresholds,
+            monitoring_commands::get_recent_alerts,
+            monitoring_commands::acknowledge_alert,
             settings_commands::get_wsl_config,
             settings_commands::update_wsl_config,
             settings_commands::compact_vhdx,

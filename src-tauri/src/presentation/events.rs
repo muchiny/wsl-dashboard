@@ -19,3 +19,4 @@ pub struct SnapshotProgressEvent {
 pub const EVENT_DISTRO_STATE_CHANGED: &str = "distro-state-changed";
 pub const EVENT_SYSTEM_METRICS: &str = "system-metrics";
 pub const EVENT_SNAPSHOT_PROGRESS: &str = "snapshot-progress";
+pub const EVENT_ALERT_TRIGGERED: &str = "alert-triggered";
