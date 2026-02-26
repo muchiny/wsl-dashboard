@@ -1,29 +1,8 @@
-import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/react-router";
-import { Header } from "@/widgets/header/ui/header";
-import { DebugConsole } from "@/widgets/debug-console/ui/debug-console";
-import { ToastContainer } from "@/shared/ui/toast";
+import { createRouter, createRoute, createRootRoute } from "@tanstack/react-router";
+import { RootLayout } from "@/shared/ui/root-layout";
 import { DistrosPage } from "@/pages/distros/ui/distros-page";
 import { MonitoringPage } from "@/pages/monitoring/ui/monitoring-page";
 import { SettingsPage } from "@/pages/settings/ui/settings-page";
-import { ErrorBoundary } from "@/shared/ui/error-boundary";
-import { useDebugConsoleSetup } from "@/shared/hooks/use-debug-console";
-
-function RootLayout() {
-  useDebugConsoleSetup();
-
-  return (
-    <div className="bg-background text-foreground flex h-screen flex-col overflow-hidden">
-      <Header />
-      <main className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-        <ErrorBoundary>
-          <Outlet />
-        </ErrorBoundary>
-      </main>
-      <DebugConsole />
-      <ToastContainer />
-    </div>
-  );
-}
 
 const rootRoute = createRootRoute({
   component: RootLayout,
