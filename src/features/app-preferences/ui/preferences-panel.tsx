@@ -1,7 +1,13 @@
-import { Moon, Sun, Timer, Archive, FolderOpen } from "lucide-react";
+import { useEffect } from "react";
+import { Moon, Sun, Timer, Archive, FolderOpen, Bell } from "lucide-react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useThemeStore } from "@/shared/hooks/use-theme";
 import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
+import {
+  useAlertThresholds,
+  useSetAlertThresholds,
+} from "@/features/monitoring-dashboard/api/queries";
+import type { AlertThreshold } from "@/shared/types/monitoring";
 import { cn } from "@/shared/lib/utils";
 
 const INTERVAL_OPTIONS = [
@@ -23,11 +29,31 @@ export function PreferencesPanel() {
     processesInterval,
     defaultSnapshotDir,
     defaultInstallLocation,
+    alertThresholds,
     setMetricsInterval,
     setProcessesInterval,
     setDefaultSnapshotDir,
     setDefaultInstallLocation,
+    setAlertThresholds,
   } = usePreferencesStore();
+
+  // Sync thresholds from backend on mount
+  const { data: backendThresholds } = useAlertThresholds();
+  const setBackendThresholds = useSetAlertThresholds();
+
+  useEffect(() => {
+    if (backendThresholds && backendThresholds.length > 0) {
+      setAlertThresholds(backendThresholds);
+    }
+  }, [backendThresholds, setAlertThresholds]);
+
+  const updateThreshold = (alertType: string, updates: Partial<AlertThreshold>) => {
+    const next = alertThresholds.map((t) =>
+      t.alert_type === alertType ? { ...t, ...updates } : t,
+    );
+    setAlertThresholds(next);
+    setBackendThresholds.mutate(next);
+  };
 
   return (
     <div className="space-y-6">
@@ -182,6 +208,67 @@ export function PreferencesPanel() {
               Where restored distributions are installed by default.
             </p>
           </div>
+        </div>
+      </div>
+
+      <div className="border-surface-1 bg-mantle rounded-xl border p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Bell className="text-mauve h-5 w-5" />
+          <h4 className="text-text font-semibold">Alerts</h4>
+        </div>
+        <p className="text-subtext-0 mb-4 text-xs">
+          Configure thresholds for desktop notifications when resource usage is high.
+        </p>
+        <div className="space-y-4">
+          {alertThresholds.map((threshold) => {
+            const label =
+              threshold.alert_type === "cpu"
+                ? "CPU"
+                : threshold.alert_type === "memory"
+                  ? "Memory"
+                  : "Disk";
+            return (
+              <div key={threshold.alert_type} className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateThreshold(threshold.alert_type, { enabled: !threshold.enabled })
+                  }
+                  className={cn(
+                    "relative h-6 w-11 shrink-0 rounded-full transition-colors",
+                    threshold.enabled ? "bg-blue" : "bg-surface-1",
+                  )}
+                  aria-label={`Toggle ${label} alert`}
+                >
+                  <span
+                    className={cn(
+                      "bg-text absolute top-0.5 left-0.5 h-5 w-5 rounded-full transition-transform",
+                      threshold.enabled && "translate-x-5",
+                    )}
+                  />
+                </button>
+                <div className="flex-1">
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="text-text text-sm font-medium">{label}</span>
+                    <span className="text-subtext-0 text-xs">{threshold.threshold_percent}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={50}
+                    max={99}
+                    value={threshold.threshold_percent}
+                    onChange={(e) =>
+                      updateThreshold(threshold.alert_type, {
+                        threshold_percent: Number(e.target.value),
+                      })
+                    }
+                    disabled={!threshold.enabled}
+                    className="w-full accent-[var(--color-blue)] disabled:opacity-40"
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

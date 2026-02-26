@@ -1,13 +1,23 @@
 import { formatBytes } from "@/shared/lib/formatters";
 import type { DiskMetrics } from "@/shared/types/monitoring";
+import type { MetricsPoint } from "../hooks/use-metrics-history";
 import { cn } from "@/shared/lib/utils";
 
 interface DiskGaugeProps {
   disk: DiskMetrics | null;
+  /** Historical chart data — used to show disk % when live disk data is unavailable */
+  historicalData?: MetricsPoint[];
 }
 
-export function DiskGauge({ disk }: DiskGaugeProps) {
-  const percent = disk?.usage_percent ?? 0;
+export function DiskGauge({ disk, historicalData }: DiskGaugeProps) {
+  // In historical mode, derive percent from the latest chart data point
+  const histLatest =
+    !disk && historicalData && historicalData.length > 0
+      ? historicalData[historicalData.length - 1]
+      : null;
+
+  const percent = disk?.usage_percent ?? histLatest?.diskPercent ?? 0;
+  const hasData = disk !== null || histLatest !== null;
   const isHigh = percent > 80;
   const isCritical = percent > 90;
 
@@ -15,7 +25,7 @@ export function DiskGauge({ disk }: DiskGaugeProps) {
     <div className="border-surface-1 bg-mantle min-w-0 rounded-xl border p-4">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="text-sm font-semibold">Disk Usage</h4>
-        {disk && (
+        {hasData && (
           <span
             className={cn(
               "text-lg font-bold",
@@ -44,7 +54,21 @@ export function DiskGauge({ disk }: DiskGaugeProps) {
           </div>
         </>
       )}
-      {!disk && <p className="text-subtext-0 text-sm">No data available</p>}
+      {!disk && histLatest && (
+        <>
+          <div className="bg-surface-0 mb-2 h-3 overflow-hidden rounded-full">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all",
+                isCritical ? "bg-red" : isHigh ? "bg-yellow" : "bg-blue",
+              )}
+              style={{ width: `${Math.min(percent, 100)}%` }}
+            />
+          </div>
+          <p className="text-subtext-0 text-xs">Historical average</p>
+        </>
+      )}
+      {!hasData && <p className="text-subtext-0 text-sm">No data available</p>}
     </div>
   );
 }
