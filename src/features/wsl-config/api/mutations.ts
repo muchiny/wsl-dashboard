@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tauriInvoke } from "@/shared/api/tauri-client";
-import { toast } from "@/shared/ui/toast";
+import { toast } from "@/shared/ui/toast-store";
 import { configKeys, type WslGlobalConfig } from "./queries";
 import { distroKeys } from "@/features/distro-list/api/queries";
 

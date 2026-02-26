@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tauriInvoke } from "@/shared/api/tauri-client";
-import { toast } from "@/shared/ui/toast";
+import { toast } from "@/shared/ui/toast-store";
 import { distroKeys } from "./queries";
 
 export function useStartDistro() {
@@ -51,6 +51,32 @@ export function useShutdownAll() {
     mutationFn: () => tauriInvoke("shutdown_all"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: distroKeys.all });
+    },
+  });
+}
+
+export function useStartAll() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (names: string[]) => {
+      const results = await Promise.allSettled(
+        names.map((name) => tauriInvoke("start_distro", { name })),
+      );
+      const succeeded = results.filter((r) => r.status === "fulfilled").length;
+      const failed = results.filter((r) => r.status === "rejected").length;
+      return { succeeded, failed };
+    },
+    onSuccess: ({ succeeded, failed }) => {
+      queryClient.invalidateQueries({ queryKey: distroKeys.all });
+      if (succeeded > 0) {
+        toast.success(`Started ${succeeded} distribution${succeeded > 1 ? "s" : ""}`);
+      }
+      if (failed > 0) {
+        toast.error(`Failed to start ${failed} distribution${failed > 1 ? "s" : ""}`);
+      }
+    },
+    onError: (err) => {
+      toast.error(`Start all failed: ${err.message}`);
     },
   });
 }

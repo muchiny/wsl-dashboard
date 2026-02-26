@@ -1,18 +1,32 @@
 import { useState, type ReactNode } from "react";
-import { Server } from "lucide-react";
-import { useDistros } from "../api/queries";
+import { Server, Search } from "lucide-react";
 import { useStartDistro, useStopDistro, useRestartDistro } from "../api/mutations";
 import { useSnapshotCounts } from "@/features/snapshot-list/api/queries";
 import { DistroCard } from "./distro-card";
+import { DistroRow } from "./distro-row";
 import { DistroSnapshotPanel } from "./distro-snapshot-panel";
+import type { Distro } from "@/shared/types/distro";
+import type { ViewMode } from "@/shared/stores/use-preferences-store";
 
 interface DistroListProps {
+  distros: Distro[];
+  isLoading: boolean;
+  error: Error | null;
+  viewMode: ViewMode;
+  isFiltered: boolean;
   onSnapshot: (distroName: string) => void;
   onRestore: (snapshotId: string, distroName: string) => void;
 }
 
-export function DistroList({ onSnapshot, onRestore }: DistroListProps) {
-  const { data: distros, isLoading, error } = useDistros();
+export function DistroList({
+  distros,
+  isLoading,
+  error,
+  viewMode,
+  isFiltered,
+  onSnapshot,
+  onRestore,
+}: DistroListProps) {
   const startDistro = useStartDistro();
   const stopDistro = useStopDistro();
   const restartDistro = useRestartDistro();
@@ -45,7 +59,19 @@ export function DistroList({ onSnapshot, onRestore }: DistroListProps) {
     );
   }
 
-  if (!distros?.length) {
+  if (distros.length === 0 && isFiltered) {
+    return (
+      <div className="border-surface-1 bg-mantle flex flex-col items-center rounded-xl border px-8 py-12 text-center">
+        <Search className="text-surface-2 mb-3 h-10 w-10" />
+        <p className="text-text font-medium">No distributions match your filters</p>
+        <p className="text-subtext-0 mt-1 text-sm">
+          Try adjusting your search or filter criteria.
+        </p>
+      </div>
+    );
+  }
+
+  if (distros.length === 0) {
     return (
       <div className="border-surface-1 bg-mantle flex flex-col items-center rounded-xl border px-8 py-12 text-center">
         <Server className="text-surface-2 mb-3 h-10 w-10" />
@@ -79,6 +105,29 @@ export function DistroList({ onSnapshot, onRestore }: DistroListProps) {
         }
       : null;
 
+  if (viewMode === "list") {
+    return (
+      <div className="flex flex-col gap-2">
+        {distros.map((distro) => (
+          <DistroRow
+            key={distro.name}
+            distro={distro}
+            onStart={() => startDistro.mutate(distro.name)}
+            onStop={() => stopDistro.mutate(distro.name)}
+            onRestart={() => restartDistro.mutate(distro.name)}
+            onSnapshot={() => onSnapshot(distro.name)}
+            pendingAction={
+              pendingAction?.distro === distro.name
+                ? pendingAction.action
+                : undefined
+            }
+            snapshotCount={snapshotCounts[distro.name] ?? 0}
+          />
+        ))}
+      </div>
+    );
+  }
+
   const gridItems: ReactNode[] = [];
   for (const distro of distros) {
     gridItems.push(
@@ -89,7 +138,11 @@ export function DistroList({ onSnapshot, onRestore }: DistroListProps) {
         onStop={() => stopDistro.mutate(distro.name)}
         onRestart={() => restartDistro.mutate(distro.name)}
         onSnapshot={() => onSnapshot(distro.name)}
-        pendingAction={pendingAction?.distro === distro.name ? pendingAction.action : undefined}
+        pendingAction={
+          pendingAction?.distro === distro.name
+            ? pendingAction.action
+            : undefined
+        }
         onExpand={() => handleExpand(distro.name)}
         isExpanded={expandedDistro === distro.name}
         snapshotCount={snapshotCounts[distro.name] ?? 0}

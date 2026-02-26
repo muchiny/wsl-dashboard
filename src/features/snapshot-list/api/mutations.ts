@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tauriInvoke } from "@/shared/api/tauri-client";
-import { toast } from "@/shared/ui/toast";
+import { toast } from "@/shared/ui/toast-store";
 import { snapshotKeys } from "./queries";
 import type { Snapshot, CreateSnapshotArgs, RestoreSnapshotArgs } from "@/shared/types/snapshot";
 

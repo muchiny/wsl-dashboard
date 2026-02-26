@@ -3,7 +3,7 @@ import { useSnapshots } from "../api/queries";
 import { useDeleteSnapshot } from "../api/mutations";
 import { SnapshotCard } from "./snapshot-card";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import { toast } from "@/shared/ui/toast";
+import { toast } from "@/shared/ui/toast-store";
 
 interface SnapshotListProps {
   distroName?: string;
