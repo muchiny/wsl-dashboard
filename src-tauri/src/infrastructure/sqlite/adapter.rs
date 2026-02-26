@@ -12,7 +12,7 @@ use crate::domain::value_objects::{DistroName, MemorySize, SnapshotId};
 /// Shared SQLite connection pool.
 #[derive(Clone)]
 pub struct SqliteDb {
-    pool: SqlitePool,
+    pub(crate) pool: SqlitePool,
 }
 
 impl SqliteDb {
@@ -35,6 +35,11 @@ impl SqliteDb {
 
         // Run migrations
         sqlx::query(include_str!("migrations/001_initial.sql"))
+            .execute(&pool)
+            .await
+            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+
+        sqlx::query(include_str!("migrations/002_metrics.sql"))
             .execute(&pool)
             .await
             .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
