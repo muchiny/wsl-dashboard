@@ -251,6 +251,11 @@ impl WslManagerPort for WslCliAdapter {
         Ok(())
     }
 
+    async fn unregister_distro(&self, name: &DistroName) -> Result<(), DomainError> {
+        self.run_wsl_raw(&["--unregister", name.as_str()]).await?;
+        Ok(())
+    }
+
     async fn export_distro(
         &self,
         name: &DistroName,

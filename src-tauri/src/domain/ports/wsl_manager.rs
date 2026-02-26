@@ -22,6 +22,9 @@ pub trait WslManagerPort: Send + Sync {
     /// Terminate a running distribution
     async fn terminate_distro(&self, name: &DistroName) -> Result<(), DomainError>;
 
+    /// Unregister a distribution (removes it and its filesystem)
+    async fn unregister_distro(&self, name: &DistroName) -> Result<(), DomainError>;
+
     /// Export a distribution to a file
     async fn export_distro(
         &self,

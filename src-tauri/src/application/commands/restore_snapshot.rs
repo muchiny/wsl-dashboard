@@ -47,10 +47,13 @@ impl RestoreSnapshotHandler {
             RestoreMode::Overwrite => snapshot.distro_name.clone(),
         };
 
-        // For overwrite mode, terminate the existing distro first
+        // For overwrite mode, unregister the existing distro first
+        // (terminate + unregister, since wsl --import fails if the name exists)
         if matches!(cmd.mode, RestoreMode::Overwrite) {
             // Best-effort terminate; ignore error if already stopped
             let _ = self.wsl_manager.terminate_distro(&target_name).await;
+            // Unregister removes the distro registration so --import can re-create it
+            let _ = self.wsl_manager.unregister_distro(&target_name).await;
         }
 
         self.wsl_manager
