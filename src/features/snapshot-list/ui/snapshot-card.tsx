@@ -1,4 +1,4 @@
-import { Trash2, RotateCw, Archive, Clock, HardDrive } from "lucide-react";
+import { Trash2, RotateCw, Archive, Clock, HardDrive, Loader2 } from "lucide-react";
 import type { Snapshot } from "@/shared/types/snapshot";
 import { formatBytes, formatRelativeTime } from "@/shared/lib/formatters";
 import { cn } from "@/shared/lib/utils";
@@ -20,7 +20,11 @@ export function SnapshotCard({ snapshot, onDelete, onRestore, hideDistroName }: 
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <Archive className="text-mauve h-4 w-4 shrink-0" />
+            {isInProgress ? (
+              <Loader2 className="text-yellow h-4 w-4 shrink-0 animate-spin" />
+            ) : (
+              <Archive className="text-mauve h-4 w-4 shrink-0" />
+            )}
             <h4 className="text-text truncate font-semibold">{snapshot.name}</h4>
           </div>
           {snapshot.description && (
@@ -31,11 +35,11 @@ export function SnapshotCard({ snapshot, onDelete, onRestore, hideDistroName }: 
           className={cn(
             "ml-2 shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium",
             isCompleted && "bg-green/15 text-green",
-            isInProgress && "bg-yellow/15 text-yellow",
+            isInProgress && "bg-yellow/15 text-yellow animate-pulse",
             isFailed && "bg-red/15 text-red",
           )}
         >
-          {isCompleted ? "Completed" : isInProgress ? "In Progress" : "Failed"}
+          {isCompleted ? "Completed" : isInProgress ? "Exporting..." : "Failed"}
         </span>
       </div>
 

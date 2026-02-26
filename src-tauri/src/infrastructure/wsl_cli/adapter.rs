@@ -192,18 +192,20 @@ impl WslManagerPort for WslCliAdapter {
     }
 
     async fn start_distro(&self, name: &DistroName) -> Result<(), DomainError> {
-        // Launch a background keep-alive process inside the distro.
-        // `nohup sleep infinity &` forks a persistent process that keeps the
-        // WSL2 VM alive after the shell exits, even without systemd.
-        self.run_wsl_raw(&[
-            "-d",
-            name.as_str(),
-            "-e",
-            "sh",
-            "-c",
-            "nohup sleep infinity >/dev/null 2>&1 &",
-        ])
-        .await?;
+        // Spawn a detached `wsl.exe -d <name> -- sleep infinity` process.
+        // Unlike run_wsl_raw (which awaits exit), this keeps the wsl.exe
+        // process alive as a foreground session, which prevents WSL from
+        // shutting down the distro. The process is cleaned up automatically
+        // when terminate_distro calls `wsl --terminate`.
+        self.wsl_command()
+            .args(["-d", name.as_str(), "--", "sleep", "infinity"])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .stdin(Stdio::null())
+            .spawn()
+            .map_err(|e| DomainError::WslCliError(format!("Failed to start distro: {}", e)))?;
+        // Give WSL a moment to initialize the distro
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
         Ok(())
     }
 

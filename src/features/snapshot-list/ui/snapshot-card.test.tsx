@@ -53,7 +53,7 @@ describe("SnapshotCard", () => {
         onRestore={noop}
       />,
     );
-    expect(screen.getByText("In Progress")).toBeInTheDocument();
+    expect(screen.getByText("Exporting...")).toBeInTheDocument();
   });
 
   it("shows Failed badge for failed status", () => {

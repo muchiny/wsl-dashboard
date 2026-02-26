@@ -10,7 +10,7 @@ export function useCreateSnapshot() {
     mutationFn: (args: CreateSnapshotArgs) => tauriInvoke<Snapshot>("create_snapshot", { args }),
     onSuccess: (_data, args) => {
       queryClient.invalidateQueries({ queryKey: snapshotKeys.all });
-      toast.success(`Snapshot "${args.name}" created`);
+      toast.success(`Snapshot "${args.name}" export started`);
     },
     onError: (err) => {
       toast.error(`Failed to create snapshot: ${err.message}`);

@@ -9,6 +9,7 @@ pub enum DistroState {
     Installing,
     Converting,
     Uninstalling,
+    Exporting,
 }
 
 impl DistroState {
@@ -19,6 +20,7 @@ impl DistroState {
             "installing" => Ok(Self::Installing),
             "converting" => Ok(Self::Converting),
             "uninstalling" => Ok(Self::Uninstalling),
+            "exporting" => Ok(Self::Exporting),
             other => Err(DomainError::WslCliError(format!(
                 "Unknown distro state: {}",
                 other
@@ -39,6 +41,7 @@ impl fmt::Display for DistroState {
             Self::Installing => write!(f, "Installing"),
             Self::Converting => write!(f, "Converting"),
             Self::Uninstalling => write!(f, "Uninstalling"),
+            Self::Exporting => write!(f, "Exporting"),
         }
     }
 }
@@ -68,6 +71,14 @@ mod tests {
         assert_eq!(
             DistroState::from_wsl_output("RUNNING").unwrap(),
             DistroState::Running
+        );
+    }
+
+    #[test]
+    fn test_parse_exporting() {
+        assert_eq!(
+            DistroState::from_wsl_output("Exporting").unwrap(),
+            DistroState::Exporting
         );
     }
 

@@ -3,6 +3,7 @@ import { Plus, X, Archive, FolderOpen } from "lucide-react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useDistros } from "@/features/distro-list/api/queries";
 import { useCreateSnapshot } from "../api/mutations";
+import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
 
 interface CreateSnapshotDialogProps {
   open: boolean;
@@ -13,6 +14,7 @@ interface CreateSnapshotDialogProps {
 export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSnapshotDialogProps) {
   const { data: distros } = useDistros();
   const createSnapshot = useCreateSnapshot();
+  const { defaultSnapshotDir } = usePreferencesStore();
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const [distroName, setDistroName] = useState(defaultDistro ?? "");
@@ -52,7 +54,7 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
 
   const [description, setDescription] = useState("");
   const [format, setFormat] = useState<"tar" | "tar.gz" | "tar.xz" | "vhdx">("tar");
-  const [outputDir, setOutputDir] = useState("");
+  const [outputDir, setOutputDir] = useState(defaultSnapshotDir);
 
   if (!open) return null;
 

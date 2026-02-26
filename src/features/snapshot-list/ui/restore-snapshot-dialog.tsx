@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { RotateCw, X } from "lucide-react";
+import { RotateCw, X, FolderOpen } from "lucide-react";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useRestoreSnapshot } from "../api/mutations";
+import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
 
 interface RestoreSnapshotDialogProps {
   open: boolean;
@@ -10,11 +12,12 @@ interface RestoreSnapshotDialogProps {
 
 export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnapshotDialogProps) {
   const restoreSnapshot = useRestoreSnapshot();
+  const { defaultInstallLocation } = usePreferencesStore();
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const [mode, setMode] = useState<"clone" | "overwrite">("clone");
   const [newName, setNewName] = useState("");
-  const [installLocation, setInstallLocation] = useState("");
+  const [installLocation, setInstallLocation] = useState(defaultInstallLocation);
 
   // Focus trap + Escape key
   useEffect(() => {
@@ -158,14 +161,30 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
             <label className="text-subtext-1 mb-1 block text-sm font-medium">
               Install Location
             </label>
-            <input
-              type="text"
-              value={installLocation}
-              onChange={(e) => setInstallLocation(e.target.value)}
-              placeholder="/path/to/install"
-              className={inputClass}
-              required
-            />
+            <div className="flex gap-1">
+              <input
+                type="text"
+                value={installLocation}
+                onChange={(e) => setInstallLocation(e.target.value)}
+                placeholder="C:\WSL\..."
+                className={`${inputClass} flex-1`}
+                required
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  const dir = await openDialog({
+                    directory: true,
+                    title: "Select install location",
+                  });
+                  if (dir) setInstallLocation(dir);
+                }}
+                className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
+                aria-label="Browse install location"
+              >
+                <FolderOpen className="h-4 w-4" />
+              </button>
+            </div>
             <p className="text-overlay-0 mt-1 text-xs">
               Directory where the distribution&apos;s virtual disk will be stored.
             </p>

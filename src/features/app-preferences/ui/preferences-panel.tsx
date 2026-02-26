@@ -1,4 +1,5 @@
-import { Moon, Sun, Timer } from "lucide-react";
+import { Moon, Sun, Timer, Archive, FolderOpen } from "lucide-react";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useThemeStore } from "@/shared/hooks/use-theme";
 import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
 import { cn } from "@/shared/lib/utils";
@@ -17,8 +18,16 @@ const selectClass =
 
 export function PreferencesPanel() {
   const { theme, toggleTheme } = useThemeStore();
-  const { metricsInterval, processesInterval, setMetricsInterval, setProcessesInterval } =
-    usePreferencesStore();
+  const {
+    metricsInterval,
+    processesInterval,
+    defaultSnapshotDir,
+    defaultInstallLocation,
+    setMetricsInterval,
+    setProcessesInterval,
+    setDefaultSnapshotDir,
+    setDefaultInstallLocation,
+  } = usePreferencesStore();
 
   return (
     <div className="space-y-6">
@@ -98,6 +107,80 @@ export function PreferencesPanel() {
                 </option>
               ))}
             </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-surface-1 bg-mantle rounded-xl border p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Archive className="text-mauve h-5 w-5" />
+          <h4 className="text-text font-semibold">Snapshots</h4>
+        </div>
+        <p className="text-subtext-0 mb-4 text-xs">
+          Default directories used when creating or restoring snapshots.
+        </p>
+        <div className="space-y-4">
+          <div>
+            <label className="text-subtext-0 mb-1 block text-xs font-medium">
+              Default Snapshot Directory
+            </label>
+            <div className="flex gap-1">
+              <input
+                type="text"
+                value={defaultSnapshotDir}
+                onChange={(e) => setDefaultSnapshotDir(e.target.value)}
+                placeholder="C:\WSL-Snapshots"
+                className={`${selectClass} flex-1`}
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  const dir = await openDialog({
+                    directory: true,
+                    title: "Select default snapshot directory",
+                  });
+                  if (dir) setDefaultSnapshotDir(dir);
+                }}
+                className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
+                aria-label="Browse snapshot directory"
+              >
+                <FolderOpen className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-overlay-0 mt-1 text-xs">
+              Where snapshot files (.tar, .vhdx) are saved by default.
+            </p>
+          </div>
+          <div>
+            <label className="text-subtext-0 mb-1 block text-xs font-medium">
+              Default Install Location
+            </label>
+            <div className="flex gap-1">
+              <input
+                type="text"
+                value={defaultInstallLocation}
+                onChange={(e) => setDefaultInstallLocation(e.target.value)}
+                placeholder="C:\WSL"
+                className={`${selectClass} flex-1`}
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  const dir = await openDialog({
+                    directory: true,
+                    title: "Select default install location",
+                  });
+                  if (dir) setDefaultInstallLocation(dir);
+                }}
+                className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
+                aria-label="Browse install location"
+              >
+                <FolderOpen className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-overlay-0 mt-1 text-xs">
+              Where restored distributions are installed by default.
+            </p>
           </div>
         </div>
       </div>
