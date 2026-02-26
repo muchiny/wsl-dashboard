@@ -3,6 +3,7 @@ import { RotateCw, X, FolderOpen } from "lucide-react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useRestoreSnapshot } from "../api/mutations";
 import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
+import { cn } from "@/shared/lib/utils";
 
 interface RestoreSnapshotDialogProps {
   open: boolean;
@@ -49,10 +50,16 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
 
   if (!open || !snapshotId) return null;
 
+  const VALID_DISTRO_NAME = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
+  const nameError =
+    mode === "clone" && newName && !VALID_DISTRO_NAME.test(newName)
+      ? "Only letters, numbers, dots, hyphens and underscores allowed"
+      : null;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!installLocation) return;
-    if (mode === "clone" && !newName) return;
+    if (mode === "clone" && (!newName || nameError)) return;
 
     restoreSnapshot.mutate(
       {
@@ -144,9 +151,10 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="e.g. Ubuntu-restored"
-                className={inputClass}
+                className={cn(inputClass, nameError && "border-red")}
                 required
               />
+              {nameError && <p className="text-red mt-1 text-xs">{nameError}</p>}
             </div>
           )}
 
@@ -200,7 +208,7 @@ export function RestoreSnapshotDialog({ open, snapshotId, onClose }: RestoreSnap
             </button>
             <button
               type="submit"
-              disabled={restoreSnapshot.isPending}
+              disabled={restoreSnapshot.isPending || !!nameError}
               className="bg-blue text-crust hover:bg-blue/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
             >
               <RotateCw className="h-4 w-4" />
