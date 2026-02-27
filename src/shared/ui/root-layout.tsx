@@ -32,7 +32,10 @@ export function RootLayout() {
         Skip to main content
       </a>
       <Header />
-      <main id="main-content" className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6">
+      <main
+        id="main-content"
+        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6"
+      >
         <ErrorBoundary>
           <Outlet />
         </ErrorBoundary>
