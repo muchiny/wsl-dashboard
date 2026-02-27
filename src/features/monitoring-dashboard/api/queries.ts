@@ -1,13 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tauriInvoke } from "@/shared/api/tauri-client";
 import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
-import type {
-  SystemMetrics,
-  TimeRange,
-  MetricsHistoryResponse,
-  AlertThreshold,
-  AlertRecord,
-} from "@/shared/types/monitoring";
+import type { TimeRange, MetricsHistoryResponse, AlertThreshold } from "@/shared/types/monitoring";
 
 export interface ProcessInfo {
   pid: number;
@@ -29,19 +23,6 @@ export const monitoringKeys = {
   alertThresholds: [...["monitoring"], "alertThresholds"] as const,
   alerts: (distro: string) => [...["monitoring"], "alerts", distro] as const,
 };
-
-export function useSystemMetrics(distroName: string | null, enabled = true) {
-  const metricsInterval = usePreferencesStore((s) => s.metricsInterval);
-  return useQuery({
-    queryKey: monitoringKeys.metrics(distroName ?? ""),
-    queryFn: () =>
-      tauriInvoke<SystemMetrics>("get_system_metrics", {
-        distroName: distroName!,
-      }),
-    enabled: !!distroName && enabled,
-    refetchInterval: metricsInterval,
-  });
-}
 
 export function useProcesses(distroName: string | null, enabled = true) {
   const processesInterval = usePreferencesStore((s) => s.processesInterval);
@@ -105,33 +86,6 @@ export function useSetAlertThresholds() {
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: monitoringKeys.alertThresholds,
-      });
-    },
-  });
-}
-
-// --- Alert records ---
-
-export function useRecentAlerts(distroName: string | null) {
-  return useQuery({
-    queryKey: monitoringKeys.alerts(distroName ?? ""),
-    queryFn: () =>
-      tauriInvoke<AlertRecord[]>("get_recent_alerts", {
-        distroName: distroName!,
-        limit: 50,
-      }),
-    enabled: !!distroName,
-    refetchInterval: 10_000,
-  });
-}
-
-export function useAcknowledgeAlert() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (alertId: number) => tauriInvoke("acknowledge_alert", { alertId }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: monitoringKeys.all,
       });
     },
   });

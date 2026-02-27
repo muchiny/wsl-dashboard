@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { ScrollText, Search } from "lucide-react";
-import { useAuditLog } from "../api/queries";
+import { ScrollText, Search, RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuditLog, auditKeys } from "../api/queries";
 import { useDebounce } from "@/shared/hooks/use-debounce";
 import { formatRelativeTime } from "@/shared/lib/formatters";
 
 export function AuditLogViewer() {
+  const queryClient = useQueryClient();
   const [actionFilter, setActionFilter] = useState("");
   const [targetFilter, setTargetFilter] = useState("");
 
@@ -23,6 +25,13 @@ export function AuditLogViewer() {
           <ScrollText className="text-lavender h-5 w-5" />
           <h4 className="text-text font-semibold">Audit Log</h4>
           {entries && <span className="text-subtext-0 text-xs">({entries.length} entries)</span>}
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: auditKeys.all })}
+            className="text-subtext-0 hover:bg-surface-0 hover:text-text focus-ring rounded-lg p-1.5 transition-colors"
+            aria-label="Refresh audit log"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
         </div>
         <div className="flex gap-2">
           <div className="relative flex-1 sm:flex-none">
@@ -36,7 +45,7 @@ export function AuditLogViewer() {
               onChange={(e) => setActionFilter(e.target.value)}
               placeholder="Filter action..."
               aria-label="Filter by action"
-              className="border-surface-1 bg-base text-text focus:border-blue w-full rounded-lg border py-1 pr-2 pl-7 text-xs focus:outline-none sm:w-36"
+              className="focus-ring border-surface-1 bg-base text-text w-full rounded-lg border py-1 pr-2 pl-7 text-xs sm:w-36"
             />
           </div>
           <div className="relative flex-1 sm:flex-none">
@@ -50,7 +59,7 @@ export function AuditLogViewer() {
               onChange={(e) => setTargetFilter(e.target.value)}
               placeholder="Filter target..."
               aria-label="Filter by target"
-              className="border-surface-1 bg-base text-text focus:border-blue w-full rounded-lg border py-1 pr-2 pl-7 text-xs focus:outline-none sm:w-36"
+              className="focus-ring border-surface-1 bg-base text-text w-full rounded-lg border py-1 pr-2 pl-7 text-xs sm:w-36"
             />
           </div>
         </div>
@@ -89,7 +98,7 @@ export function AuditLogViewer() {
                     {formatRelativeTime(entry.timestamp)}
                   </td>
                   <td className="px-4 py-1.5">
-                    <span className="bg-blue/10 text-blue rounded-md px-1.5 py-0.5 font-mono">
+                    <span className="bg-blue/20 text-blue rounded-md px-1.5 py-0.5 font-mono">
                       {entry.action}
                     </span>
                   </td>

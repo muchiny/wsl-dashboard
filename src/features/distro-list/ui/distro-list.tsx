@@ -107,16 +107,28 @@ export function DistroList({
     return (
       <div className="flex flex-col gap-2">
         {distros.map((distro) => (
-          <DistroRow
-            key={distro.name}
-            distro={distro}
-            onStart={() => startDistro.mutate(distro.name)}
-            onStop={() => stopDistro.mutate(distro.name)}
-            onRestart={() => restartDistro.mutate(distro.name)}
-            onSnapshot={() => onSnapshot(distro.name)}
-            pendingAction={pendingAction?.distro === distro.name ? pendingAction.action : undefined}
-            snapshotCount={snapshotCounts[distro.name] ?? 0}
-          />
+          <div key={distro.name} className="flex flex-col gap-2">
+            <DistroRow
+              distro={distro}
+              onStart={() => startDistro.mutate(distro.name)}
+              onStop={() => stopDistro.mutate(distro.name)}
+              onRestart={() => restartDistro.mutate(distro.name)}
+              onSnapshot={() => onSnapshot(distro.name)}
+              pendingAction={
+                pendingAction?.distro === distro.name ? pendingAction.action : undefined
+              }
+              snapshotCount={snapshotCounts[distro.name] ?? 0}
+              onExpand={() => handleExpand(distro.name)}
+              isExpanded={expandedDistro === distro.name}
+            />
+            {expandedDistro === distro.name && (
+              <DistroSnapshotPanel
+                distroName={distro.name}
+                onRestore={onRestore}
+                onCreateSnapshot={() => onSnapshot(distro.name)}
+              />
+            )}
+          </div>
         ))}
       </div>
     );

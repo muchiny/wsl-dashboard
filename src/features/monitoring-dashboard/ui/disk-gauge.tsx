@@ -22,7 +22,7 @@ export function DiskGauge({ disk, historicalData }: DiskGaugeProps) {
   const isCritical = percent > 90;
 
   return (
-    <div className="border-surface-1 bg-mantle min-w-0 rounded-xl border p-4">
+    <div className="border-surface-1 bg-mantle min-w-0 overflow-hidden rounded-xl border p-4">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="text-sm font-semibold">Disk Usage</h4>
         {hasData && (
@@ -68,7 +68,18 @@ export function DiskGauge({ disk, historicalData }: DiskGaugeProps) {
           <p className="text-subtext-0 text-xs">Historical average</p>
         </>
       )}
-      {!hasData && <p className="text-subtext-0 text-sm">No data available</p>}
+      {!hasData && (
+        <div className="space-y-3 pt-1">
+          <div className="bg-surface-0 h-3 overflow-hidden rounded-full">
+            <div className="bg-surface-1 h-full w-2/3 animate-pulse rounded-full" />
+          </div>
+          <div className="flex justify-between">
+            <div className="bg-surface-1 h-3 w-16 animate-pulse rounded" />
+            <div className="bg-surface-1 h-3 w-16 animate-pulse rounded" />
+            <div className="bg-surface-1 h-3 w-16 animate-pulse rounded" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -247,7 +247,6 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             distro_commands::list_distros,
-            distro_commands::get_distro_details,
             distro_commands::start_distro,
             distro_commands::stop_distro,
             distro_commands::restart_distro,

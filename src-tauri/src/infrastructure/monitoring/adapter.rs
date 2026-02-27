@@ -269,6 +269,111 @@ impl MonitoringProviderPort for ProcFsMonitoringAdapter {
             .await?;
         Ok(parse_ps_aux(&output))
     }
+
+    async fn get_all_metrics(
+        &self,
+        distro: &DistroName,
+    ) -> Result<(CpuMetrics, MemoryMetrics, DiskMetrics, NetworkMetrics), DomainError> {
+        // Single wsl.exe call: two /proc/stat snapshots 200ms apart + loadavg + meminfo + df + net/dev.
+        // Reduces 4 process spawns to 1.
+        let output = self
+            .wsl_manager
+            .exec_in_distro(
+                distro,
+                concat!(
+                    "cat /proc/stat",
+                    " && echo __NEXUS_SEP__",
+                    " && sleep 0.2",
+                    " && cat /proc/stat",
+                    " && echo __NEXUS_SEP__",
+                    " && cat /proc/loadavg",
+                    " && echo __NEXUS_SEP__",
+                    " && cat /proc/meminfo",
+                    " && echo __NEXUS_SEP__",
+                    " && df -B1 / | tail -1",
+                    " && echo __NEXUS_SEP__",
+                    " && cat /proc/net/dev",
+                ),
+            )
+            .await?;
+
+        let sections: Vec<&str> = output.split("__NEXUS_SEP__\n").collect();
+        if sections.len() < 6 {
+            return Err(DomainError::MonitoringError(
+                "Unexpected output from batched metrics command".to_string(),
+            ));
+        }
+
+        // Section 0: /proc/stat (before sleep)
+        // Section 1: /proc/stat (after sleep)
+        // Section 2: /proc/loadavg
+        // Section 3: /proc/meminfo
+        // Section 4: df output
+        // Section 5: /proc/net/dev
+
+        let stat1 = sections[0];
+        let stat2 = sections[1];
+        let loadavg_raw = sections[2].trim();
+
+        // CPU metrics
+        let la: Vec<f64> = loadavg_raw
+            .split_whitespace()
+            .take(3)
+            .filter_map(|s| s.parse().ok())
+            .collect();
+        let load_average = if la.len() >= 3 {
+            [la[0], la[1], la[2]]
+        } else {
+            [0.0; 3]
+        };
+
+        let cpu_before = stat1
+            .lines()
+            .find(|l| l.starts_with("cpu "))
+            .and_then(Self::parse_cpu_line)
+            .unwrap_or([0; 8]);
+        let cpu_after = stat2
+            .lines()
+            .find(|l| l.starts_with("cpu "))
+            .and_then(Self::parse_cpu_line)
+            .unwrap_or([0; 8]);
+        let usage_percent = Self::cpu_usage_from_samples(cpu_before, cpu_after);
+
+        let cores_before: Vec<[u64; 8]> = stat1
+            .lines()
+            .filter(|l| l.starts_with("cpu") && !l.starts_with("cpu "))
+            .filter_map(Self::parse_cpu_line)
+            .collect();
+        let cores_after: Vec<[u64; 8]> = stat2
+            .lines()
+            .filter(|l| l.starts_with("cpu") && !l.starts_with("cpu "))
+            .filter_map(Self::parse_cpu_line)
+            .collect();
+        let per_core: Vec<f64> = cores_before
+            .iter()
+            .zip(cores_after.iter())
+            .map(|(b, a)| Self::cpu_usage_from_samples(*b, *a))
+            .collect();
+
+        let cpu = CpuMetrics {
+            usage_percent,
+            per_core,
+            load_average,
+        };
+
+        // Memory metrics
+        let memory = parse_meminfo(sections[3]);
+
+        // Disk metrics
+        let disk = parse_df_output(sections[4].trim());
+
+        // Network metrics
+        let network = NetworkMetrics {
+            interfaces: parse_proc_net_dev(sections[5]),
+        };
+
+        Ok((cpu, memory, disk, network))
+    }
 }
 
 #[cfg(test)]

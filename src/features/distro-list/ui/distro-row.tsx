@@ -1,4 +1,13 @@
-import { Play, Square, RotateCw, Star, Archive, Activity, Loader2 } from "lucide-react";
+import {
+  Play,
+  Square,
+  RotateCw,
+  Star,
+  Archive,
+  Activity,
+  Loader2,
+  ChevronDown,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { Distro } from "@/shared/types/distro";
 import { cn } from "@/shared/lib/utils";
@@ -12,6 +21,8 @@ interface DistroRowProps {
   onSnapshot: () => void;
   pendingAction?: string;
   snapshotCount: number;
+  onExpand: () => void;
+  isExpanded: boolean;
 }
 
 export function DistroRow({
@@ -22,12 +33,30 @@ export function DistroRow({
   onSnapshot,
   pendingAction,
   snapshotCount,
+  onExpand,
+  isExpanded,
 }: DistroRowProps) {
   const isRunning = distro.state === "Running";
   const isPending = !!pendingAction;
 
   return (
-    <div className="border-surface-1 bg-mantle hover:border-blue/40 flex items-center gap-4 rounded-xl border px-4 py-3 transition-colors">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onExpand}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onExpand();
+        }
+      }}
+      aria-expanded={isExpanded}
+      aria-label={`${distro.name} - ${distro.state}${distro.is_default ? " (default)" : ""}`}
+      className={cn(
+        "border-surface-1 bg-mantle focus-ring flex cursor-pointer items-center gap-4 rounded-xl border px-4 py-3 transition-colors",
+        isExpanded ? "border-mauve/50" : "hover:border-blue/40",
+      )}
+    >
       {/* Name + status dot + default star */}
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <div
@@ -81,7 +110,10 @@ export function DistroRow({
       <div className="flex shrink-0 gap-1">
         {!isRunning && (
           <button
-            onClick={onStart}
+            onClick={(e) => {
+              e.stopPropagation();
+              onStart();
+            }}
             disabled={isPending}
             className="text-subtext-0 hover:bg-green/15 hover:text-green rounded-lg p-1.5 transition-colors disabled:pointer-events-none disabled:opacity-40"
             aria-label={`Start ${distro.name}`}
@@ -92,7 +124,10 @@ export function DistroRow({
         {isRunning && (
           <>
             <button
-              onClick={onRestart}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRestart();
+              }}
               disabled={isPending}
               className="text-subtext-0 hover:bg-yellow/15 hover:text-yellow rounded-lg p-1.5 transition-colors disabled:pointer-events-none disabled:opacity-40"
               aria-label={`Restart ${distro.name}`}
@@ -100,7 +135,10 @@ export function DistroRow({
               <RotateCw className="h-3.5 w-3.5" />
             </button>
             <button
-              onClick={onStop}
+              onClick={(e) => {
+                e.stopPropagation();
+                onStop();
+              }}
               disabled={isPending}
               className="text-subtext-0 hover:bg-red/15 hover:text-red rounded-lg p-1.5 transition-colors disabled:pointer-events-none disabled:opacity-40"
               aria-label={`Stop ${distro.name}`}
@@ -110,7 +148,10 @@ export function DistroRow({
           </>
         )}
         <button
-          onClick={onSnapshot}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSnapshot();
+          }}
           className="text-subtext-0 hover:bg-mauve/15 hover:text-mauve rounded-lg p-1.5 transition-colors"
           aria-label={`Create snapshot of ${distro.name}`}
         >
@@ -120,6 +161,7 @@ export function DistroRow({
           <Link
             to="/monitoring"
             search={{ distro: distro.name }}
+            onClick={(e) => e.stopPropagation()}
             className="text-subtext-0 hover:bg-sapphire/15 hover:text-sapphire rounded-lg p-1.5 transition-colors"
             aria-label={`Monitor ${distro.name}`}
           >
@@ -127,6 +169,15 @@ export function DistroRow({
           </Link>
         )}
       </div>
+
+      {/* Expand indicator */}
+      <ChevronDown
+        className={cn(
+          "text-subtext-0 h-4 w-4 shrink-0 transition-transform duration-200",
+          isExpanded && "rotate-180",
+        )}
+        aria-hidden="true"
+      />
     </div>
   );
 }

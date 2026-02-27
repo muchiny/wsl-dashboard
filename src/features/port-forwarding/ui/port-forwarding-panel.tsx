@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Network, Plus, Trash2, ArrowRight, AlertTriangle, Loader2 } from "lucide-react";
+import { Select } from "@/shared/ui/select";
 import { useDistros } from "@/features/distro-list/api/queries";
 import { useListeningPorts, usePortForwardingRules } from "../api/queries";
 import { useRemovePortForwarding } from "../api/mutations";
@@ -34,18 +35,13 @@ export function PortForwardingPanel() {
 
         <div>
           <label className="text-subtext-0 mb-1 block text-xs font-medium">Distribution</label>
-          <select
+          <Select
             value={selectedDistro}
-            onChange={(e) => setSelectedDistro(e.target.value)}
-            className="border-surface-1 bg-base text-text focus:border-blue w-full max-w-xs rounded-lg border px-3 py-2 text-sm focus:outline-none"
-          >
-            <option value="">All distributions</option>
-            {runningDistros.map((d) => (
-              <option key={d.name} value={d.name}>
-                {d.name}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedDistro}
+            options={runningDistros.map((d) => ({ value: d.name, label: d.name }))}
+            placeholder="All distributions"
+            className="max-w-xs"
+          />
         </div>
       </div>
 

@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::domain::entities::distro::Distro;
 use crate::domain::errors::DomainError;
 use crate::domain::ports::wsl_manager::WslManagerPort;
 use crate::domain::value_objects::{DistroName, DistroState};
@@ -41,21 +40,12 @@ impl DistroService {
         }
         self.wsl_manager.start_distro(name).await
     }
-
-    /// List all distributions.
-    pub async fn list_all(&self) -> Result<Vec<Distro>, DomainError> {
-        self.wsl_manager.list_distros().await
-    }
-
-    /// Get details of a single distribution.
-    pub async fn get(&self, name: &DistroName) -> Result<Distro, DomainError> {
-        self.wsl_manager.get_distro(name).await
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::entities::distro::Distro;
     use crate::domain::ports::wsl_manager::MockWslManagerPort;
     use crate::domain::value_objects::WslVersion;
 

@@ -1,6 +1,8 @@
 use async_trait::async_trait;
 use std::process::Stdio;
 use tokio::process::Command;
+#[cfg(windows)]
+use winreg::{enums::HKEY_CURRENT_USER, RegKey};
 
 use crate::domain::entities::distro::Distro;
 use crate::domain::entities::snapshot::ExportFormat;
@@ -359,11 +361,6 @@ impl WslManagerPort for WslCliAdapter {
         Ok(())
     }
 
-    async fn set_default(&self, name: &DistroName) -> Result<(), DomainError> {
-        self.run_wsl_raw(&["--set-default", name.as_str()]).await?;
-        Ok(())
-    }
-
     async fn shutdown_all(&self) -> Result<(), DomainError> {
         self.run_wsl_raw(&["--shutdown"]).await?;
         Ok(())
@@ -494,14 +491,22 @@ impl WslManagerPort for WslCliAdapter {
 
         let mut info = WslVersionInfo::default();
 
-        // Extract version value after the last ':' on a line
+        // Extract version number from a line.
+        // Handles both "Label: 1.2.3" and "Label 1.2.3" formats.
         fn extract_version(line: &str) -> Option<String> {
-            let val = line.rsplit_once(':')?.1.trim();
-            if val.is_empty() {
-                None
-            } else {
-                Some(val.to_string())
+            // Try colon-separated format first (e.g. "Kernel version: 5.15.133.1")
+            if let Some((_, after)) = line.rsplit_once(':') {
+                let val = after.trim();
+                if !val.is_empty() {
+                    return Some(val.to_string());
+                }
             }
+            // Fallback: grab the last whitespace-separated token that starts
+            // with a digit (e.g. "Kernel version 6.6.87.2-microsoft-standard-WSL2")
+            line.split_whitespace()
+                .rev()
+                .find(|tok| tok.starts_with(|c: char| c.is_ascii_digit()))
+                .map(|s| s.to_string())
         }
 
         // wsl --version output uses locale-dependent labels, so we match on
@@ -527,64 +532,49 @@ impl WslManagerPort for WslCliAdapter {
         Ok(info)
     }
 
+    #[cfg(windows)]
     async fn get_distro_install_path(&self, name: &DistroName) -> Result<String, DomainError> {
-        let output = Command::new("reg.exe")
-            .args([
-                "query",
-                r"HKCU\Software\Microsoft\Windows\CurrentVersion\Lxss",
-                "/s",
-            ])
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .output()
-            .await
-            .map_err(|e| DomainError::WslCliError(format!("Failed to query registry: {}", e)))?;
+        let target = name.to_string();
 
-        let text = String::from_utf8_lossy(&output.stdout);
+        tokio::task::spawn_blocking(move || {
+            let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+            let lxss = hkcu
+                .open_subkey(r"Software\Microsoft\Windows\CurrentVersion\Lxss")
+                .map_err(|e| DomainError::WslCliError(format!("Failed to open Lxss key: {e}")))?;
 
-        // Parse registry output blocks. Each block starts with HKEY_... line
-        // followed by indented key-value pairs like:
-        //     DistributionName    REG_SZ    Ubuntu
-        //     BasePath    REG_SZ    C:\Users\user\AppData\...
-        let mut current_distro_name: Option<String> = None;
-        let mut current_base_path: Option<String> = None;
-
-        for line in text.lines() {
-            let trimmed = line.trim();
-
-            if trimmed.starts_with("HKEY_") {
-                // Check if previous block matched our target
-                if current_distro_name.as_deref() == Some(name.as_str()) {
-                    if let Some(path) = current_base_path.take() {
-                        return Ok(path);
-                    }
-                }
-                current_distro_name = None;
-                current_base_path = None;
-                continue;
-            }
-
-            if trimmed.contains("DistributionName") && trimmed.contains("REG_SZ") {
-                if let Some(val) = trimmed.split("REG_SZ").nth(1) {
-                    current_distro_name = Some(val.trim().to_string());
+            for guid in lxss.enum_keys().filter_map(|k| k.ok()) {
+                let subkey = match lxss.open_subkey(&guid) {
+                    Ok(k) => k,
+                    Err(_) => continue,
+                };
+                let distro_name: String = match subkey.get_value("DistributionName") {
+                    Ok(v) => v,
+                    Err(_) => continue,
+                };
+                if distro_name == target {
+                    let base_path: String = subkey.get_value("BasePath").map_err(|e| {
+                        DomainError::WslCliError(format!(
+                            "Found distro '{}' but failed to read BasePath: {e}",
+                            target
+                        ))
+                    })?;
+                    return Ok(base_path);
                 }
             }
-            if trimmed.contains("BasePath") && trimmed.contains("REG_SZ") {
-                if let Some(val) = trimmed.split("REG_SZ").nth(1) {
-                    current_base_path = Some(val.trim().to_string());
-                }
-            }
-        }
 
-        // Check the last block
-        if current_distro_name.as_deref() == Some(name.as_str()) {
-            if let Some(path) = current_base_path {
-                return Ok(path);
-            }
-        }
+            Err(DomainError::DistroNotFound(format!(
+                "Could not find install path for '{}'",
+                target
+            )))
+        })
+        .await
+        .map_err(|e| DomainError::WslCliError(format!("Registry task panicked: {e}")))?
+    }
 
-        Err(DomainError::DistroNotFound(format!(
-            "Could not find install path for '{}'",
+    #[cfg(not(windows))]
+    async fn get_distro_install_path(&self, name: &DistroName) -> Result<String, DomainError> {
+        Err(DomainError::WslCliError(format!(
+            "Cannot read Windows registry for '{}' on this platform",
             name
         )))
     }

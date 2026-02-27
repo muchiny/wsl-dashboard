@@ -8,7 +8,7 @@ interface CpuChartProps {
 
 export function CpuChart({ data, loadAverage }: CpuChartProps) {
   return (
-    <div className="border-surface-1 bg-mantle min-w-0 rounded-xl border p-4">
+    <div className="border-surface-1 bg-mantle min-w-0 overflow-hidden rounded-xl border p-4">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="text-sm font-semibold">CPU Usage</h4>
         {data.length > 0 && (
@@ -22,10 +22,16 @@ export function CpuChart({ data, loadAverage }: CpuChartProps) {
           Load: {loadAverage.map((v) => v.toFixed(2)).join(" / ")}
         </p>
       )}
-      <div className="h-40" aria-label="CPU usage chart">
+      <div className="h-40 min-w-0" aria-label="CPU usage chart">
         {data.length === 0 && (
-          <div className="text-subtext-0 flex h-full items-center justify-center text-sm">
-            Waiting for data...
+          <div className="flex h-full items-end gap-1.5 px-8 pt-2 pb-4">
+            {[35, 50, 40, 65, 55, 70, 45, 60, 50, 75, 55, 40].map((h, i) => (
+              <div
+                key={i}
+                className="bg-surface-1 flex-1 animate-pulse rounded-t"
+                style={{ height: `${h}%` }}
+              />
+            ))}
           </div>
         )}
         {data.length > 0 && (

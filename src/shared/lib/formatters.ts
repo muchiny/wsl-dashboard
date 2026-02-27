@@ -11,10 +11,6 @@ export function formatBytes(bytes: number): string {
   return `${bytes} B`;
 }
 
-export function formatPercent(value: number): string {
-  return `${value.toFixed(1)}%`;
-}
-
 export function formatRelativeTime(isoDate: string): string {
   const date = new Date(isoDate);
   const now = new Date();

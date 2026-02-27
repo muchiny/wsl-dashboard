@@ -10,7 +10,7 @@ export function MemoryChart({ data }: MemoryChartProps) {
   const latest = data.length > 0 ? data[data.length - 1] : null;
 
   return (
-    <div className="border-surface-1 bg-mantle min-w-0 rounded-xl border p-4">
+    <div className="border-surface-1 bg-mantle min-w-0 overflow-hidden rounded-xl border p-4">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="text-sm font-semibold">Memory Usage</h4>
         {latest && (
@@ -22,10 +22,16 @@ export function MemoryChart({ data }: MemoryChartProps) {
           {formatBytes(latest.memUsed)} / {formatBytes(latest.memTotal)}
         </p>
       )}
-      <div className="h-40" aria-label="Memory usage chart">
+      <div className="h-40 min-w-0" aria-label="Memory usage chart">
         {data.length === 0 && (
-          <div className="text-subtext-0 flex h-full items-center justify-center text-sm">
-            Waiting for data...
+          <div className="flex h-full items-end gap-1.5 px-8 pt-2 pb-4">
+            {[60, 62, 58, 65, 63, 60, 64, 61, 63, 59, 62, 64].map((h, i) => (
+              <div
+                key={i}
+                className="bg-surface-1 flex-1 animate-pulse rounded-t"
+                style={{ height: `${h}%` }}
+              />
+            ))}
           </div>
         )}
         {data.length > 0 && (

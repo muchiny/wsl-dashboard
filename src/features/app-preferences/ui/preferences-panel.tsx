@@ -1,5 +1,7 @@
 import { useEffect } from "react";
-import { Moon, Sun, Timer, Archive, FolderOpen, Bell, MonitorDown } from "lucide-react";
+import { Moon, Sun, Timer, Archive, FolderOpen, Bell } from "lucide-react";
+import { Select } from "@/shared/ui/select";
+import { ToggleSwitch } from "@/shared/ui/toggle-switch";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useThemeStore } from "@/shared/hooks/use-theme";
 import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
@@ -19,8 +21,13 @@ const INTERVAL_OPTIONS = [
   { label: "30 seconds", value: 30000 },
 ];
 
-const selectClass =
-  "border-surface-1 bg-base text-text focus:border-blue w-full rounded-lg border px-3 py-2 text-sm focus:outline-none";
+const inputClass =
+  "focus-ring border-surface-1 bg-base text-text w-full rounded-lg border px-3 py-2 text-sm";
+
+const intervalOptions = INTERVAL_OPTIONS.map((opt) => ({
+  value: String(opt.value),
+  label: opt.label,
+}));
 
 export function PreferencesPanel() {
   const { theme, toggleTheme } = useThemeStore();
@@ -30,13 +37,11 @@ export function PreferencesPanel() {
     defaultSnapshotDir,
     defaultInstallLocation,
     alertThresholds,
-    minimizeToTray,
     setMetricsInterval,
     setProcessesInterval,
     setDefaultSnapshotDir,
     setDefaultInstallLocation,
     setAlertThresholds,
-    setMinimizeToTray,
   } = usePreferencesStore();
 
   // Sync thresholds from backend on mount
@@ -65,9 +70,9 @@ export function PreferencesPanel() {
           <button
             onClick={() => theme === "light" && toggleTheme()}
             className={cn(
-              "flex flex-1 items-center gap-3 rounded-lg border p-4 transition-all",
+              "focus-ring flex flex-1 items-center gap-3 rounded-lg border p-4 transition-all",
               theme === "dark"
-                ? "border-blue bg-blue/10"
+                ? "border-blue bg-blue/20"
                 : "border-surface-1 hover:border-surface-2",
             )}
           >
@@ -80,9 +85,9 @@ export function PreferencesPanel() {
           <button
             onClick={() => theme === "dark" && toggleTheme()}
             className={cn(
-              "flex flex-1 items-center gap-3 rounded-lg border p-4 transition-all",
+              "focus-ring flex flex-1 items-center gap-3 rounded-lg border p-4 transition-all",
               theme === "light"
-                ? "border-blue bg-blue/10"
+                ? "border-blue bg-blue/20"
                 : "border-surface-1 hover:border-surface-2",
             )}
           >
@@ -92,37 +97,6 @@ export function PreferencesPanel() {
               <p className="text-subtext-0 text-xs">Light theme for bright environments</p>
             </div>
           </button>
-        </div>
-      </div>
-
-      <div className="border-surface-1 bg-mantle rounded-xl border p-5">
-        <div className="mb-4 flex items-center gap-2">
-          <MonitorDown className="text-mauve h-5 w-5" />
-          <h4 className="text-text font-semibold">System Tray</h4>
-        </div>
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => setMinimizeToTray(!minimizeToTray)}
-            className={cn(
-              "relative h-6 w-11 shrink-0 rounded-full transition-colors",
-              minimizeToTray ? "bg-blue" : "bg-surface-1",
-            )}
-            aria-label="Toggle minimize to tray"
-          >
-            <span
-              className={cn(
-                "bg-text absolute top-0.5 left-0.5 h-5 w-5 rounded-full transition-transform",
-                minimizeToTray && "translate-x-5",
-              )}
-            />
-          </button>
-          <div>
-            <p className="text-text text-sm font-medium">Minimize to tray on close</p>
-            <p className="text-subtext-0 text-xs">
-              Keep WSL Nexus running in the background when closing the window.
-            </p>
-          </div>
         </div>
       </div>
 
@@ -139,33 +113,23 @@ export function PreferencesPanel() {
             <label className="text-subtext-0 mb-1 block text-xs font-medium">
               System Metrics Interval
             </label>
-            <select
-              value={metricsInterval}
-              onChange={(e) => setMetricsInterval(Number(e.target.value))}
-              className={selectClass}
-            >
-              {INTERVAL_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            <Select
+              value={String(metricsInterval)}
+              onChange={(v) => setMetricsInterval(Number(v))}
+              options={intervalOptions}
+              placeholder=""
+            />
           </div>
           <div>
             <label className="text-subtext-0 mb-1 block text-xs font-medium">
               Process List Interval
             </label>
-            <select
-              value={processesInterval}
-              onChange={(e) => setProcessesInterval(Number(e.target.value))}
-              className={selectClass}
-            >
-              {INTERVAL_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            <Select
+              value={String(processesInterval)}
+              onChange={(v) => setProcessesInterval(Number(v))}
+              options={intervalOptions}
+              placeholder=""
+            />
           </div>
         </div>
       </div>
@@ -189,7 +153,8 @@ export function PreferencesPanel() {
                 value={defaultSnapshotDir}
                 onChange={(e) => setDefaultSnapshotDir(e.target.value)}
                 placeholder="C:\WSL-Snapshots"
-                className={`${selectClass} flex-1`}
+                maxLength={260}
+                className={`${inputClass} flex-1`}
               />
               <button
                 type="button"
@@ -220,7 +185,8 @@ export function PreferencesPanel() {
                 value={defaultInstallLocation}
                 onChange={(e) => setDefaultInstallLocation(e.target.value)}
                 placeholder="C:\WSL"
-                className={`${selectClass} flex-1`}
+                maxLength={260}
+                className={`${inputClass} flex-1`}
               />
               <button
                 type="button"
@@ -262,24 +228,14 @@ export function PreferencesPanel() {
                   : "Disk";
             return (
               <div key={threshold.alert_type} className="flex items-center gap-4">
-                <button
-                  type="button"
-                  onClick={() =>
+                <ToggleSwitch
+                  checked={threshold.enabled}
+                  onChange={() =>
                     updateThreshold(threshold.alert_type, { enabled: !threshold.enabled })
                   }
-                  className={cn(
-                    "relative h-6 w-11 shrink-0 rounded-full transition-colors",
-                    threshold.enabled ? "bg-blue" : "bg-surface-1",
-                  )}
-                  aria-label={`Toggle ${label} alert`}
-                >
-                  <span
-                    className={cn(
-                      "bg-text absolute top-0.5 left-0.5 h-5 w-5 rounded-full transition-transform",
-                      threshold.enabled && "translate-x-5",
-                    )}
-                  />
-                </button>
+                  label={`Toggle ${label} alert`}
+                  hideLabel
+                />
                 <div className="flex-1">
                   <div className="mb-1 flex items-center justify-between">
                     <span className="text-text text-sm font-medium">{label}</span>

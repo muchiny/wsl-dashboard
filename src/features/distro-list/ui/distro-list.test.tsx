@@ -162,6 +162,23 @@ describe("DistroList", () => {
     expect(screen.queryByTestId("snapshot-list-Ubuntu")).not.toBeInTheDocument();
   });
 
+  it("shows snapshot panel when a distro row is clicked in list mode", () => {
+    const distros = [makeDistro({ name: "Ubuntu" })];
+
+    render(<DistroList {...defaultProps} distros={distros} viewMode="list" />);
+
+    // Panel should not be visible initially
+    expect(screen.queryByTestId("snapshot-list-Ubuntu")).not.toBeInTheDocument();
+
+    // Click the row to expand
+    fireEvent.click(screen.getByRole("button", { name: /^ubuntu - /i }));
+    expect(screen.getByTestId("snapshot-list-Ubuntu")).toBeInTheDocument();
+
+    // Click again to collapse
+    fireEvent.click(screen.getByRole("button", { name: /^ubuntu - /i }));
+    expect(screen.queryByTestId("snapshot-list-Ubuntu")).not.toBeInTheDocument();
+  });
+
   it("only shows one panel at a time (accordion)", () => {
     const distros = [
       makeDistro({ name: "Ubuntu" }),

@@ -10,18 +10,18 @@ const variantConfig: Record<
 > = {
   success: {
     icon: CheckCircle2,
-    bg: "bg-green/10",
+    bg: "bg-green/20",
     text: "text-green",
     border: "border-green/30",
   },
-  error: { icon: XCircle, bg: "bg-red/10", text: "text-red", border: "border-red/30" },
+  error: { icon: XCircle, bg: "bg-red/20", text: "text-red", border: "border-red/30" },
   warning: {
     icon: AlertTriangle,
-    bg: "bg-yellow/10",
+    bg: "bg-yellow/20",
     text: "text-yellow",
     border: "border-yellow/30",
   },
-  info: { icon: Info, bg: "bg-blue/10", text: "text-blue", border: "border-blue/30" },
+  info: { icon: Info, bg: "bg-blue/20", text: "text-blue", border: "border-blue/30" },
 };
 
 function ToastItem({ toast: t, onDismiss }: { toast: Toast; onDismiss: () => void }) {

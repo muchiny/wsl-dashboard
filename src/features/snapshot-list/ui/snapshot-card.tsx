@@ -34,9 +34,9 @@ export function SnapshotCard({ snapshot, onDelete, onRestore, hideDistroName }: 
         <span
           className={cn(
             "ml-2 shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium",
-            isCompleted && "bg-green/15 text-green",
-            isInProgress && "bg-yellow/15 text-yellow animate-pulse",
-            isFailed && "bg-red/15 text-red",
+            isCompleted && "bg-green/25 text-green",
+            isInProgress && "bg-yellow/25 text-yellow animate-pulse",
+            isFailed && "bg-red/25 text-red",
           )}
         >
           {isCompleted ? "Completed" : isInProgress ? "Exporting..." : "Failed"}
@@ -66,7 +66,7 @@ export function SnapshotCard({ snapshot, onDelete, onRestore, hideDistroName }: 
               e.stopPropagation();
               onRestore();
             }}
-            className="text-subtext-0 hover:bg-blue/15 hover:text-blue rounded-lg p-1.5 transition-colors"
+            className="text-subtext-0 hover:bg-blue/20 hover:text-blue rounded-lg p-1.5 transition-colors"
             title="Restore snapshot"
           >
             <RotateCw className="h-4 w-4" />
@@ -77,7 +77,7 @@ export function SnapshotCard({ snapshot, onDelete, onRestore, hideDistroName }: 
             e.stopPropagation();
             onDelete();
           }}
-          className="text-subtext-0 hover:bg-red/15 hover:text-red rounded-lg p-1.5 transition-colors"
+          className="text-subtext-0 hover:bg-red/20 hover:text-red rounded-lg p-1.5 transition-colors"
           title="Delete snapshot"
         >
           <Trash2 className="h-4 w-4" />

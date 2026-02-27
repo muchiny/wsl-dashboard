@@ -31,7 +31,7 @@ export function SettingsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <div className="bg-peach/15 flex h-9 w-9 items-center justify-center rounded-lg">
+        <div className="bg-peach/25 flex h-9 w-9 items-center justify-center rounded-lg">
           <Settings className="text-peach h-5 w-5" />
         </div>
         <div>

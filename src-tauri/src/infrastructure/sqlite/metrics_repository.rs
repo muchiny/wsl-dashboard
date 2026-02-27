@@ -110,45 +110,6 @@ impl MetricsRepositoryPort for SqliteMetricsRepository {
             .collect()
     }
 
-    async fn store_aggregated(
-        &self,
-        distro: &DistroName,
-        point: &AggregatedMetricsPoint,
-    ) -> Result<(), DomainError> {
-        sqlx::query(
-            "INSERT OR REPLACE INTO metrics_aggregated (
-                distro_name, period_start, period_end, sample_count,
-                cpu_min, cpu_avg, cpu_max,
-                mem_used_min, mem_used_avg, mem_used_max, mem_total,
-                disk_min, disk_avg, disk_max,
-                net_rx_total, net_tx_total, net_rx_max_rate, net_tx_max_rate
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        )
-        .bind(distro.as_str())
-        .bind(point.period_start.to_rfc3339())
-        .bind(point.period_end.to_rfc3339())
-        .bind(point.sample_count as i64)
-        .bind(point.cpu_min)
-        .bind(point.cpu_avg)
-        .bind(point.cpu_max)
-        .bind(point.mem_used_min as i64)
-        .bind(point.mem_used_avg as i64)
-        .bind(point.mem_used_max as i64)
-        .bind(point.mem_total as i64)
-        .bind(point.disk_min)
-        .bind(point.disk_avg)
-        .bind(point.disk_max)
-        .bind(point.net_rx_total as i64)
-        .bind(point.net_tx_total as i64)
-        .bind(point.net_rx_max_rate as i64)
-        .bind(point.net_tx_max_rate as i64)
-        .execute(&self.db.pool)
-        .await
-        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
-
-        Ok(())
-    }
-
     async fn query_aggregated(
         &self,
         distro: &DistroName,
@@ -377,77 +338,5 @@ mod tests {
             .await
             .unwrap();
         assert!(rows.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_store_and_query_aggregated() {
-        let db = test_db().await;
-        let repo = SqliteMetricsRepository::new(db);
-
-        let distro = DistroName::new("Ubuntu").unwrap();
-        let now = Utc::now();
-        let point = AggregatedMetricsPoint {
-            period_start: now - chrono::Duration::minutes(1),
-            period_end: now,
-            sample_count: 30,
-            cpu_min: 10.0,
-            cpu_avg: 45.0,
-            cpu_max: 90.0,
-            mem_used_min: 2_000_000_000,
-            mem_used_avg: 4_000_000_000,
-            mem_used_max: 6_000_000_000,
-            mem_total: 8_000_000_000,
-            disk_min: 50.0,
-            disk_avg: 60.0,
-            disk_max: 70.0,
-            net_rx_total: 10_000_000,
-            net_tx_total: 5_000_000,
-            net_rx_max_rate: 500_000,
-            net_tx_max_rate: 250_000,
-        };
-
-        repo.store_aggregated(&distro, &point).await.unwrap();
-
-        let from = now - chrono::Duration::minutes(2);
-        let to = now + chrono::Duration::minutes(1);
-        let results = repo.query_aggregated(&distro, from, to).await.unwrap();
-
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0].sample_count, 30);
-        assert!((results[0].cpu_avg - 45.0).abs() < 0.01);
-        assert_eq!(results[0].mem_used_max, 6_000_000_000);
-    }
-
-    #[tokio::test]
-    async fn test_purge_aggregated_deletes_old_data() {
-        let db = test_db().await;
-        let repo = SqliteMetricsRepository::new(db);
-
-        let distro = DistroName::new("Ubuntu").unwrap();
-        let now = Utc::now();
-        let point = AggregatedMetricsPoint {
-            period_start: now - chrono::Duration::hours(2),
-            period_end: now - chrono::Duration::hours(2) + chrono::Duration::minutes(1),
-            sample_count: 30,
-            cpu_min: 10.0,
-            cpu_avg: 45.0,
-            cpu_max: 90.0,
-            mem_used_min: 2_000_000_000,
-            mem_used_avg: 4_000_000_000,
-            mem_used_max: 6_000_000_000,
-            mem_total: 8_000_000_000,
-            disk_min: 50.0,
-            disk_avg: 60.0,
-            disk_max: 70.0,
-            net_rx_total: 10_000_000,
-            net_tx_total: 5_000_000,
-            net_rx_max_rate: 500_000,
-            net_tx_max_rate: 250_000,
-        };
-
-        repo.store_aggregated(&distro, &point).await.unwrap();
-
-        let deleted = repo.purge_aggregated_before(now).await.unwrap();
-        assert_eq!(deleted, 1);
     }
 }

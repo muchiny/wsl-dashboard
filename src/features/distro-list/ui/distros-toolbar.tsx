@@ -123,7 +123,7 @@ export function DistrosToolbar({
             placeholder="Search distributions..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="bg-base text-text placeholder:text-overlay-0 focus:ring-blue/40 w-full rounded-lg py-2 pr-8 pl-9 text-sm focus:ring-2 focus:outline-none"
+            className="focus-ring bg-base text-text placeholder:text-overlay-0 w-full rounded-lg py-2 pr-8 pl-9 text-sm"
           />
           {searchQuery && (
             <button
@@ -239,7 +239,7 @@ export function DistrosToolbar({
           <button
             onClick={() => startAll.mutate(stoppedNames)}
             disabled={startAll.isPending || stoppedNames.length === 0}
-            className="bg-green/15 text-green hover:bg-green/25 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+            className="bg-green/20 text-green hover:bg-green/30 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
           >
             <Play className="h-3.5 w-3.5" />
             {startAll.isPending ? "Starting..." : "Start All"}
@@ -247,7 +247,7 @@ export function DistrosToolbar({
 
           <button
             onClick={onNewSnapshot}
-            className="bg-mauve/15 text-mauve hover:bg-mauve/25 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+            className="bg-mauve/20 text-mauve hover:bg-mauve/30 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
             Snapshot
@@ -256,7 +256,7 @@ export function DistrosToolbar({
           <button
             onClick={onShutdownAll}
             disabled={shutdownAllPending || running === 0}
-            className="bg-red/15 text-red hover:bg-red/25 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+            className="bg-red/20 text-red hover:bg-red/30 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
           >
             <Power className="h-3.5 w-3.5" />
             {shutdownAllPending ? "Stopping..." : "Stop All"}

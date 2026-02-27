@@ -14,9 +14,11 @@ function makeDisk(overrides: Partial<DiskMetrics> = {}): DiskMetrics {
 }
 
 describe("DiskGauge", () => {
-  it("shows 'No data available' when disk is null", () => {
-    render(<DiskGauge disk={null} />);
-    expect(screen.getByText("No data available")).toBeInTheDocument();
+  it("shows skeleton placeholder when disk is null", () => {
+    const { container } = render(<DiskGauge disk={null} />);
+    // Should render animated skeleton bars instead of text
+    const skeletons = container.querySelectorAll(".animate-pulse");
+    expect(skeletons.length).toBeGreaterThan(0);
   });
 
   it("displays usage percentage", () => {

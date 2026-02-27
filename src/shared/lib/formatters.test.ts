@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as fc from "fast-check";
-import { formatBytes, formatPercent, formatRelativeTime } from "./formatters";
+import { formatBytes, formatRelativeTime } from "./formatters";
 
 describe("formatBytes", () => {
   it("formats gigabytes", () => {
@@ -29,20 +29,6 @@ describe("formatBytes", () => {
 
   it("formats exact MB boundary", () => {
     expect(formatBytes(1024 * 1024)).toBe("1.00 MB");
-  });
-});
-
-describe("formatPercent", () => {
-  it("formats with one decimal place", () => {
-    expect(formatPercent(42.567)).toBe("42.6%");
-  });
-
-  it("formats zero", () => {
-    expect(formatPercent(0)).toBe("0.0%");
-  });
-
-  it("formats hundred", () => {
-    expect(formatPercent(100)).toBe("100.0%");
   });
 });
 
@@ -104,25 +90,6 @@ describe("formatBytes - property-based", () => {
           if (ua === ub) return parseFloat(ra) >= parseFloat(rb);
         }
         return true;
-      }),
-    );
-  });
-});
-
-describe("formatPercent - property-based", () => {
-  it("always ends with %", () => {
-    fc.assert(
-      fc.property(fc.double({ min: -1e6, max: 1e6, noNaN: true }), (n) => {
-        return formatPercent(n).endsWith("%");
-      }),
-    );
-  });
-
-  it("round-trips within tolerance", () => {
-    fc.assert(
-      fc.property(fc.double({ min: -1e6, max: 1e6, noNaN: true }), (n) => {
-        const parsed = parseFloat(formatPercent(n));
-        return Math.abs(parsed - n) <= 0.05 + 1e-10;
       }),
     );
   });

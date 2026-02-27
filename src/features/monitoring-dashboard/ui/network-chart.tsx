@@ -10,19 +10,27 @@ export function NetworkChart({ data }: NetworkChartProps) {
   const latest = data.length > 0 ? data[data.length - 1] : null;
 
   return (
-    <div className="border-surface-1 bg-mantle min-w-0 rounded-xl border p-4">
+    <div className="border-surface-1 bg-mantle min-w-0 overflow-hidden rounded-xl border p-4">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="text-sm font-semibold">Network I/O</h4>
         {latest && (
           <span className="text-subtext-0 text-xs">
-            RX: {formatBytes(latest.netRx)}/s | TX: {formatBytes(latest.netTx)}/s
+            {data.length < 2 && latest.netRx === 0 && latest.netTx === 0
+              ? "Calculating..."
+              : `RX: ${formatBytes(latest.netRx)}/s | TX: ${formatBytes(latest.netTx)}/s`}
           </span>
         )}
       </div>
-      <div className="h-40" aria-label="Network I/O chart">
+      <div className="h-40 min-w-0" aria-label="Network I/O chart">
         {data.length === 0 && (
-          <div className="text-subtext-0 flex h-full items-center justify-center text-sm">
-            Waiting for data...
+          <div className="flex h-full items-end gap-1.5 px-8 pt-2 pb-4">
+            {[20, 30, 15, 40, 25, 35, 20, 45, 30, 15, 25, 35].map((h, i) => (
+              <div
+                key={i}
+                className="bg-surface-1 flex-1 animate-pulse rounded-t"
+                style={{ height: `${h}%` }}
+              />
+            ))}
           </div>
         )}
         {data.length > 0 && (

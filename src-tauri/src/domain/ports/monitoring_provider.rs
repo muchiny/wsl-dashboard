@@ -23,4 +23,11 @@ pub trait MonitoringProviderPort: Send + Sync {
 
     /// Get running processes in a distro
     async fn get_processes(&self, distro: &DistroName) -> Result<Vec<ProcessInfo>, DomainError>;
+
+    /// Get all system metrics (CPU, memory, disk, network) in a single call.
+    /// More efficient than calling each method separately.
+    async fn get_all_metrics(
+        &self,
+        distro: &DistroName,
+    ) -> Result<(CpuMetrics, MemoryMetrics, DiskMetrics, NetworkMetrics), DomainError>;
 }

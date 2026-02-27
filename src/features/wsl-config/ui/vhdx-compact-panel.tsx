@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { HardDrive, Zap } from "lucide-react";
+import { Select } from "@/shared/ui/select";
 import { useDistros } from "@/features/distro-list/api/queries";
 import { useCompactVhdx } from "../api/mutations";
 
@@ -27,18 +28,12 @@ export function VhdxCompactPanel() {
           <label className="text-subtext-0 mb-1 block text-xs font-medium">
             Distribution (WSL2 only)
           </label>
-          <select
+          <Select
             value={selectedDistro}
-            onChange={(e) => setSelectedDistro(e.target.value)}
-            className="border-surface-1 bg-base text-text focus:border-blue w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
-          >
-            <option value="">Select a distribution...</option>
-            {wsl2Distros.map((d) => (
-              <option key={d.name} value={d.name}>
-                {d.name} ({d.state})
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedDistro}
+            options={wsl2Distros.map((d) => ({ value: d.name, label: `${d.name} (${d.state})` }))}
+            placeholder="Select a distribution..."
+          />
         </div>
         <button
           onClick={() => {

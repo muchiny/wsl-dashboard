@@ -1,7 +1,6 @@
 use tauri::State;
 
-use crate::application::dto::responses::{DistroDetailResponse, DistroResponse};
-use crate::application::queries::get_distro_details::GetDistroDetailsHandler;
+use crate::application::dto::responses::DistroResponse;
 use crate::application::queries::list_distros::ListDistrosHandler;
 use crate::domain::errors::DomainError;
 use crate::domain::services::distro_service::DistroService;
@@ -12,16 +11,6 @@ use crate::presentation::state::AppState;
 pub async fn list_distros(state: State<'_, AppState>) -> Result<Vec<DistroResponse>, DomainError> {
     let handler = ListDistrosHandler::new(state.wsl_manager.clone());
     handler.handle().await
-}
-
-#[tauri::command]
-pub async fn get_distro_details(
-    name: String,
-    state: State<'_, AppState>,
-) -> Result<DistroDetailResponse, DomainError> {
-    let distro_name = DistroName::new(&name)?;
-    let handler = GetDistroDetailsHandler::new(state.wsl_manager.clone());
-    handler.handle(distro_name).await
 }
 
 #[tauri::command]

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mockInvoke } from "@/test/mocks/tauri";
-import { tauriInvoke, TauriError } from "./tauri-client";
+import { tauriInvoke } from "./tauri-client";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -19,23 +19,15 @@ describe("tauriInvoke", () => {
     expect(mockInvoke).toHaveBeenCalledWith("start_distro", { name: "Ubuntu" });
   });
 
-  it("wraps string error in TauriError", async () => {
+  it("wraps string error in Error", async () => {
     mockInvoke.mockRejectedValueOnce("Distro not found");
-    await expect(tauriInvoke("get_distro")).rejects.toThrow(TauriError);
+    await expect(tauriInvoke("get_distro")).rejects.toThrow(Error);
     await mockInvoke.mockRejectedValueOnce("Distro not found");
     await expect(tauriInvoke("get_distro")).rejects.toThrow("Distro not found");
   });
 
-  it("wraps object error in TauriError", async () => {
+  it("wraps object error in Error", async () => {
     mockInvoke.mockRejectedValueOnce({ code: 500 });
-    await expect(tauriInvoke("fail")).rejects.toThrow(TauriError);
-  });
-});
-
-describe("TauriError", () => {
-  it("has correct name", () => {
-    const err = new TauriError("test");
-    expect(err.name).toBe("TauriError");
-    expect(err.message).toBe("test");
+    await expect(tauriInvoke("fail")).rejects.toThrow(Error);
   });
 });

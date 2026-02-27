@@ -41,9 +41,6 @@ pub trait WslManagerPort: Send + Sync {
         file_path: &str,
     ) -> Result<(), DomainError>;
 
-    /// Set a distribution as the default
-    async fn set_default(&self, name: &DistroName) -> Result<(), DomainError>;
-
     /// Shutdown all WSL instances
     async fn shutdown_all(&self) -> Result<(), DomainError>;
 

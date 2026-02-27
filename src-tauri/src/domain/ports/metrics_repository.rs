@@ -6,15 +6,6 @@ use crate::domain::entities::monitoring::SystemMetrics;
 use crate::domain::errors::DomainError;
 use crate::domain::value_objects::DistroName;
 
-/// Granularity tier for metrics queries.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MetricsGranularity {
-    /// Raw ~2s samples, kept for 1 hour
-    Raw,
-    /// 1-minute aggregated buckets, kept for 24 hours
-    OneMinute,
-}
-
 /// An aggregated data point (min/avg/max over a time bucket).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AggregatedMetricsPoint {
@@ -73,13 +64,6 @@ pub trait MetricsRepositoryPort: Send + Sync {
         from: DateTime<Utc>,
         to: DateTime<Utc>,
     ) -> Result<Vec<RawMetricsRow>, DomainError>;
-
-    /// Store an aggregated metrics point.
-    async fn store_aggregated(
-        &self,
-        distro: &DistroName,
-        point: &AggregatedMetricsPoint,
-    ) -> Result<(), DomainError>;
 
     /// Query aggregated metrics for a time range.
     async fn query_aggregated(

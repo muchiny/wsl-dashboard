@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Save, ChevronRight } from "lucide-react";
 import { useWslConfig, type WslGlobalConfig } from "../api/queries";
 import { useUpdateWslConfig } from "../api/mutations";
@@ -26,9 +26,12 @@ export function WslConfigEditor() {
     auto_proxy: null,
   });
 
-  useEffect(() => {
-    if (config) setForm(config);
-  }, [config]);
+  // Sync form with fetched config (adjust-state-during-render pattern)
+  const [prevConfig, setPrevConfig] = useState(config);
+  if (config && config !== prevConfig) {
+    setPrevConfig(config);
+    setForm(config);
+  }
 
   const markTouched = useCallback(
     (field: string) => setTouched((prev) => new Set(prev).add(field)),
@@ -47,12 +50,11 @@ export function WslConfigEditor() {
     updateConfig.mutate(form);
   };
 
-  const inputBase =
-    "w-full rounded-lg border bg-base px-3 py-1.5 text-sm text-text focus:outline-none";
+  const inputBase = "focus-ring w-full rounded-lg border bg-base px-3 py-1.5 text-sm text-text";
   const getInputClass = (field: keyof typeof errors) =>
     touched.has(field) && errors[field]
-      ? `${inputBase} border-red focus:border-red`
-      : `${inputBase} border-surface-1 focus:border-blue`;
+      ? `${inputBase} border-red`
+      : `${inputBase} border-surface-1`;
 
   const fieldError = (field: keyof typeof errors) =>
     touched.has(field) && errors[field] ? (
@@ -82,6 +84,7 @@ export function WslConfigEditor() {
             onChange={(e) => setForm({ ...form, memory: e.target.value || null })}
             onBlur={() => markTouched("memory")}
             placeholder="e.g. 4GB"
+            maxLength={32}
             className={getInputClass("memory")}
           />
           {fieldError("memory")}
@@ -111,6 +114,7 @@ export function WslConfigEditor() {
             onChange={(e) => setForm({ ...form, swap: e.target.value || null })}
             onBlur={() => markTouched("swap")}
             placeholder="e.g. 2GB"
+            maxLength={32}
             className={getInputClass("swap")}
           />
           {fieldError("swap")}
@@ -181,7 +185,8 @@ export function WslConfigEditor() {
                 value={form.kernel ?? ""}
                 onChange={(e) => setForm({ ...form, kernel: e.target.value || null })}
                 placeholder="e.g. C:\Users\user\kernel"
-                className={`${inputBase} border-surface-1 focus:border-blue`}
+                maxLength={260}
+                className={`${inputBase} border-surface-1`}
               />
               <p className="text-overlay-0 mt-1 text-xs">
                 Leave empty to use the default WSL kernel.
@@ -196,7 +201,8 @@ export function WslConfigEditor() {
                 value={form.kernel_command_line ?? ""}
                 onChange={(e) => setForm({ ...form, kernel_command_line: e.target.value || null })}
                 placeholder="e.g. initrd=\initrd.img"
-                className={`${inputBase} border-surface-1 focus:border-blue`}
+                maxLength={260}
+                className={`${inputBase} border-surface-1`}
               />
             </div>
             <div>
@@ -208,7 +214,8 @@ export function WslConfigEditor() {
                 value={form.swap_file ?? ""}
                 onChange={(e) => setForm({ ...form, swap_file: e.target.value || null })}
                 placeholder="e.g. C:\Users\user\swap.vhdx"
-                className={`${inputBase} border-surface-1 focus:border-blue`}
+                maxLength={260}
+                className={`${inputBase} border-surface-1`}
               />
             </div>
           </div>

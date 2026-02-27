@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_notification::NotificationExt;
 
+use crate::domain::entities::distro::Distro;
 use crate::domain::entities::monitoring::SystemMetrics;
 use crate::domain::errors::DomainError;
 use crate::domain::ports::alerting::{AlertThreshold, AlertType, AlertingPort};
@@ -16,6 +17,7 @@ use crate::presentation::events::{EVENT_ALERT_TRIGGERED, EVENT_SYSTEM_METRICS};
 
 const COLLECTION_INTERVAL_SECS: u64 = 2;
 const ALERT_COOLDOWN_SECS: u64 = 300; // 5 minutes between same alert type/distro
+const DISTRO_CACHE_TTL_SECS: u64 = 10;
 
 /// Background service that collects metrics from all running distros,
 /// persists them, emits Tauri events, and checks alert thresholds.
@@ -47,26 +49,44 @@ impl MetricsCollector {
     pub async fn run(self, app_handle: AppHandle) {
         let mut interval = tokio::time::interval(Duration::from_secs(COLLECTION_INTERVAL_SECS));
         let mut alert_cooldowns: HashMap<(String, String), Instant> = HashMap::new();
+        let mut cached_distros: Option<(Instant, Vec<Distro>)> = None;
 
         loop {
             interval.tick().await;
 
-            let distros = match self.wsl_manager.list_distros().await {
-                Ok(d) => d,
-                Err(e) => {
-                    tracing::debug!("Metrics collector: failed to list distros: {e}");
-                    continue;
-                }
+            // Use cached distro list if fresh enough (avoids wsl.exe --list every 2s)
+            let distros = match Self::get_distros(&self.wsl_manager, &mut cached_distros).await {
+                Some(d) => d,
+                None => continue,
             };
 
-            for distro in distros.iter().filter(|d| d.state.is_running()) {
-                let name = &distro.name;
+            let running: Vec<DistroName> = distros
+                .iter()
+                .filter(|d| d.state.is_running())
+                .map(|d| d.name.clone())
+                .collect();
 
-                match self
-                    .collect_and_store(name, &app_handle, &mut alert_cooldowns)
-                    .await
-                {
-                    Ok(_) => {}
+            // Collect metrics from all running distros in parallel
+            let results: Vec<(DistroName, Result<SystemMetrics, DomainError>)> =
+                futures::future::join_all(running.into_iter().map(|name| {
+                    let monitoring = Arc::clone(&self.monitoring);
+                    let metrics_repo = Arc::clone(&self.metrics_repo);
+                    let app_handle = app_handle.clone();
+                    async move {
+                        let result =
+                            Self::collect_one(&monitoring, &metrics_repo, &name, &app_handle).await;
+                        (name, result)
+                    }
+                }))
+                .await;
+
+            // Check alerts sequentially (needs mutable cooldowns)
+            for (name, result) in results {
+                match result {
+                    Ok(metrics) => {
+                        self.check_alerts(&metrics, &app_handle, &mut alert_cooldowns)
+                            .await;
+                    }
                     Err(e) => {
                         tracing::debug!("Metrics collection failed for {}: {e}", name.as_str());
                     }
@@ -75,18 +95,37 @@ impl MetricsCollector {
         }
     }
 
-    async fn collect_and_store(
-        &self,
+    /// Get distro list, using cache if fresh enough.
+    async fn get_distros(
+        wsl_manager: &Arc<dyn WslManagerPort>,
+        cache: &mut Option<(Instant, Vec<Distro>)>,
+    ) -> Option<Vec<Distro>> {
+        if let Some((ts, ref list)) = cache {
+            if ts.elapsed().as_secs() < DISTRO_CACHE_TTL_SECS {
+                return Some(list.clone());
+            }
+        }
+        match wsl_manager.list_distros().await {
+            Ok(d) => {
+                *cache = Some((Instant::now(), d.clone()));
+                Some(d)
+            }
+            Err(e) => {
+                tracing::debug!("Metrics collector: failed to list distros: {e}");
+                None
+            }
+        }
+    }
+
+    /// Collect, persist, and emit metrics for a single distro.
+    /// Returns the metrics for subsequent alert checking.
+    async fn collect_one(
+        monitoring: &Arc<dyn MonitoringProviderPort>,
+        metrics_repo: &Arc<dyn MetricsRepositoryPort>,
         name: &DistroName,
         app_handle: &AppHandle,
-        alert_cooldowns: &mut HashMap<(String, String), Instant>,
-    ) -> Result<(), DomainError> {
-        let (cpu, memory, disk, network) = tokio::try_join!(
-            self.monitoring.get_cpu_usage(name),
-            self.monitoring.get_memory_usage(name),
-            self.monitoring.get_disk_usage(name),
-            self.monitoring.get_network_stats(name),
-        )?;
+    ) -> Result<SystemMetrics, DomainError> {
+        let (cpu, memory, disk, network) = monitoring.get_all_metrics(name).await?;
 
         let metrics = SystemMetrics {
             distro_name: name.as_str().to_string(),
@@ -98,18 +137,14 @@ impl MetricsCollector {
         };
 
         // Store in SQLite
-        if let Err(e) = self.metrics_repo.store_raw(&metrics).await {
+        if let Err(e) = metrics_repo.store_raw(&metrics).await {
             tracing::warn!("Failed to persist metrics for {}: {e}", name.as_str());
         }
 
         // Emit Tauri event for real-time listeners
         let _ = app_handle.emit(EVENT_SYSTEM_METRICS, &metrics);
 
-        // Check alert thresholds
-        self.check_alerts(&metrics, app_handle, alert_cooldowns)
-            .await;
-
-        Ok(())
+        Ok(metrics)
     }
 
     async fn check_alerts(

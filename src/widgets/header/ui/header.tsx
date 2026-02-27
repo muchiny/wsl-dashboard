@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
@@ -48,15 +48,28 @@ export function Header() {
     };
   }, []);
 
+  const handleDrag = useCallback(async (e: React.MouseEvent) => {
+    // Only drag when clicking empty space — not interactive elements
+    // Safety net — stopPropagation on children is the primary guard
+    if ((e.target as HTMLElement).closest("button, a, input, select, textarea, nav, svg")) return;
+    await getCurrentWindow().startDragging();
+  }, []);
+
+  const handleDoubleClick = useCallback(async (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button, a, input, select, textarea, nav, svg")) return;
+    await getCurrentWindow().toggleMaximize();
+  }, []);
+
   return (
-    <header className="border-surface-1 bg-mantle shrink-0 border-b" data-tauri-drag-region>
-      <div
-        className="flex h-14 items-center justify-between gap-2 px-4 sm:h-16 sm:px-6"
-        data-tauri-drag-region
-      >
+    <header
+      className="border-surface-1 bg-mantle shrink-0 border-b"
+      onMouseDown={handleDrag}
+      onDoubleClick={handleDoubleClick}
+    >
+      <div className="flex h-14 items-center justify-between gap-2 px-4 sm:h-16 sm:px-6">
         {/* Branding */}
-        <div className="flex shrink-0 items-center gap-3">
-          <div className="bg-blue/15 flex h-9 w-9 items-center justify-center rounded-lg">
+        <div className="flex shrink-0 items-center gap-3" onMouseDown={(e) => e.stopPropagation()}>
+          <div className="bg-blue/25 flex h-9 w-9 items-center justify-center rounded-lg">
             <Server className="text-blue h-5 w-5" />
           </div>
           <div className="hidden sm:block">
@@ -66,7 +79,10 @@ export function Header() {
         </div>
 
         {/* Navigation Tabs */}
-        <nav className="bg-crust flex items-center gap-1 rounded-xl p-1">
+        <nav
+          className="bg-crust flex items-center gap-1 rounded-xl p-1"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
           {navTabs.map((tab) => {
             const isActive =
               tab.to === "/"
@@ -92,7 +108,7 @@ export function Header() {
         </nav>
 
         {/* Actions + Window Controls */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1" onMouseDown={(e) => e.stopPropagation()}>
           <button
             onClick={useDebugConsoleStore.getState().toggle}
             className="text-subtext-0 hover:bg-surface-0 hover:text-text flex h-9 w-9 items-center justify-center rounded-lg transition-colors"

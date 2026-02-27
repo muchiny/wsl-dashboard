@@ -25,8 +25,14 @@ export function RootLayout() {
 
   return (
     <div className="bg-background text-foreground flex h-screen flex-col overflow-hidden">
+      <a
+        href="#main-content"
+        className="bg-blue text-crust fixed top-0 left-1/2 z-[200] -translate-x-1/2 -translate-y-full rounded-b-lg px-4 py-2 text-sm font-medium transition-transform focus:translate-y-0"
+      >
+        Skip to main content
+      </a>
       <Header />
-      <main className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+      <main id="main-content" className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
         <ErrorBoundary>
           <Outlet />
         </ErrorBoundary>

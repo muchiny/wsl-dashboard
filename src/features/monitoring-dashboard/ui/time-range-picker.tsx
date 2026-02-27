@@ -14,19 +14,17 @@ const options: { value: TimeRange; label: string }[] = [
 
 export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
   return (
-    <div className="flex items-center gap-1 rounded-lg bg-[var(--color-surface-0)] p-1">
+    <div className="bg-surface-0 flex items-center gap-1 rounded-lg p-1">
       {options.map((opt) => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className={`relative rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-            value === opt.value
-              ? "bg-[var(--color-sapphire)] text-[var(--color-base)]"
-              : "text-[var(--color-subtext-0)] hover:text-[var(--color-text)]"
+          className={`focus-ring relative rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+            value === opt.value ? "bg-sapphire text-base" : "text-subtext-0 hover:text-text"
           }`}
         >
           {opt.value === "live" && value === "live" && (
-            <span className="mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-green)]" />
+            <span className="bg-green mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full" />
           )}
           {opt.label}
         </button>

@@ -17,12 +17,7 @@ pub async fn get_system_metrics(
 ) -> Result<SystemMetrics, DomainError> {
     let name = DistroName::new(&distro_name)?;
 
-    let (cpu, memory, disk, network) = tokio::try_join!(
-        state.monitoring.get_cpu_usage(&name),
-        state.monitoring.get_memory_usage(&name),
-        state.monitoring.get_disk_usage(&name),
-        state.monitoring.get_network_stats(&name),
-    )?;
+    let (cpu, memory, disk, network) = state.monitoring.get_all_metrics(&name).await?;
 
     Ok(SystemMetrics {
         distro_name,

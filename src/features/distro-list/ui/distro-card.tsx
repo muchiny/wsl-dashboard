@@ -55,7 +55,7 @@ export function DistroCard({
       aria-expanded={isExpanded}
       aria-label={`${distro.name} - ${distro.state}${distro.is_default ? " (default)" : ""}`}
       className={cn(
-        "group border-surface-1 bg-mantle focus:ring-blue/50 cursor-pointer rounded-xl border p-5 transition-all duration-200 focus:ring-2 focus:outline-none",
+        "group border-surface-1 bg-mantle focus-ring cursor-pointer rounded-xl border p-5 transition-all duration-200",
         isExpanded
           ? "border-mauve/50 shadow-mauve/5 shadow-lg"
           : "hover:border-blue/40 hover:shadow-blue/5 hover:shadow-lg",
@@ -83,9 +83,9 @@ export function DistroCard({
           className={cn(
             "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
             isPending
-              ? "bg-yellow/15 text-yellow"
+              ? "bg-yellow/25 text-yellow"
               : isRunning
-                ? "bg-green/15 text-green"
+                ? "bg-green/25 text-green"
                 : "bg-surface-0 text-subtext-0",
           )}
         >
@@ -100,7 +100,7 @@ export function DistroCard({
           WSL {distro.wsl_version}
         </span>
         {snapshotCount > 0 && (
-          <span className="bg-mauve/15 text-mauve inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
+          <span className="bg-mauve/25 text-mauve inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
             <Archive className="h-3 w-3" aria-hidden="true" />
             {snapshotCount}
           </span>
@@ -125,7 +125,7 @@ export function DistroCard({
                 onStart();
               }}
               disabled={isPending}
-              className="text-subtext-0 hover:bg-green/15 hover:text-green flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
+              className="text-subtext-0 hover:bg-green/20 hover:text-green flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
               aria-label={`Start ${distro.name}`}
             >
               <Play className="h-3.5 w-3.5" aria-hidden="true" />
@@ -140,7 +140,7 @@ export function DistroCard({
                   onRestart();
                 }}
                 disabled={isPending}
-                className="text-subtext-0 hover:bg-yellow/15 hover:text-yellow flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
+                className="text-subtext-0 hover:bg-yellow/20 hover:text-yellow flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
                 aria-label={`Restart ${distro.name}`}
               >
                 <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
@@ -152,7 +152,7 @@ export function DistroCard({
                   onStop();
                 }}
                 disabled={isPending}
-                className="text-subtext-0 hover:bg-red/15 hover:text-red flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
+                className="text-subtext-0 hover:bg-red/20 hover:text-red flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
                 aria-label={`Stop ${distro.name}`}
               >
                 <Square className="h-3.5 w-3.5" aria-hidden="true" />
@@ -168,7 +168,7 @@ export function DistroCard({
               e.stopPropagation();
               onSnapshot();
             }}
-            className="text-subtext-0 hover:bg-mauve/15 hover:text-mauve flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+            className="text-subtext-0 hover:bg-mauve/20 hover:text-mauve flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
             aria-label={`Create snapshot of ${distro.name}`}
           >
             <Archive className="h-3.5 w-3.5" aria-hidden="true" />
@@ -189,7 +189,7 @@ export function DistroCard({
                   console.error("Failed to open terminal:", err);
                 }
               }}
-              className="text-subtext-0 hover:bg-teal/15 hover:text-teal flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+              className="text-subtext-0 hover:bg-teal/20 hover:text-teal flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
               aria-label={`Open terminal in ${distro.name}`}
             >
               <TerminalSquare className="h-3.5 w-3.5" aria-hidden="true" />
@@ -201,7 +201,7 @@ export function DistroCard({
               to="/monitoring"
               search={{ distro: distro.name }}
               onClick={(e) => e.stopPropagation()}
-              className="text-subtext-0 hover:bg-sapphire/15 hover:text-sapphire flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+              className="text-subtext-0 hover:bg-sapphire/20 hover:text-sapphire flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
               aria-label={`Monitor ${distro.name}`}
             >
               <Activity className="h-3.5 w-3.5" aria-hidden="true" />

@@ -161,14 +161,4 @@ impl TerminalSessionManager {
         }
         Ok(())
     }
-
-    /// Close all active sessions (cleanup on app quit).
-    pub async fn close_all(&self) {
-        let mut sessions = self.sessions.write().await;
-        for (_, session) in sessions.drain() {
-            if let Ok(mut child) = session.killer.lock() {
-                let _ = child.kill();
-            }
-        }
-    }
 }
