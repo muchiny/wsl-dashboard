@@ -94,7 +94,7 @@ export function LanguageSwitcher() {
       case "Escape":
       case "Tab": {
         if (open) {
-          e.key === "Escape" && e.preventDefault();
+          if (e.key === "Escape") e.preventDefault();
           close();
         }
         break;
