@@ -1,6 +1,6 @@
 [package]
 name = "wsl-nexus"
-version = "1.0.2"
+version = "1.0.3"
 description = "Advanced WSL2 management dashboard"
 authors = ["muchini"]
 edition = "2024"

@@ -244,7 +244,12 @@ export function RestoreSnapshotDialog({
           </button>
           <button
             type="submit"
-            disabled={restoreSnapshot.isPending || !!nameError || overwritePathLoading}
+            disabled={
+              restoreSnapshot.isPending ||
+              !!nameError ||
+              overwritePathLoading ||
+              (mode === "overwrite" && !overwritePath)
+            }
             className="bg-blue text-crust hover:bg-blue/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
           >
             {restoreSnapshot.isPending ? (

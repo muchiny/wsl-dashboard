@@ -77,6 +77,8 @@ impl RestoreSnapshotHandler {
                         target_name, e
                     ))
                 })?;
+            // Wait for WSL to fully clean up the VHD before importing
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         }
 
         self.wsl_manager
@@ -87,6 +89,24 @@ impl RestoreSnapshotHandler {
                 snapshot.format.clone(),
             )
             .await?;
+
+        // After wsl --import, the default user is reset to root.
+        // If the snapshot's /etc/wsl.conf doesn't have a [user] section,
+        // detect the first regular user from /etc/passwd and add it.
+        let _ = self
+            .wsl_manager
+            .exec_in_distro(
+                &target_name,
+                r#"if ! grep -q '^\[user\]' /etc/wsl.conf 2>/dev/null; then U=$(awk -F: '$3>=1000 && $7 !~ /nologin|false/ {print $1; exit}' /etc/passwd); [ -n "$U" ] && printf '\n[user]\ndefault=%s\n' "$U" >> /etc/wsl.conf; fi"#,
+            )
+            .await;
+
+        // Restart the distro so the [user] default takes effect
+        let _ = self.wsl_manager.terminate_distro(&target_name).await;
+        // Auto-start in overwrite mode since the original distro was running
+        if matches!(cmd.mode, RestoreMode::Overwrite) {
+            let _ = self.wsl_manager.start_distro(&target_name).await;
+        }
 
         self.audit_logger
             .log_with_details(
