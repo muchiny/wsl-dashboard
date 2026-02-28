@@ -14,9 +14,9 @@ describe("usePreferencesStore", () => {
       sortKey: "name-asc",
       viewMode: "grid",
       alertThresholds: [
-        { alert_type: "cpu", threshold_percent: 90, enabled: false},
-        { alert_type: "memory", threshold_percent: 85, enabled: false},
-        { alert_type: "disk", threshold_percent: 90, enabled: false},
+        { alert_type: "cpu", threshold_percent: 90, enabled: false },
+        { alert_type: "memory", threshold_percent: 85, enabled: false },
+        { alert_type: "disk", threshold_percent: 90, enabled: false },
       ],
     });
   });
@@ -49,9 +49,13 @@ describe("usePreferencesStore", () => {
     it("has 3 default alert thresholds", () => {
       const thresholds = usePreferencesStore.getState().alertThresholds;
       expect(thresholds).toHaveLength(3);
-      expect(thresholds[0]).toEqual({ alert_type: "cpu", threshold_percent: 90, enabled: false});
-      expect(thresholds[1]).toEqual({ alert_type: "memory", threshold_percent: 85, enabled: false});
-      expect(thresholds[2]).toEqual({ alert_type: "disk", threshold_percent: 90, enabled: false});
+      expect(thresholds[0]).toEqual({ alert_type: "cpu", threshold_percent: 90, enabled: false });
+      expect(thresholds[1]).toEqual({
+        alert_type: "memory",
+        threshold_percent: 85,
+        enabled: false,
+      });
+      expect(thresholds[2]).toEqual({ alert_type: "disk", threshold_percent: 90, enabled: false });
     });
   });
 

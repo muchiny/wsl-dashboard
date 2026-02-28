@@ -20,13 +20,8 @@ const flagSrc: Record<Locale, string> = {
 function Flag({ locale, className }: { locale: Locale; className?: string }) {
   return (
     <span className={cn("relative inline-flex shrink-0 overflow-hidden rounded-[3px]", className)}>
-      <img
-        src={flagSrc[locale]}
-        alt=""
-        className="h-full w-full object-cover"
-        draggable={false}
-      />
-      <span className="pointer-events-none absolute inset-0 rounded-[3px] ring-1 ring-inset ring-black/10 shadow-[inset_0_0_4px_rgba(0,0,0,0.15)]" />
+      <img src={flagSrc[locale]} alt="" className="h-full w-full object-cover" draggable={false} />
+      <span className="pointer-events-none absolute inset-0 rounded-[3px] shadow-[inset_0_0_4px_rgba(0,0,0,0.15)] ring-1 ring-black/10 ring-inset" />
     </span>
   );
 }
