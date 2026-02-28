@@ -223,9 +223,7 @@ mod tests {
             .returning(move |_| Ok(snap.clone()));
 
         let mut wsl_mock = MockWslManagerPort::new();
-        wsl_mock
-            .expect_terminate_distro()
-            .returning(|_| Ok(()));
+        wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
         wsl_mock
             .expect_unregister_distro()
             .returning(|_| Err(DomainError::WslCliError("access denied".into())));

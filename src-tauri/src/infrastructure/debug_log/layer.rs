@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use tauri::Emitter;
-use tracing::field::{Field, Visit};
 use tracing::Subscriber;
-use tracing_subscriber::layer::Context;
+use tracing::field::{Field, Visit};
 use tracing_subscriber::Layer;
+use tracing_subscriber::layer::Context;
 
 use super::buffer::DebugLogBuffer;
 

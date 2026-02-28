@@ -118,7 +118,7 @@ pub async fn restore_snapshot(
         _ => {
             return Err(DomainError::Internal(
                 "Clone mode requires an install_location".into(),
-            ))
+            ));
         }
     };
 

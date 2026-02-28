@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::Row;
 
-use super::adapter::SqliteDb;
 use super::SqlxResultExt;
+use super::adapter::SqliteDb;
 use crate::domain::errors::DomainError;
 use crate::domain::ports::alerting::{AlertRecord, AlertType, AlertingPort};
 use crate::domain::value_objects::DistroName;

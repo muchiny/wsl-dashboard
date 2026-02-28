@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use std::process::Stdio;
 use tokio::process::Command;
 #[cfg(windows)]
-use winreg::{enums::HKEY_CURRENT_USER, RegKey};
+use winreg::{RegKey, enums::HKEY_CURRENT_USER};
 
 use crate::domain::entities::distro::Distro;
 use crate::domain::entities::snapshot::ExportFormat;

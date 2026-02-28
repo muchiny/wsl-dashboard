@@ -81,5 +81,4 @@ mod tests {
     fn test_wsl_flag_tar_returns_none() {
         assert_eq!(ExportFormat::Tar.wsl_flag(), None);
     }
-
 }

@@ -47,7 +47,7 @@ pub trait WslManagerPort: Send + Sync {
 
     /// Execute a command inside a distribution
     async fn exec_in_distro(&self, name: &DistroName, command: &str)
-        -> Result<String, DomainError>;
+    -> Result<String, DomainError>;
 
     /// Read the global .wslconfig
     async fn get_global_config(&self) -> Result<WslGlobalConfig, DomainError>;

@@ -52,11 +52,11 @@ pub fn run() {
     let debug_layer = DebugLogLayer::new(debug_buffer.clone());
     let handle_slot = debug_layer.app_handle_slot();
 
+    use tracing_subscriber::EnvFilter;
+    use tracing_subscriber::Layer as _;
     use tracing_subscriber::filter::Targets;
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
-    use tracing_subscriber::EnvFilter;
-    use tracing_subscriber::Layer as _;
 
     // Ring-buffer filter: suppress noisy tao/wry event-loop warnings on WSL2/Linux
     let target_filter = Targets::new()

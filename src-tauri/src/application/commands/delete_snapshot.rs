@@ -78,12 +78,14 @@ mod tests {
         let audit_mock = MockAuditLoggerPort::new();
 
         let handler = DeleteSnapshotHandler::new(Arc::new(repo_mock), Arc::new(audit_mock));
-        assert!(handler
-            .handle(DeleteSnapshotCommand {
-                snapshot_id: SnapshotId::from_string("snap-001".into()),
-            })
-            .await
-            .is_err());
+        assert!(
+            handler
+                .handle(DeleteSnapshotCommand {
+                    snapshot_id: SnapshotId::from_string("snap-001".into()),
+                })
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -100,11 +102,13 @@ mod tests {
         audit_mock.expect_log().returning(|_, _| Ok(()));
 
         let handler = DeleteSnapshotHandler::new(Arc::new(repo_mock), Arc::new(audit_mock));
-        assert!(handler
-            .handle(DeleteSnapshotCommand {
-                snapshot_id: SnapshotId::from_string("snap-001".into()),
-            })
-            .await
-            .is_ok());
+        assert!(
+            handler
+                .handle(DeleteSnapshotCommand {
+                    snapshot_id: SnapshotId::from_string("snap-001".into()),
+                })
+                .await
+                .is_ok()
+        );
     }
 }
