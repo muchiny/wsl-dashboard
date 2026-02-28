@@ -36,10 +36,7 @@ impl RestoreSnapshotHandler {
         let snapshot = self.snapshot_repo.get_by_id(&cmd.snapshot_id).await?;
 
         let file_meta = std::fs::metadata(&snapshot.file_path).map_err(|_| {
-            DomainError::SnapshotError(format!(
-                "Snapshot file not found: {}",
-                snapshot.file_path
-            ))
+            DomainError::SnapshotError(format!("Snapshot file not found: {}", snapshot.file_path))
         })?;
 
         if file_meta.len() == 0 {

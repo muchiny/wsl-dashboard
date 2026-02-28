@@ -74,10 +74,7 @@ pub async fn set_default_distro(
 ) -> Result<(), DomainError> {
     let distro_name = DistroName::new(&name)?;
     state.wsl_manager.set_default_distro(&distro_name).await?;
-    state
-        .audit_logger
-        .log("distro.set_default", &name)
-        .await?;
+    state.audit_logger.log("distro.set_default", &name).await?;
     Ok(())
 }
 

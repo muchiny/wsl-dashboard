@@ -133,7 +133,8 @@ pub fn run() {
         tracing::info!("CrabNebula DevTools enabled");
     }
 
-    builder.setup(move |app| {
+    builder
+        .setup(move |app| {
             let app_handle = app.handle().clone();
 
             // Wire the AppHandle into the debug log layer for real-time events

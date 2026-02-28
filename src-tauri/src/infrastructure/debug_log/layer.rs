@@ -87,8 +87,7 @@ where
                 // Only emit spans that take >= 1ms to avoid flooding
                 if duration_ms >= 1.0 {
                     let target = span.metadata().target().to_string();
-                    let message =
-                        format!("span closed: {} ({:.1}ms)", timing.name, duration_ms);
+                    let message = format!("span closed: {} ({:.1}ms)", timing.name, duration_ms);
                     let entry = self.buffer.push("TRACE".to_string(), message, target);
 
                     if let Some(handle) = self.app_handle.get() {

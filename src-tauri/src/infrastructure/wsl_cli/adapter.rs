@@ -405,14 +405,13 @@ impl WslManagerPort for WslCliAdapter {
             .map_err(|e| DomainError::WslCliError(format!("Failed to start distro: {}", e)))?;
 
         // Poll until the distro reports Running (max 5s, 250ms intervals)
-        let deadline =
-            tokio::time::Instant::now() + std::time::Duration::from_secs(5);
+        let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(5);
         loop {
             tokio::time::sleep(std::time::Duration::from_millis(250)).await;
-            if let Ok(distro) = self.get_distro(name).await {
-                if distro.state == crate::domain::value_objects::DistroState::Running {
-                    return Ok(());
-                }
+            if let Ok(distro) = self.get_distro(name).await
+                && distro.state == crate::domain::value_objects::DistroState::Running
+            {
+                return Ok(());
             }
             if tokio::time::Instant::now() >= deadline {
                 return Err(DomainError::WslCliError(format!(
