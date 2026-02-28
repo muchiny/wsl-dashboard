@@ -90,22 +90,41 @@ impl RestoreSnapshotHandler {
             )
             .await?;
 
+        // Verify the import actually registered the distro
+        self.wsl_manager
+            .get_distro(&target_name)
+            .await
+            .map_err(|_| {
+                DomainError::SnapshotError(format!(
+                    "Import claimed success but '{}' was not found afterwards",
+                    target_name
+                ))
+            })?;
+        tracing::info!(distro = %target_name, "import verified: distro exists");
+
         // After wsl --import, the default user is reset to root.
         // If the snapshot's /etc/wsl.conf doesn't have a [user] section,
         // detect the first regular user from /etc/passwd and add it.
-        let _ = self
+        if let Err(e) = self
             .wsl_manager
             .exec_in_distro(
                 &target_name,
                 r#"if ! grep -q '^\[user\]' /etc/wsl.conf 2>/dev/null; then U=$(awk -F: '$3>=1000 && $7 !~ /nologin|false/ {print $1; exit}' /etc/passwd); [ -n "$U" ] && printf '\n[user]\ndefault=%s\n' "$U" >> /etc/wsl.conf; fi"#,
             )
-            .await;
+            .await
+        {
+            tracing::warn!(error = %e, "failed to restore default user in wsl.conf");
+        }
 
         // Restart the distro so the [user] default takes effect
-        let _ = self.wsl_manager.terminate_distro(&target_name).await;
+        if let Err(e) = self.wsl_manager.terminate_distro(&target_name).await {
+            tracing::warn!(error = %e, "failed to terminate distro after user restore");
+        }
         // Auto-start in overwrite mode since the original distro was running
-        if matches!(cmd.mode, RestoreMode::Overwrite) {
-            let _ = self.wsl_manager.start_distro(&target_name).await;
+        if matches!(cmd.mode, RestoreMode::Overwrite)
+            && let Err(e) = self.wsl_manager.start_distro(&target_name).await
+        {
+            tracing::warn!(error = %e, "failed to auto-start distro after restore");
         }
 
         self.audit_logger

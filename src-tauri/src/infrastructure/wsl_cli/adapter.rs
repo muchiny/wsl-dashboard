@@ -107,6 +107,7 @@ impl WslCliAdapter {
 
     /// Run a wsl.exe command and return raw stdout bytes
     async fn run_wsl_raw(&self, args: &[&str]) -> Result<Vec<u8>, DomainError> {
+        tracing::debug!(args = ?args, "wsl.exe");
         let output = self
             .wsl_command()
             .args(args)
@@ -411,7 +412,7 @@ impl WslManagerPort for WslCliAdapter {
             if let Ok(distro) = self.get_distro(name).await
                 && distro.state == crate::domain::value_objects::DistroState::Running
             {
-                return Ok(());
+                break;
             }
             if tokio::time::Instant::now() >= deadline {
                 return Err(DomainError::WslCliError(format!(
@@ -419,6 +420,25 @@ impl WslManagerPort for WslCliAdapter {
                     name
                 )));
             }
+        }
+
+        // Wait for the shell to be responsive (max 5s, 500ms intervals).
+        // "Running" only means the WSL2 VM is up; systemd/services may still
+        // be initializing. This prevents premature terminal connections.
+        let shell_deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(5);
+        loop {
+            if self
+                .exec_in_distro_raw(name.as_str(), "echo ready")
+                .await
+                .is_ok()
+            {
+                return Ok(());
+            }
+            if tokio::time::Instant::now() >= shell_deadline {
+                // Distro IS running, shell is just slow — still return Ok
+                return Ok(());
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
         }
     }
 
@@ -440,6 +460,7 @@ impl WslManagerPort for WslCliAdapter {
     ) -> Result<(), DomainError> {
         // Convert Linux /mnt/X/... paths to Windows X:\... for wsl.exe
         let win_path = linux_to_windows_path(path);
+        tracing::info!(distro = %name, path, win_path = %win_path, format = ?format, "exporting distro");
         let mut args = vec!["--export", name.as_str(), win_path.as_str()];
         if let Some(flag) = format.wsl_flag() {
             args.push(flag);
@@ -457,6 +478,15 @@ impl WslManagerPort for WslCliAdapter {
     ) -> Result<(), DomainError> {
         let win_loc = linux_to_windows_path(install_location);
         let win_file = linux_to_windows_path(file_path);
+        tracing::info!(
+            distro = %name,
+            install_location,
+            file_path,
+            win_loc = %win_loc,
+            win_file = %win_file,
+            format = ?format,
+            "importing distro"
+        );
         let mut args = vec![
             "--import",
             name.as_str(),

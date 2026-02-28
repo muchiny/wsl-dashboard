@@ -10,6 +10,8 @@ export async function createTerminal(distroName: string): Promise<string> {
 export function useCreateTerminalSession() {
   return useMutation({
     mutationFn: (distroName: string) => createTerminal(distroName),
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
     onSuccess: (sessionId, distroName) => {
       useTerminalStore.getState().addSession({
         id: sessionId,
