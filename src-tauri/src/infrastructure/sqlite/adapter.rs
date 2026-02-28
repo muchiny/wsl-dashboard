@@ -3,12 +3,12 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::{Row, SqlitePool};
 use std::str::FromStr;
 
+use super::SqlxResultExt;
 use crate::domain::entities::snapshot::{ExportFormat, Snapshot, SnapshotStatus, SnapshotType};
 use crate::domain::errors::DomainError;
 use crate::domain::ports::audit_logger::{AuditEntry, AuditLoggerPort, AuditQuery};
 use crate::domain::ports::snapshot_repository::SnapshotRepositoryPort;
 use crate::domain::value_objects::{DistroName, MemorySize, SnapshotId};
-use super::SqlxResultExt;
 
 /// Shared SQLite connection pool.
 #[derive(Clone)]
@@ -268,10 +268,7 @@ impl AuditLoggerPort for SqliteAuditLogger {
         }
         q = q.bind(query.limit as i64).bind(query.offset as i64);
 
-        let rows = q
-            .fetch_all(&self.db.pool)
-            .await
-            .db_err()?;
+        let rows = q.fetch_all(&self.db.pool).await.db_err()?;
 
         let entries = rows
             .iter()
