@@ -68,25 +68,25 @@ impl AuditLoggerPort for InMemoryAuditLogger {
         let filtered: Vec<AuditEntry> = entries
             .iter()
             .filter(|e| {
-                if let Some(ref action) = query.action_filter {
-                    if !e.action.contains(action) {
-                        return false;
-                    }
+                if let Some(ref action) = query.action_filter
+                    && !e.action.contains(action)
+                {
+                    return false;
                 }
-                if let Some(ref target) = query.target_filter {
-                    if !e.target.contains(target) {
-                        return false;
-                    }
+                if let Some(ref target) = query.target_filter
+                    && !e.target.contains(target)
+                {
+                    return false;
                 }
-                if let Some(since) = query.since {
-                    if e.timestamp < since {
-                        return false;
-                    }
+                if let Some(since) = query.since
+                    && e.timestamp < since
+                {
+                    return false;
                 }
-                if let Some(until) = query.until {
-                    if e.timestamp > until {
-                        return false;
-                    }
+                if let Some(until) = query.until
+                    && e.timestamp > until
+                {
+                    return false;
                 }
                 true
             })

@@ -69,26 +69,26 @@ impl MetricsAggregator {
 
         // Purge expired raw data (> 1 hour old)
         let raw_cutoff = now - chrono::Duration::hours(RAW_RETENTION_HOURS);
-        if let Ok(deleted) = self.metrics_repo.purge_raw_before(raw_cutoff).await {
-            if deleted > 0 {
-                tracing::debug!("Purged {deleted} raw metrics rows");
-            }
+        if let Ok(deleted) = self.metrics_repo.purge_raw_before(raw_cutoff).await
+            && deleted > 0
+        {
+            tracing::debug!("Purged {deleted} raw metrics rows");
         }
 
         // Purge expired aggregated data (> 24 hours old)
         let agg_cutoff = now - chrono::Duration::hours(AGGREGATED_RETENTION_HOURS);
-        if let Ok(deleted) = self.metrics_repo.purge_aggregated_before(agg_cutoff).await {
-            if deleted > 0 {
-                tracing::debug!("Purged {deleted} aggregated metrics rows");
-            }
+        if let Ok(deleted) = self.metrics_repo.purge_aggregated_before(agg_cutoff).await
+            && deleted > 0
+        {
+            tracing::debug!("Purged {deleted} aggregated metrics rows");
         }
 
         // Purge expired alerts (> 24 hours old)
         let alert_cutoff = now - chrono::Duration::hours(ALERT_RETENTION_HOURS);
-        if let Ok(deleted) = self.alerting.purge_before(alert_cutoff).await {
-            if deleted > 0 {
-                tracing::debug!("Purged {deleted} alert log rows");
-            }
+        if let Ok(deleted) = self.alerting.purge_before(alert_cutoff).await
+            && deleted > 0
+        {
+            tracing::debug!("Purged {deleted} alert log rows");
         }
 
         Ok(())

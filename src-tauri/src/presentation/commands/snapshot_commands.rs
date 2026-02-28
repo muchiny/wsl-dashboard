@@ -23,8 +23,7 @@ pub async fn list_snapshots(
         None => None,
     };
     let handler = ListSnapshotsHandler::new(state.snapshot_repo.clone());
-    let result = handler.handle(name).await;
-    result
+    handler.handle(name).await
 }
 
 #[derive(Debug, Deserialize)]
@@ -72,12 +71,11 @@ pub async fn delete_snapshot(
     let handler =
         DeleteSnapshotHandler::new(state.snapshot_repo.clone(), state.audit_logger.clone());
 
-    let result = handler
+    handler
         .handle(DeleteSnapshotCommand {
             snapshot_id: SnapshotId::from_string(snapshot_id),
         })
-        .await;
-    result
+        .await
 }
 
 #[derive(Debug, Deserialize)]
@@ -128,12 +126,11 @@ pub async fn restore_snapshot(
         state.audit_logger.clone(),
     );
 
-    let result = handler
+    handler
         .handle(RestoreSnapshotCommand {
             snapshot_id: SnapshotId::from_string(args.snapshot_id),
             mode,
             install_location,
         })
-        .await;
-    result
+        .await
 }

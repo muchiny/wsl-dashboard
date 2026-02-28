@@ -19,16 +19,15 @@ use super::parser::parse_distro_list;
 /// Passes through paths that are already Windows-style or don't match /mnt/.
 fn linux_to_windows_path(path: &str) -> String {
     // Match /mnt/c/Users/... -> C:\Users\...
-    if let Some(rest) = path.strip_prefix("/mnt/") {
-        if let Some((drive, remainder)) = rest.split_once('/') {
-            if drive.len() == 1 {
-                return format!(
-                    "{}:\\{}",
-                    drive.to_uppercase(),
-                    remainder.replace('/', "\\")
-                );
-            }
-        }
+    if let Some(rest) = path.strip_prefix("/mnt/")
+        && let Some((drive, remainder)) = rest.split_once('/')
+        && drive.len() == 1
+    {
+        return format!(
+            "{}:\\{}",
+            drive.to_uppercase(),
+            remainder.replace('/', "\\")
+        );
     }
     path.to_string()
 }
@@ -217,10 +216,10 @@ impl WslCliAdapter {
     fn windows_home_from_path() -> Option<String> {
         let path = std::env::var("PATH").ok()?;
         for entry in path.split(':') {
-            if let Some(home) = extract_wsl_user_home(entry) {
-                if std::path::Path::new(&home).is_dir() {
-                    return Some(home);
-                }
+            if let Some(home) = extract_wsl_user_home(entry)
+                && std::path::Path::new(&home).is_dir()
+            {
+                return Some(home);
             }
         }
         None
@@ -336,10 +335,10 @@ fn parse_version_output(text: &str) -> WslVersionInfo {
         }
     }
 
-    if info.kernel_version.is_none() {
-        if let Some(ver) = unmatched_versions.into_iter().next() {
-            info.kernel_version = Some(ver);
-        }
+    if info.kernel_version.is_none()
+        && let Some(ver) = unmatched_versions.into_iter().next()
+    {
+        info.kernel_version = Some(ver);
     }
 
     info

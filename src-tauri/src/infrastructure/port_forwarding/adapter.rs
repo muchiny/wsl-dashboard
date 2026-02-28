@@ -187,10 +187,10 @@ fn parse_ss_output(output: &str) -> Vec<ListeningPort> {
 
 fn extract_process_name(info: &str) -> String {
     // users:(("node",pid=1234,fd=3))
-    if let Some(start) = info.find("((\"") {
-        if let Some(end) = info[start + 3..].find('"') {
-            return info[start + 3..start + 3 + end].to_string();
-        }
+    if let Some(start) = info.find("((\"")
+        && let Some(end) = info[start + 3..].find('"')
+    {
+        return info[start + 3..start + 3 + end].to_string();
     }
     String::new()
 }

@@ -10,8 +10,7 @@ use crate::presentation::state::AppState;
 #[tauri::command]
 pub async fn list_distros(state: State<'_, AppState>) -> Result<Vec<DistroResponse>, DomainError> {
     let handler = ListDistrosHandler::new(state.wsl_manager.clone());
-    let result = handler.handle().await;
-    result
+    handler.handle().await
 }
 
 #[tauri::command]

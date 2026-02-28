@@ -104,10 +104,10 @@ impl MetricsCollector {
         wsl_manager: &Arc<dyn WslManagerPort>,
         cache: &mut Option<(Instant, Vec<Distro>)>,
     ) -> Option<Vec<Distro>> {
-        if let &mut Some((ref mut ts, ref list)) = cache {
-            if ts.elapsed().as_secs() < DISTRO_CACHE_TTL_SECS {
-                return Some(list.clone());
-            }
+        if let &mut Some((ref mut ts, ref list)) = cache
+            && ts.elapsed().as_secs() < DISTRO_CACHE_TTL_SECS
+        {
+            return Some(list.clone());
         }
         match wsl_manager.list_distros().await {
             Ok(d) => {
@@ -182,10 +182,10 @@ impl MetricsCollector {
                 );
 
                 // Check cooldown
-                if let Some(last_fired) = cooldowns.get(&key) {
-                    if now.duration_since(*last_fired).as_secs() < ALERT_COOLDOWN_SECS {
-                        continue;
-                    }
+                if let Some(last_fired) = cooldowns.get(&key)
+                    && now.duration_since(*last_fired).as_secs() < ALERT_COOLDOWN_SECS
+                {
+                    continue;
                 }
 
                 cooldowns.insert(key, now);
