@@ -96,7 +96,7 @@ pub fn run() {
                 CString::new("WSL Nexus - Fatal Error"),
             ) {
                 unsafe {
-                    extern "system" {
+                    unsafe extern "system" {
                         fn MessageBoxA(
                             hwnd: *mut std::ffi::c_void,
                             text: *const i8,
