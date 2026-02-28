@@ -1,7 +1,7 @@
 {
   "name": "wsl-nexus",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -36,6 +36,7 @@
     "recharts": "^3.7.0",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.1",
+    "web-vitals": "^5.1.0",
     "zod": "^4.3.6",
     "zustand": "^5.0.11"
   },

@@ -1,10 +1,12 @@
 use tauri::State;
+use tracing::instrument;
 
 use crate::domain::entities::port_forward::{ListeningPort, PortForwardRule};
 use crate::domain::errors::DomainError;
 use crate::presentation::state::AppState;
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "list_listening_ports", distro = %distro_name))]
 pub async fn list_listening_ports(
     distro_name: String,
     state: State<'_, AppState>,
@@ -16,6 +18,7 @@ pub async fn list_listening_ports(
 }
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "get_port_forwarding_rules"))]
 pub async fn get_port_forwarding_rules(
     distro_name: Option<String>,
     state: State<'_, AppState>,
@@ -24,6 +27,7 @@ pub async fn get_port_forwarding_rules(
 }
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "add_port_forwarding", distro = %distro_name, wsl = %wsl_port, host = %host_port))]
 pub async fn add_port_forwarding(
     distro_name: String,
     wsl_port: u16,
@@ -64,6 +68,7 @@ pub async fn add_port_forwarding(
 }
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "remove_port_forwarding", rule = %rule_id))]
 pub async fn remove_port_forwarding(
     rule_id: String,
     state: State<'_, AppState>,
@@ -96,6 +101,7 @@ pub async fn remove_port_forwarding(
 }
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "get_wsl_ip", distro = %distro_name))]
 pub async fn get_wsl_ip(
     distro_name: String,
     state: State<'_, AppState>,

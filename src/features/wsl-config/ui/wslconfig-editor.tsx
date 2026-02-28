@@ -5,6 +5,7 @@ import { useWslConfig, type WslGlobalConfig } from "../api/queries";
 import { useUpdateWslConfig } from "../api/mutations";
 import { validateWslConfig, hasErrors } from "../lib/validation";
 import { cn } from "@/shared/lib/utils";
+import { Select } from "@/shared/ui/select";
 
 export function WslConfigEditor() {
   const { t } = useTranslation();
@@ -26,6 +27,13 @@ export function WslConfigEditor() {
     dns_tunneling: null,
     firewall: null,
     auto_proxy: null,
+    networking_mode: null,
+    gui_applications: null,
+    default_vhd_size: null,
+    dns_proxy: null,
+    safe_mode: null,
+    auto_memory_reclaim: null,
+    sparse_vhd: null,
   });
 
   // Sync form when fetched config changes (React-recommended adjust-state-during-render)
@@ -153,6 +161,42 @@ export function WslConfigEditor() {
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label className="text-subtext-0 mb-1 block text-xs font-medium">
+            {t("wslConfig.networkingMode")}
+          </label>
+          <Select
+            value={form.networking_mode ?? ""}
+            onChange={(v) => setForm({ ...form, networking_mode: v || null })}
+            placeholder={t("wslConfig.networkingModeDefault")}
+            aria-label={t("wslConfig.networkingMode")}
+            options={[
+              { value: "nat", label: "NAT" },
+              { value: "mirrored", label: "Mirrored" },
+              { value: "virtioproxy", label: "VirtioProxy" },
+              { value: "none", label: "None" },
+            ]}
+          />
+        </div>
+        <div>
+          <label className="text-subtext-0 mb-1 block text-xs font-medium">
+            {t("wslConfig.autoMemoryReclaim")}
+          </label>
+          <Select
+            value={form.auto_memory_reclaim ?? ""}
+            onChange={(v) => setForm({ ...form, auto_memory_reclaim: v || null })}
+            placeholder={t("wslConfig.autoMemoryReclaimDefault")}
+            aria-label={t("wslConfig.autoMemoryReclaim")}
+            options={[
+              { value: "disabled", label: t("wslConfig.autoMemoryReclaimDisabled") },
+              { value: "gradual", label: t("wslConfig.autoMemoryReclaimGradual") },
+              { value: "dropcache", label: t("wslConfig.autoMemoryReclaimDropCache") },
+            ]}
+          />
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {(
           [
             ["localhost_forwarding", "wslConfig.localhostForwarding"],
@@ -160,6 +204,10 @@ export function WslConfigEditor() {
             ["dns_tunneling", "wslConfig.dnsTunneling"],
             ["firewall", "wslConfig.firewall"],
             ["auto_proxy", "wslConfig.autoProxy"],
+            ["gui_applications", "wslConfig.guiApplications"],
+            ["dns_proxy", "wslConfig.dnsProxy"],
+            ["safe_mode", "wslConfig.safeMode"],
+            ["sparse_vhd", "wslConfig.sparseVhd"],
           ] as const
         ).map(([key, labelKey]) => (
           <label key={key} className="flex items-center gap-2">
@@ -227,6 +275,23 @@ export function WslConfigEditor() {
                 maxLength={260}
                 className={`${inputBase} border-surface-1`}
               />
+            </div>
+            <div>
+              <label className="text-subtext-0 mb-1 block text-xs font-medium">
+                {t("wslConfig.defaultVhdSize")}
+              </label>
+              <input
+                type="text"
+                value={form.default_vhd_size ?? ""}
+                onChange={(e) =>
+                  setForm({ ...form, default_vhd_size: e.target.value || null })
+                }
+                onBlur={() => markTouched("default_vhd_size")}
+                placeholder={t("wslConfig.defaultVhdSizePlaceholder")}
+                maxLength={32}
+                className={getInputClass("default_vhd_size")}
+              />
+              {fieldError("default_vhd_size")}
             </div>
           </div>
         )}

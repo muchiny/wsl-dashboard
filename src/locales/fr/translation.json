@@ -90,7 +90,11 @@
     "toastStartAllSuccess_other": "{{count}} distributions démarrées",
     "toastStartAllFailed": "Échec du démarrage de {{count}} distribution",
     "toastStartAllFailed_other": "Échec du démarrage de {{count}} distributions",
-    "toastStartAllError": "Échec du démarrage global : {{message}}"
+    "toastStartAllError": "Échec du démarrage global : {{message}}",
+    "toastSetDefault": "{{name}} définie par défaut",
+    "toastSetDefaultFailed": "Échec de la définition de {{name}} par défaut : {{message}}",
+    "toastResized": "{{name}} redimensionnée à {{size}}",
+    "toastResizeFailed": "Échec du redimensionnement de {{name}} : {{message}}"
   },
   "snapshots": {
     "title": "Snapshots — {{name}}",
@@ -257,7 +261,20 @@
     "kernelCommandLine": "Ligne de commande du noyau",
     "kernelCommandLinePlaceholder": "ex. initrd=\\initrd.img",
     "swapFilePath": "Chemin du fichier swap",
-    "swapFilePathPlaceholder": "ex. C:\\Users\\user\\swap.vhdx"
+    "swapFilePathPlaceholder": "ex. C:\\Users\\user\\swap.vhdx",
+    "networkingMode": "Mode réseau",
+    "networkingModeDefault": "Par défaut (NAT)",
+    "autoMemoryReclaim": "Récupération auto de mémoire",
+    "autoMemoryReclaimDefault": "Par défaut",
+    "autoMemoryReclaimDisabled": "Désactivé",
+    "autoMemoryReclaimGradual": "Graduel",
+    "autoMemoryReclaimDropCache": "Vider le cache",
+    "guiApplications": "Applications GUI (WSLg)",
+    "dnsProxy": "Proxy DNS",
+    "safeMode": "Mode sans échec",
+    "sparseVhd": "VHD creux (réduction auto)",
+    "defaultVhdSize": "Taille VHD par défaut",
+    "defaultVhdSizePlaceholder": "ex. 1024GB"
   },
   "wslInfo": {
     "title": "Informations système WSL",

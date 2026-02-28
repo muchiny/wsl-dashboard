@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { X, Plus } from "lucide-react";
 import { useTerminalStore, type TerminalSession } from "../model/use-terminal-store";
+import { closeTerminal } from "../api/mutations";
 import { cn } from "@/shared/lib/utils";
 
 interface TerminalTabBarProps {
@@ -19,7 +20,10 @@ export function TerminalTabBar({ onNewTerminal }: TerminalTabBarProps) {
           session={session}
           isActive={session.id === activeSessionId}
           onSelect={() => setActiveSession(session.id)}
-          onClose={() => removeSession(session.id)}
+          onClose={() => {
+            closeTerminal(session.id).catch(() => {});
+            removeSession(session.id);
+          }}
         />
       ))}
       <button

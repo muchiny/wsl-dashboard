@@ -90,7 +90,11 @@
     "toastStartAllSuccess_other": "已启动 {{count}} 个发行版",
     "toastStartAllFailed": "{{count}} 个发行版启动失败",
     "toastStartAllFailed_other": "{{count}} 个发行版启动失败",
-    "toastStartAllError": "全部启动失败：{{message}}"
+    "toastStartAllError": "全部启动失败：{{message}}",
+    "toastSetDefault": "{{name}} 已设为默认",
+    "toastSetDefaultFailed": "设置 {{name}} 为默认失败：{{message}}",
+    "toastResized": "{{name}} 已调整为 {{size}}",
+    "toastResizeFailed": "调整 {{name}} 大小失败：{{message}}"
   },
   "snapshots": {
     "title": "快照 — {{name}}",
@@ -257,7 +261,20 @@
     "kernelCommandLine": "内核命令行",
     "kernelCommandLinePlaceholder": "例如 initrd=\\initrd.img",
     "swapFilePath": "交换文件路径",
-    "swapFilePathPlaceholder": "例如 C:\\Users\\user\\swap.vhdx"
+    "swapFilePathPlaceholder": "例如 C:\\Users\\user\\swap.vhdx",
+    "networkingMode": "网络模式",
+    "networkingModeDefault": "默认 (NAT)",
+    "autoMemoryReclaim": "自动内存回收",
+    "autoMemoryReclaimDefault": "默认",
+    "autoMemoryReclaimDisabled": "已禁用",
+    "autoMemoryReclaimGradual": "渐进式",
+    "autoMemoryReclaimDropCache": "释放缓存",
+    "guiApplications": "GUI 应用 (WSLg)",
+    "dnsProxy": "DNS 代理",
+    "safeMode": "安全模式",
+    "sparseVhd": "稀疏 VHD（自动缩减）",
+    "defaultVhdSize": "默认 VHD 大小",
+    "defaultVhdSizePlaceholder": "例如 1024GB"
   },
   "wslInfo": {
     "title": "WSL 系统信息",

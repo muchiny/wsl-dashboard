@@ -66,4 +66,10 @@ pub trait WslManagerPort: Send + Sync {
 
     /// Get the install path (BasePath) for an existing distribution from the Windows registry
     async fn get_distro_install_path(&self, name: &DistroName) -> Result<String, DomainError>;
+
+    /// Resize the VHDX for a distribution (e.g. "50GB"). WSL 2 only.
+    async fn resize_vhd(&self, name: &DistroName, size: &str) -> Result<(), DomainError>;
+
+    /// Set a distribution as the default for wsl.exe
+    async fn set_default_distro(&self, name: &DistroName) -> Result<(), DomainError>;
 }

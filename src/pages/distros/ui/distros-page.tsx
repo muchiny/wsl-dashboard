@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { DistroList } from "@/features/distro-list/ui/distro-list";
 import { DistrosToolbar } from "@/features/distro-list/ui/distros-toolbar";
-import { useDistroEvents } from "@/features/distro-list/hooks/use-distro-events";
 import { useDistros } from "@/shared/api/distro-queries";
 import { useShutdownAll } from "@/features/distro-list/api/mutations";
 import { CreateSnapshotDialog } from "@/features/snapshot-list/ui/create-snapshot-dialog";
@@ -40,7 +39,6 @@ const SORT_COMPARATORS: Record<SortKey, (a: Distro, b: Distro) => number> = {
 
 export function DistrosPage() {
   const { t } = useTranslation();
-  useDistroEvents();
   const { data: distros, isLoading, error } = useDistros();
   const shutdownAll = useShutdownAll();
 

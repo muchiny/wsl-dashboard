@@ -150,6 +150,11 @@ impl TerminalSessionManager {
         Ok(())
     }
 
+    /// Check if a terminal session is still alive.
+    pub async fn is_session_alive(&self, session_id: &str) -> bool {
+        self.sessions.read().await.contains_key(session_id)
+    }
+
     /// Close a terminal session and kill the underlying process.
     pub async fn close_session(&self, session_id: &str) -> Result<(), DomainError> {
         let mut sessions = self.sessions.write().await;

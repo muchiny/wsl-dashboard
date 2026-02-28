@@ -93,18 +93,16 @@ export function TerminalPanel() {
         </div>
       </div>
 
-      {/* Terminal instances */}
-      {isOpen && (
-        <div className="min-h-0 flex-1">
-          {sessions.map((session) => (
-            <TerminalInstance
-              key={session.id}
-              sessionId={session.id}
-              isActive={session.id === activeSessionId}
-            />
-          ))}
-        </div>
-      )}
+      {/* Terminal instances — always mounted, hidden via CSS to preserve sessions */}
+      <div className={cn("min-h-0 flex-1", !isOpen && "hidden")}>
+        {sessions.map((session) => (
+          <TerminalInstance
+            key={session.id}
+            sessionId={session.id}
+            isActive={session.id === activeSessionId}
+          />
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use tauri::State;
+use tracing::instrument;
 
 use crate::domain::errors::DomainError;
 use crate::domain::ports::audit_logger::{AuditEntry, AuditQuery};
@@ -14,6 +15,7 @@ pub struct SearchAuditArgs {
 }
 
 #[tauri::command]
+#[instrument(skip(state, args), fields(cmd = "search_audit_log"))]
 pub async fn search_audit_log(
     args: SearchAuditArgs,
     state: State<'_, AppState>,

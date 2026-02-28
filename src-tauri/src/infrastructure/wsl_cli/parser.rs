@@ -11,9 +11,21 @@ use crate::domain::value_objects::{DistroName, DistroState, WslVersion};
 ///   Ubuntu-24.04      Stopped         2
 /// ```
 pub fn parse_distro_list(text: &str) -> Result<Vec<Distro>, DomainError> {
+    let mut lines = text.lines();
+
+    // Skip lines until we find the header (contains "NAME" and "STATE")
+    let header_found = lines.by_ref().any(|line| {
+        let upper = line.to_uppercase();
+        upper.contains("NAME") && upper.contains("STATE")
+    });
+
+    if !header_found {
+        return Ok(Vec::new());
+    }
+
     let mut distros = Vec::new();
 
-    for line in text.lines().skip(1) {
+    for line in lines {
         let trimmed = line.trim();
         if trimmed.is_empty() {
             continue;
@@ -85,5 +97,28 @@ mod tests {
                       * Ubuntu    Running   2\n\n";
         let distros = parse_distro_list(input).unwrap();
         assert_eq!(distros.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_completely_empty_input() {
+        let distros = parse_distro_list("").unwrap();
+        assert!(distros.is_empty());
+    }
+
+    #[test]
+    fn test_parse_no_header() {
+        let input = "Some random text without the expected columns";
+        let distros = parse_distro_list(input).unwrap();
+        assert!(distros.is_empty());
+    }
+
+    #[test]
+    fn test_parse_warning_before_header() {
+        let input = "Warning: some WSL message\n\
+                      NAME      STATE     VERSION\n\
+                      * Ubuntu    Running   2\n";
+        let distros = parse_distro_list(input).unwrap();
+        assert_eq!(distros.len(), 1);
+        assert_eq!(distros[0].name.as_str(), "Ubuntu");
     }
 }

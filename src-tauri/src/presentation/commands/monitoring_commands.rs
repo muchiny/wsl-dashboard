@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tauri::State;
+use tracing::instrument;
 
 use crate::domain::entities::monitoring::{ProcessInfo, SystemMetrics};
 use crate::domain::errors::DomainError;
@@ -11,6 +12,7 @@ use crate::presentation::state::AppState;
 // --- Existing commands (kept as-is) ---
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "get_system_metrics", distro = %distro_name))]
 pub async fn get_system_metrics(
     distro_name: String,
     state: State<'_, AppState>,
@@ -30,6 +32,7 @@ pub async fn get_system_metrics(
 }
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "get_processes", distro = %distro_name))]
 pub async fn get_processes(
     distro_name: String,
     state: State<'_, AppState>,
@@ -61,6 +64,7 @@ pub struct MetricsHistoryResponse {
 }
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "get_metrics_history", distro = %distro_name))]
 pub async fn get_metrics_history(
     distro_name: String,
     from: String,
@@ -164,6 +168,7 @@ pub async fn get_metrics_history(
 // --- New commands: Alert thresholds ---
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "get_alert_thresholds"))]
 pub async fn get_alert_thresholds(
     state: State<'_, AppState>,
 ) -> Result<Vec<AlertThreshold>, DomainError> {
@@ -172,6 +177,7 @@ pub async fn get_alert_thresholds(
 }
 
 #[tauri::command]
+#[instrument(skip(state, thresholds), fields(cmd = "set_alert_thresholds"))]
 pub async fn set_alert_thresholds(
     thresholds: Vec<AlertThreshold>,
     state: State<'_, AppState>,
@@ -184,6 +190,7 @@ pub async fn set_alert_thresholds(
 // --- New commands: Alert records ---
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "get_recent_alerts", distro = %distro_name))]
 pub async fn get_recent_alerts(
     distro_name: String,
     limit: Option<u32>,
@@ -197,6 +204,7 @@ pub async fn get_recent_alerts(
 }
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "acknowledge_alert", alert = %alert_id))]
 pub async fn acknowledge_alert(
     alert_id: i64,
     state: State<'_, AppState>,

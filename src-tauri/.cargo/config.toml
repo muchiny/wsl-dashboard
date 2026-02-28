@@ -1,0 +1,29 @@
+# ── Performance Profiling Guide ──
+#
+# 1. Span timing (always on):
+#    RUST_LOG=debug cargo tauri dev
+#    → Console shows span close durations: time.busy=15.2ms time.idle=0.3ms
+#    → Debug console (Ctrl+Shift+D) shows IPC timings with "ipc" target
+#
+# 2. CrabNebula DevTools (opt-in):
+#    cargo tauri dev --features devtools
+#    → Opens interactive web UI for Tauri IPC inspection, spans, logs
+#
+# 3. Flamegraphs (CPU profiling):
+#    cargo install flamegraph
+#    cargo build --profile profiling
+#    flamegraph -- ./target/profiling/wsl-nexus
+#
+#    WSL2 notes:
+#    - May need: echo 0 | sudo tee /proc/sys/kernel/perf_event_paranoid
+#    - Install perf: sudo apt install linux-tools-common linux-tools-generic
+#
+# 4. Interactive CPU profiler:
+#    cargo install samply
+#    cargo build --profile profiling
+#    samply record ./target/profiling/wsl-nexus
+#    → Opens Firefox Profiler in browser
+#
+# 5. Heap profiling (feature-gated, add dhat to Cargo.toml if needed):
+#    cargo run --features dhat-heap
+#    → Generates dhat-heap.json, view at https://nnethercote.github.io/dh_view/dh_view.html

@@ -14,6 +14,15 @@ export interface WslGlobalConfig {
   dns_tunneling: boolean | null;
   firewall: boolean | null;
   auto_proxy: boolean | null;
+  // [wsl2] new fields
+  networking_mode: string | null;
+  gui_applications: boolean | null;
+  default_vhd_size: string | null;
+  dns_proxy: boolean | null;
+  safe_mode: boolean | null;
+  // [experimental] section
+  auto_memory_reclaim: string | null;
+  sparse_vhd: boolean | null;
 }
 
 export interface WslVersionInfo {

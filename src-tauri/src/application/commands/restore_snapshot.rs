@@ -35,10 +35,28 @@ impl RestoreSnapshotHandler {
     pub async fn handle(&self, cmd: RestoreSnapshotCommand) -> Result<(), DomainError> {
         let snapshot = self.snapshot_repo.get_by_id(&cmd.snapshot_id).await?;
 
-        if !std::path::Path::new(&snapshot.file_path).exists() {
-            return Err(DomainError::SnapshotError(format!(
+        let file_meta = std::fs::metadata(&snapshot.file_path).map_err(|_| {
+            DomainError::SnapshotError(format!(
                 "Snapshot file not found: {}",
                 snapshot.file_path
+            ))
+        })?;
+
+        if file_meta.len() == 0 {
+            return Err(DomainError::SnapshotError(
+                "Snapshot file is empty (0 bytes)".into(),
+            ));
+        }
+
+        let expected_ext = snapshot.format.extension();
+        let actual_ext = std::path::Path::new(&snapshot.file_path)
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("");
+        if !actual_ext.eq_ignore_ascii_case(expected_ext) {
+            return Err(DomainError::SnapshotError(format!(
+                "File extension '{}' does not match expected format '{}'",
+                actual_ext, expected_ext
             )));
         }
 

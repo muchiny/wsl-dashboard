@@ -1,6 +1,6 @@
 [package]
 name = "wsl-nexus"
-version = "1.0.1"
+version = "1.0.2"
 description = "Advanced WSL2 management dashboard"
 authors = ["muchini"]
 edition = "2024"
@@ -44,13 +44,20 @@ uuid = { version = "1", features = ["v4", "serde"] }
 
 # Logging
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["fmt", "ansi", "env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["fmt", "ansi", "env-filter", "registry"] }
 
 # Platform utilities
 dirs = "6"
 
 # Terminal PTY
 portable-pty = "0.9"
+
+# Profiling: CrabNebula DevTools (opt-in via --features devtools)
+tauri-plugin-devtools = { version = "2.0.0-rc.2", optional = true }
+
+[features]
+default = []
+devtools = ["dep:tauri-plugin-devtools"]
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
@@ -68,3 +75,8 @@ opt-level = "s"
 lto = true
 codegen-units = 1
 strip = true
+
+[profile.profiling]
+inherits = "release"
+debug = true
+strip = false

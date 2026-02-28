@@ -19,7 +19,7 @@ impl NetshAdapter {
         let mut cmd = Command::new("wsl.exe");
         #[cfg(windows)]
         {
-            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            cmd.creation_flags(crate::infrastructure::CREATE_NO_WINDOW);
         }
         cmd
     }
@@ -30,7 +30,7 @@ impl NetshAdapter {
         let mut cmd = Command::new("netsh.exe");
         #[cfg(windows)]
         {
-            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            cmd.creation_flags(crate::infrastructure::CREATE_NO_WINDOW);
         }
         cmd
     }

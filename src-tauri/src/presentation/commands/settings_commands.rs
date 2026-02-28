@@ -1,4 +1,5 @@
 use tauri::State;
+use tracing::instrument;
 
 use crate::domain::entities::wsl_config::WslGlobalConfig;
 use crate::domain::entities::wsl_version::WslVersionInfo;
@@ -7,11 +8,13 @@ use crate::domain::value_objects::DistroName;
 use crate::presentation::state::AppState;
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "get_wsl_config"))]
 pub async fn get_wsl_config(state: State<'_, AppState>) -> Result<WslGlobalConfig, DomainError> {
     state.wsl_manager.get_global_config().await
 }
 
 #[tauri::command]
+#[instrument(skip(state, config), fields(cmd = "update_wsl_config"))]
 pub async fn update_wsl_config(
     config: WslGlobalConfig,
     state: State<'_, AppState>,
@@ -25,6 +28,7 @@ pub async fn update_wsl_config(
 }
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "compact_vhdx", distro = %distro_name))]
 pub async fn compact_vhdx(
     distro_name: String,
     state: State<'_, AppState>,
@@ -41,6 +45,7 @@ pub async fn compact_vhdx(
 }
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "get_wsl_version"))]
 pub async fn get_wsl_version(state: State<'_, AppState>) -> Result<WslVersionInfo, DomainError> {
     state.wsl_manager.get_version_info().await
 }

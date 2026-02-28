@@ -67,10 +67,20 @@ impl CreateSnapshotHandler {
             .await
         {
             Ok(()) => {
-                // Try to read file size; non-critical if it fails (cross-filesystem)
+                // Read file size and reject empty exports
                 snapshot.file_size = std::fs::metadata(&file_path)
                     .map(|m| MemorySize::from_bytes(m.len()))
                     .unwrap_or_else(|_| MemorySize::zero());
+
+                if snapshot.file_size.bytes() == 0 {
+                    snapshot.status =
+                        SnapshotStatus::Failed("Export produced an empty file".into());
+                    self.snapshot_repo.save(&snapshot).await?;
+                    return Err(DomainError::SnapshotError(
+                        "Export produced an empty file (0 bytes)".into(),
+                    ));
+                }
+
                 snapshot.status = SnapshotStatus::Completed;
             }
             Err(e) => {

@@ -11,6 +11,6 @@ export function useDistros() {
   return useQuery({
     queryKey: distroKeys.list(),
     queryFn: () => tauriInvoke<Distro[]>("list_distros"),
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
   });
 }

@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use tauri::State;
+use tracing::instrument;
 
 use crate::application::commands::create_snapshot::{CreateSnapshotCommand, CreateSnapshotHandler};
 use crate::application::commands::delete_snapshot::{DeleteSnapshotCommand, DeleteSnapshotHandler};
@@ -14,6 +15,7 @@ use crate::domain::value_objects::{DistroName, SnapshotId};
 use crate::presentation::state::AppState;
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "list_snapshots"))]
 pub async fn list_snapshots(
     distro_name: Option<String>,
     state: State<'_, AppState>,
@@ -36,6 +38,7 @@ pub struct CreateSnapshotArgs {
 }
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "create_snapshot", distro = %args.distro_name))]
 pub async fn create_snapshot(
     args: CreateSnapshotArgs,
     state: State<'_, AppState>,
@@ -64,6 +67,7 @@ pub async fn create_snapshot(
 }
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "delete_snapshot", snapshot = %snapshot_id))]
 pub async fn delete_snapshot(
     snapshot_id: String,
     state: State<'_, AppState>,
@@ -87,6 +91,7 @@ pub struct RestoreSnapshotArgs {
 }
 
 #[tauri::command]
+#[instrument(skip(state), fields(cmd = "restore_snapshot", snapshot = %args.snapshot_id))]
 pub async fn restore_snapshot(
     args: RestoreSnapshotArgs,
     state: State<'_, AppState>,

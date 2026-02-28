@@ -33,6 +33,13 @@ describe("useWslConfig", () => {
       dns_tunneling: true,
       firewall: true,
       auto_proxy: true,
+      networking_mode: null,
+      gui_applications: null,
+      default_vhd_size: null,
+      dns_proxy: null,
+      safe_mode: null,
+      auto_memory_reclaim: null,
+      sparse_vhd: null,
     };
     mockInvoke.mockResolvedValue(config);
 
@@ -59,6 +66,13 @@ describe("useWslConfig", () => {
       dns_tunneling: null,
       firewall: null,
       auto_proxy: null,
+      networking_mode: null,
+      gui_applications: null,
+      default_vhd_size: null,
+      dns_proxy: null,
+      safe_mode: null,
+      auto_memory_reclaim: null,
+      sparse_vhd: null,
     };
     mockInvoke.mockResolvedValue(config);
 

@@ -1,6 +1,7 @@
 import { tauriInvoke } from "@/shared/api/tauri-client";
 import { useTauriMutation } from "@/shared/api/use-tauri-mutation";
 import { snapshotKeys } from "./queries";
+import { distroKeys } from "@/shared/api/distro-queries";
 import type { Snapshot, CreateSnapshotArgs, RestoreSnapshotArgs } from "@/shared/types/snapshot";
 
 export function useCreateSnapshot() {
@@ -22,7 +23,7 @@ export function useDeleteSnapshot() {
 export function useRestoreSnapshot() {
   return useTauriMutation<void, RestoreSnapshotArgs>({
     mutationFn: (args) => tauriInvoke("restore_snapshot", { args }),
-    invalidateKeys: [snapshotKeys.all],
+    invalidateKeys: [snapshotKeys.all, distroKeys.all],
     successMessage: "Snapshot restored successfully",
     errorMessage: (err) => `Restore failed: ${err.message}`,
   });

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { create } from "zustand";
 import { listen } from "@tauri-apps/api/event";
-import { tauriInvoke } from "@/shared/api/tauri-client";
+import { onIpcTiming, tauriInvoke } from "@/shared/api/tauri-client";
 
 // ── Types ──
 
@@ -55,7 +55,7 @@ export const useDebugConsoleStore = create<DebugConsoleState>((set) => ({
 
 let jsIdCounter = 100_000;
 
-function createJsEntry(level: LogLevel, message: string): LogEntry {
+function createJsEntry(level: LogLevel, message: string, target = "frontend"): LogEntry {
   return {
     id: jsIdCounter++,
     timestamp: new Date().toLocaleTimeString("en-GB", {
@@ -67,7 +67,7 @@ function createJsEntry(level: LogLevel, message: string): LogEntry {
     } as Intl.DateTimeFormatOptions),
     level,
     message,
-    target: "frontend",
+    target,
   };
 }
 
@@ -136,6 +136,19 @@ export function useDebugConsoleSetup() {
       }
     };
     window.addEventListener("keydown", onKeydown);
+
+    // 7. IPC timing (dev only) — shows command round-trip durations
+    if (import.meta.env.DEV) {
+      onIpcTiming((cmd, durationMs, ok) => {
+        useDebugConsoleStore.getState().addLog(
+          createJsEntry(
+            ok ? "DEBUG" : "WARN",
+            `IPC ${cmd} ${ok ? "OK" : "FAIL"} (${durationMs.toFixed(1)}ms)`,
+            "ipc",
+          ),
+        );
+      });
+    }
 
     return () => {
       // Restore originals

@@ -90,7 +90,11 @@
     "toastStartAllSuccess_other": "Started {{count}} distributions",
     "toastStartAllFailed": "Failed to start {{count}} distribution",
     "toastStartAllFailed_other": "Failed to start {{count}} distributions",
-    "toastStartAllError": "Start all failed: {{message}}"
+    "toastStartAllError": "Start all failed: {{message}}",
+    "toastSetDefault": "{{name}} set as default",
+    "toastSetDefaultFailed": "Failed to set {{name}} as default: {{message}}",
+    "toastResized": "{{name}} resized to {{size}}",
+    "toastResizeFailed": "Failed to resize {{name}}: {{message}}"
   },
   "snapshots": {
     "title": "Snapshots — {{name}}",
@@ -257,7 +261,20 @@
     "kernelCommandLine": "Kernel Command Line",
     "kernelCommandLinePlaceholder": "e.g. initrd=\\initrd.img",
     "swapFilePath": "Swap File Path",
-    "swapFilePathPlaceholder": "e.g. C:\\Users\\user\\swap.vhdx"
+    "swapFilePathPlaceholder": "e.g. C:\\Users\\user\\swap.vhdx",
+    "networkingMode": "Networking Mode",
+    "networkingModeDefault": "Default (NAT)",
+    "autoMemoryReclaim": "Auto Memory Reclaim",
+    "autoMemoryReclaimDefault": "Default",
+    "autoMemoryReclaimDisabled": "Disabled",
+    "autoMemoryReclaimGradual": "Gradual",
+    "autoMemoryReclaimDropCache": "Drop Cache",
+    "guiApplications": "GUI Applications (WSLg)",
+    "dnsProxy": "DNS Proxy",
+    "safeMode": "Safe Mode",
+    "sparseVhd": "Sparse VHD (Auto-shrink)",
+    "defaultVhdSize": "Default VHD Size",
+    "defaultVhdSizePlaceholder": "e.g. 1024GB"
   },
   "wslInfo": {
     "title": "WSL System Information",

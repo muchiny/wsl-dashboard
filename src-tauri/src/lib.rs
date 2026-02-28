@@ -74,6 +74,7 @@ pub fn run() {
             tracing_subscriber::fmt::layer()
                 .with_target(true)
                 .with_ansi(true)
+                .with_span_events(tracing_subscriber::fmt::format::FmtSpan::CLOSE)
                 .with_filter(console_filter),
         )
         .with(debug_layer.with_filter(target_filter))
@@ -118,12 +119,21 @@ pub fn run() {
 
     let buffer_for_state = debug_buffer.clone();
 
-    tauri::Builder::default()
+    #[allow(unused_mut)]
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_notification::init())
-        .setup(move |app| {
+        .plugin(tauri_plugin_notification::init());
+
+    // CrabNebula DevTools: opt-in with `cargo tauri dev --features devtools`
+    #[cfg(feature = "devtools")]
+    {
+        builder = builder.plugin(tauri_plugin_devtools::init());
+        tracing::info!("CrabNebula DevTools enabled");
+    }
+
+    builder.setup(move |app| {
             let app_handle = app.handle().clone();
 
             // Wire the AppHandle into the debug log layer for real-time events
@@ -258,6 +268,8 @@ pub fn run() {
             distro_commands::restart_distro,
             distro_commands::shutdown_all,
             distro_commands::get_distro_install_path,
+            distro_commands::set_default_distro,
+            distro_commands::resize_vhd,
             snapshot_commands::list_snapshots,
             snapshot_commands::create_snapshot,
             snapshot_commands::delete_snapshot,
@@ -279,6 +291,7 @@ pub fn run() {
             terminal_commands::terminal_create,
             terminal_commands::terminal_write,
             terminal_commands::terminal_resize,
+            terminal_commands::terminal_is_alive,
             terminal_commands::terminal_close,
             port_forwarding_commands::list_listening_ports,
             port_forwarding_commands::get_port_forwarding_rules,

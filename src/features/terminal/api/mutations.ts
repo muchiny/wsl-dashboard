@@ -31,6 +31,10 @@ export async function resizeTerminal(sessionId: string, cols: number, rows: numb
   return invoke("terminal_resize", { sessionId, cols, rows });
 }
 
+export async function isTerminalAlive(sessionId: string): Promise<boolean> {
+  return invoke<boolean>("terminal_is_alive", { sessionId });
+}
+
 export async function closeTerminal(sessionId: string): Promise<void> {
   return invoke("terminal_close", { sessionId });
 }

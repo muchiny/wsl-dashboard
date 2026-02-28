@@ -5,6 +5,7 @@ export interface ValidationErrors {
   swap?: string;
   processors?: string;
   vm_idle_timeout?: string;
+  default_vhd_size?: string;
 }
 
 const MEMORY_REGEX = /^\d+(KB|MB|GB)$/i;
@@ -30,6 +31,10 @@ export function validateWslConfig(form: WslGlobalConfig): ValidationErrors {
     if (!Number.isInteger(form.vm_idle_timeout) || form.vm_idle_timeout < 0) {
       errors.vm_idle_timeout = "Must be a non-negative integer";
     }
+  }
+
+  if (form.default_vhd_size && !MEMORY_REGEX.test(form.default_vhd_size)) {
+    errors.default_vhd_size = "Must be a number followed by KB, MB, or GB (e.g. 1024GB)";
   }
 
   return errors;

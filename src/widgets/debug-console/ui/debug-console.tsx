@@ -142,7 +142,12 @@ export function DebugConsole() {
                           {entry.level}
                         </span>
                       </td>
-                      <td className="text-mauve px-2 py-0.5 whitespace-nowrap">
+                      <td
+                        className={cn(
+                          "px-2 py-0.5 whitespace-nowrap",
+                          entry.target === "ipc" ? "text-teal" : "text-mauve",
+                        )}
+                      >
                         {entry.target.split("::").pop()}
                       </td>
                       <td className="text-text w-full px-2 py-0.5 break-all">{entry.message}</td>

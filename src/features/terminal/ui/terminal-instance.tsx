@@ -4,7 +4,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import "@xterm/xterm/css/xterm.css";
 import { listen } from "@tauri-apps/api/event";
-import { writeTerminal, resizeTerminal, closeTerminal } from "../api/mutations";
+import { writeTerminal, resizeTerminal, isTerminalAlive } from "../api/mutations";
 import { useThemeStore } from "@/shared/hooks/use-theme";
 import { useTerminalStore } from "../model/use-terminal-store";
 
@@ -67,6 +67,7 @@ export function TerminalInstance({ sessionId, isActive }: TerminalInstanceProps)
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
   const isActiveRef = useRef(isActive);
   const theme = useThemeStore((s) => s.theme);
   const removeSession = useTerminalStore((s) => s.removeSession);
@@ -79,86 +80,107 @@ export function TerminalInstance({ sessionId, isActive }: TerminalInstanceProps)
     const container = containerRef.current;
     if (!container) return;
 
-    const fitAddon = new FitAddon();
-    const webLinksAddon = new WebLinksAddon();
+    let cancelled = false;
 
-    const terminal = new Terminal({
-      theme: theme === "dark" ? CATPPUCCIN_MOCHA : CATPPUCCIN_LATTE,
-      fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace",
-      fontSize: 13,
-      lineHeight: 1.2,
-      cursorBlink: true,
-      cursorStyle: "block",
-      scrollback: 5000,
-      allowProposedApi: true,
-    });
-
-    terminal.loadAddon(fitAddon);
-    terminal.loadAddon(webLinksAddon);
-    terminal.open(container);
-
-    // Initial fit
-    requestAnimationFrame(() => {
-      fitAddon.fit();
-      resizeTerminal(sessionId, terminal.cols, terminal.rows).catch(() => {});
-    });
-
-    // Send user input to backend
-    const inputDispose = terminal.onData((data) => {
-      const encoder = new TextEncoder();
-      writeTerminal(sessionId, encoder.encode(data)).catch(() => {});
-    });
-
-    // Listen for output from backend
-    const outputUnlisten = listen<{ session_id: string; data: number[] }>(
-      "terminal-output",
-      (event) => {
-        if (event.payload.session_id === sessionId) {
-          const bytes = new Uint8Array(event.payload.data);
-          terminal.write(bytes);
-        }
-      },
-    );
-
-    // Listen for session exit
-    const exitUnlisten = listen<{ session_id: string }>("terminal-exit", (event) => {
-      if (event.payload.session_id === sessionId) {
-        terminal.write("\r\n\x1b[90m[Session ended]\x1b[0m\r\n");
-        removeSession(sessionId);
+    const setup = async () => {
+      // Check if the backend session is still alive before creating xterm
+      const alive = await isTerminalAlive(sessionId).catch(() => false);
+      if (!alive || cancelled) {
+        if (!alive) removeSession(sessionId);
+        return;
       }
-    });
 
-    // Resize observer for container changes
-    const resizeObserver = new ResizeObserver(() => {
+      const fitAddon = new FitAddon();
+      const webLinksAddon = new WebLinksAddon();
+
+      const terminal = new Terminal({
+        theme: theme === "dark" ? CATPPUCCIN_MOCHA : CATPPUCCIN_LATTE,
+        fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace",
+        fontSize: 13,
+        lineHeight: 1.2,
+        cursorBlink: true,
+        cursorStyle: "block",
+        scrollback: 5000,
+        allowProposedApi: true,
+      });
+
+      terminal.loadAddon(fitAddon);
+      terminal.loadAddon(webLinksAddon);
+      terminal.open(container);
+
+      // Initial fit
       requestAnimationFrame(() => {
         fitAddon.fit();
         resizeTerminal(sessionId, terminal.cols, terminal.rows).catch(() => {});
       });
-    });
-    resizeObserver.observe(container);
 
-    // Refit terminal when window is restored from minimize
-    const handleVisibilityChange = () => {
-      if (!document.hidden && isActiveRef.current) {
+      // Send user input to backend
+      const inputDispose = terminal.onData((data) => {
+        const encoder = new TextEncoder();
+        writeTerminal(sessionId, encoder.encode(data)).catch(() => {});
+      });
+
+      // Listen for output from backend
+      const outputUnlisten = listen<{ session_id: string; data: number[] }>(
+        "terminal-output",
+        (event) => {
+          if (event.payload.session_id === sessionId) {
+            const bytes = new Uint8Array(event.payload.data);
+            terminal.write(bytes);
+          }
+        },
+      );
+
+      // Listen for session exit
+      const exitUnlisten = listen<{ session_id: string }>("terminal-exit", (event) => {
+        if (event.payload.session_id === sessionId) {
+          terminal.write("\r\n\x1b[90m[Session ended]\x1b[0m\r\n");
+          removeSession(sessionId);
+        }
+      });
+
+      // Resize observer for container changes
+      const resizeObserver = new ResizeObserver(() => {
         requestAnimationFrame(() => {
           fitAddon.fit();
-          terminal.refresh(0, terminal.rows - 1);
+          resizeTerminal(sessionId, terminal.cols, terminal.rows).catch(() => {});
         });
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+      });
+      resizeObserver.observe(container);
 
-    terminalRef.current = terminal;
-    fitAddonRef.current = fitAddon;
+      // Refit terminal when window is restored from minimize
+      const handleVisibilityChange = () => {
+        if (!document.hidden && isActiveRef.current) {
+          requestAnimationFrame(() => {
+            fitAddon.fit();
+            terminal.refresh(0, terminal.rows - 1);
+          });
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+
+      terminalRef.current = terminal;
+      fitAddonRef.current = fitAddon;
+
+      // Store cleanup references
+      cleanupRef.current = () => {
+        inputDispose.dispose();
+        outputUnlisten.then((fn) => fn());
+        exitUnlisten.then((fn) => fn());
+        resizeObserver.disconnect();
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+        terminal.dispose();
+      };
+    };
+
+    setup();
 
     return () => {
-      inputDispose.dispose();
-      outputUnlisten.then((fn) => fn());
-      exitUnlisten.then((fn) => fn());
-      resizeObserver.disconnect();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      terminal.dispose();
-      closeTerminal(sessionId).catch(() => {});
+      cancelled = true;
+      cleanupRef.current?.();
+      cleanupRef.current = null;
+      terminalRef.current = null;
+      fitAddonRef.current = null;
     };
   }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 

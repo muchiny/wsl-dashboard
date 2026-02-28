@@ -35,11 +35,14 @@ fn linux_to_windows_path(path: &str) -> String {
 /// Convert a Windows X:\... path to Linux /mnt/x/... for WSL2 filesystem access.
 /// Passes through paths that are already Linux-style.
 fn windows_to_linux_path(path: &str) -> String {
-    let bytes = path.as_bytes();
-    if bytes.len() >= 3 && bytes[1] == b':' && (bytes[2] == b'\\' || bytes[2] == b'/') {
-        let drive = (bytes[0] as char).to_lowercase().next().unwrap();
-        let rest = path[3..].replace('\\', "/");
-        return format!("/mnt/{}/{}", drive, rest);
+    let mut chars = path.chars();
+    if let Some(drive) = chars.next()
+        && drive.is_ascii_alphabetic()
+        && chars.next() == Some(':')
+        && matches!(chars.next(), Some('\\') | Some('/'))
+    {
+        let rest: String = chars.collect::<String>().replace('\\', "/");
+        return format!("/mnt/{}/{}", drive.to_ascii_lowercase(), rest);
     }
     path.to_string()
 }
@@ -89,13 +92,15 @@ impl WslCliAdapter {
         }
     }
 
-    /// Build a Command with CREATE_NO_WINDOW on Windows to prevent console popups
+    /// Build a Command with CREATE_NO_WINDOW on Windows to prevent console popups.
+    /// Sets WSL_UTF8=1 to force UTF-8 output from wsl.exe management commands.
     fn wsl_command(&self) -> Command {
         #[allow(unused_mut)]
         let mut cmd = Command::new(&self.wsl_exe);
+        cmd.env("WSL_UTF8", "1");
         #[cfg(windows)]
         {
-            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            cmd.creation_flags(crate::infrastructure::CREATE_NO_WINDOW);
         }
         cmd
     }
@@ -154,10 +159,6 @@ impl WslCliAdapter {
             .await
             .map_err(|e| DomainError::WslCliError(e.to_string()))?;
 
-        // Commands inside distro output UTF-8
-        let stdout = String::from_utf8(output.stdout)
-            .map_err(|e| DomainError::WslCliError(e.to_string()))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(DomainError::WslCliError(format!(
@@ -166,7 +167,8 @@ impl WslCliAdapter {
             )));
         }
 
-        Ok(stdout)
+        // Only decode stdout after confirming success
+        String::from_utf8(output.stdout).map_err(|e| DomainError::WslCliError(e.to_string()))
     }
 
     /// Resolve the Windows user profile path.
@@ -253,11 +255,41 @@ impl WslCliAdapter {
         None
     }
 
+    /// Return all lines from an INI file that do NOT belong to the given sections.
+    /// Preserves comments, blank lines, and other sections verbatim.
+    fn lines_outside_sections(content: &str, sections: &[&str]) -> String {
+        let mut result = Vec::new();
+        let mut inside_managed = false;
+
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with('[') && trimmed.ends_with(']') {
+                let section_name = trimmed[1..trimmed.len() - 1].to_lowercase();
+                inside_managed = sections.iter().any(|&s| s == section_name);
+                if !inside_managed {
+                    result.push(line.to_string());
+                }
+            } else if !inside_managed {
+                result.push(line.to_string());
+            }
+        }
+
+        // Trim leading blank lines from preserved content
+        while result.first().is_some_and(|l| l.trim().is_empty()) {
+            result.remove(0);
+        }
+
+        result.join("\n")
+    }
+
     /// Parse a simple INI-style config into a map of section -> key -> value
     pub fn parse_ini(
         content: &str,
     ) -> std::collections::HashMap<String, std::collections::HashMap<String, String>> {
-        let mut sections = std::collections::HashMap::new();
+        let mut sections: std::collections::HashMap<
+            String,
+            std::collections::HashMap<String, String>,
+        > = std::collections::HashMap::new();
         let mut current_section = String::new();
 
         for line in content.lines() {
@@ -272,7 +304,7 @@ impl WslCliAdapter {
             if let Some((key, value)) = line.split_once('=') {
                 sections
                     .entry(current_section.clone())
-                    .or_insert_with(std::collections::HashMap::new)
+                    .or_default()
                     .insert(key.trim().to_lowercase(), value.trim().to_string());
             }
         }
@@ -335,10 +367,8 @@ fn parse_version_output(text: &str) -> WslVersionInfo {
         }
     }
 
-    if info.kernel_version.is_none()
-        && let Some(ver) = unmatched_versions.into_iter().next()
-    {
-        info.kernel_version = Some(ver);
+    if info.kernel_version.is_none() {
+        info.kernel_version = unmatched_versions.into_iter().next();
     }
 
     info
@@ -373,9 +403,24 @@ impl WslManagerPort for WslCliAdapter {
             .stdin(Stdio::null())
             .spawn()
             .map_err(|e| DomainError::WslCliError(format!("Failed to start distro: {}", e)))?;
-        // Give WSL a moment to initialize the distro
-        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-        Ok(())
+
+        // Poll until the distro reports Running (max 5s, 250ms intervals)
+        let deadline =
+            tokio::time::Instant::now() + std::time::Duration::from_secs(5);
+        loop {
+            tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+            if let Ok(distro) = self.get_distro(name).await {
+                if distro.state == crate::domain::value_objects::DistroState::Running {
+                    return Ok(());
+                }
+            }
+            if tokio::time::Instant::now() >= deadline {
+                return Err(DomainError::WslCliError(format!(
+                    "Timed out waiting for '{}' to start",
+                    name
+                )));
+            }
+        }
     }
 
     async fn terminate_distro(&self, name: &DistroName) -> Result<(), DomainError> {
@@ -441,13 +486,13 @@ impl WslManagerPort for WslCliAdapter {
 
     async fn get_global_config(&self) -> Result<WslGlobalConfig, DomainError> {
         let path = Self::get_wslconfig_path()?;
-        let content = match std::fs::read_to_string(&path) {
-            Ok(c) => c,
-            Err(_) => return Ok(WslGlobalConfig::default()),
+        let Ok(content) = std::fs::read_to_string(&path) else {
+            return Ok(WslGlobalConfig::default());
         };
 
         let sections = Self::parse_ini(&content);
         let wsl2 = sections.get("wsl2").cloned().unwrap_or_default();
+        let experimental = sections.get("experimental").cloned().unwrap_or_default();
 
         Ok(WslGlobalConfig {
             memory: wsl2.get("memory").cloned(),
@@ -462,6 +507,13 @@ impl WslManagerPort for WslCliAdapter {
             dns_tunneling: wsl2.get("dnstunneling").map(|v| v == "true"),
             firewall: wsl2.get("firewall").map(|v| v == "true"),
             auto_proxy: wsl2.get("autoproxy").map(|v| v == "true"),
+            networking_mode: wsl2.get("networkingmode").cloned(),
+            gui_applications: wsl2.get("guiapplications").map(|v| v == "true"),
+            default_vhd_size: wsl2.get("defaultvhdsize").cloned(),
+            dns_proxy: wsl2.get("dnsproxy").map(|v| v == "true"),
+            safe_mode: wsl2.get("safemode").map(|v| v == "true"),
+            auto_memory_reclaim: experimental.get("automemoryreclaim").cloned(),
+            sparse_vhd: experimental.get("sparsevhd").map(|v| v == "true"),
         })
     }
 
@@ -480,6 +532,8 @@ impl WslManagerPort for WslCliAdapter {
         let interop = sections.get("interop").cloned().unwrap_or_default();
         let user = sections.get("user").cloned().unwrap_or_default();
         let boot = sections.get("boot").cloned().unwrap_or_default();
+        let gpu = sections.get("gpu").cloned().unwrap_or_default();
+        let time = sections.get("time").cloned().unwrap_or_default();
 
         Ok(WslDistroConfig {
             automount_enabled: automount.get("enabled").map(|v| v == "true"),
@@ -492,52 +546,88 @@ impl WslManagerPort for WslCliAdapter {
             user_default: user.get("default").cloned(),
             boot_systemd: boot.get("systemd").map(|v| v == "true"),
             boot_command: boot.get("command").cloned(),
+            gpu_enabled: gpu.get("enabled").map(|v| v == "true"),
+            use_windows_timezone: time.get("usewindowstimezone").map(|v| v == "true"),
         })
     }
 
     async fn update_global_config(&self, config: WslGlobalConfig) -> Result<(), DomainError> {
         let path = Self::get_wslconfig_path()?;
-        let mut lines = vec!["[wsl2]".to_string()];
 
-        if let Some(ref memory) = config.memory {
-            lines.push(format!("memory={}", memory));
+        // Read existing content to preserve sections we don't manage
+        let existing = std::fs::read_to_string(&path).unwrap_or_default();
+        let preserved = Self::lines_outside_sections(&existing, &["wsl2", "experimental"]);
+
+        // Build [wsl2] section
+        let mut wsl2_lines = vec!["[wsl2]".to_string()];
+        macro_rules! push_opt {
+            ($field:expr, $key:literal) => {
+                if let Some(ref v) = $field {
+                    wsl2_lines.push(format!("{}={}", $key, v));
+                }
+            };
         }
-        if let Some(processors) = config.processors {
-            lines.push(format!("processors={}", processors));
+        push_opt!(config.memory, "memory");
+        if let Some(v) = config.processors {
+            wsl2_lines.push(format!("processors={}", v));
         }
-        if let Some(ref swap) = config.swap {
-            lines.push(format!("swap={}", swap));
-        }
-        if let Some(ref swap_file) = config.swap_file {
-            lines.push(format!("swapFile={}", swap_file));
-        }
+        push_opt!(config.swap, "swap");
+        push_opt!(config.swap_file, "swapFile");
         if let Some(v) = config.localhost_forwarding {
-            lines.push(format!("localhostForwarding={}", v));
+            wsl2_lines.push(format!("localhostForwarding={}", v));
         }
-        if let Some(ref kernel) = config.kernel {
-            lines.push(format!("kernel={}", kernel));
-        }
-        if let Some(ref kcl) = config.kernel_command_line {
-            lines.push(format!("kernelCommandLine={}", kcl));
-        }
+        push_opt!(config.kernel, "kernel");
+        push_opt!(config.kernel_command_line, "kernelCommandLine");
         if let Some(v) = config.nested_virtualization {
-            lines.push(format!("nestedVirtualization={}", v));
+            wsl2_lines.push(format!("nestedVirtualization={}", v));
         }
         if let Some(v) = config.vm_idle_timeout {
-            lines.push(format!("vmIdleTimeout={}", v));
+            wsl2_lines.push(format!("vmIdleTimeout={}", v));
         }
         if let Some(v) = config.dns_tunneling {
-            lines.push(format!("dnsTunneling={}", v));
+            wsl2_lines.push(format!("dnsTunneling={}", v));
         }
         if let Some(v) = config.firewall {
-            lines.push(format!("firewall={}", v));
+            wsl2_lines.push(format!("firewall={}", v));
         }
         if let Some(v) = config.auto_proxy {
-            lines.push(format!("autoProxy={}", v));
+            wsl2_lines.push(format!("autoProxy={}", v));
+        }
+        push_opt!(config.networking_mode, "networkingMode");
+        if let Some(v) = config.gui_applications {
+            wsl2_lines.push(format!("guiApplications={}", v));
+        }
+        push_opt!(config.default_vhd_size, "defaultVhdSize");
+        if let Some(v) = config.dns_proxy {
+            wsl2_lines.push(format!("dnsProxy={}", v));
+        }
+        if let Some(v) = config.safe_mode {
+            wsl2_lines.push(format!("safeMode={}", v));
         }
 
-        let content = lines.join("\n") + "\n";
-        std::fs::write(&path, content)
+        // Build [experimental] section (only if there are values to write)
+        let mut exp_lines = Vec::new();
+        if config.auto_memory_reclaim.is_some() || config.sparse_vhd.is_some() {
+            exp_lines.push("[experimental]".to_string());
+            push_opt!(config.auto_memory_reclaim, "autoMemoryReclaim");
+            if let Some(v) = config.sparse_vhd {
+                exp_lines.push(format!("sparseVhd={}", v));
+            }
+        }
+
+        // Combine: managed sections first, then preserved lines
+        let mut output = wsl2_lines.join("\n");
+        if !exp_lines.is_empty() {
+            output.push('\n');
+            output.push_str(&exp_lines.join("\n"));
+        }
+        if !preserved.is_empty() {
+            output.push('\n');
+            output.push_str(&preserved);
+        }
+        output.push('\n');
+
+        std::fs::write(&path, output)
             .map_err(|e| DomainError::ConfigError(format!("Failed to write .wslconfig: {}", e)))?;
 
         Ok(())
@@ -601,6 +691,17 @@ impl WslManagerPort for WslCliAdapter {
             "Cannot read Windows registry for '{}' on this platform",
             name
         )))
+    }
+
+    async fn resize_vhd(&self, name: &DistroName, size: &str) -> Result<(), DomainError> {
+        self.run_wsl_raw(&["--manage", name.as_str(), "--resize", size])
+            .await?;
+        Ok(())
+    }
+
+    async fn set_default_distro(&self, name: &DistroName) -> Result<(), DomainError> {
+        self.run_wsl_raw(&["--set-default", name.as_str()]).await?;
+        Ok(())
     }
 }
 
@@ -786,6 +887,55 @@ mod tests {
         assert_eq!(info.kernel_version.as_deref(), Some("5.15.133.1"));
         assert_eq!(info.wslg_version.as_deref(), Some("1.0.71"));
         assert_eq!(info.windows_version.as_deref(), Some("10.0.22631"));
+    }
+
+    #[test]
+    fn test_lines_outside_sections_preserves_other_sections() {
+        let ini = "[wsl2]\nmemory=4GB\n[boot]\ncommand=echo hi\n[experimental]\nautoMemoryReclaim=dropCache\n";
+        let preserved = WslCliAdapter::lines_outside_sections(ini, &["wsl2", "experimental"]);
+        assert!(preserved.contains("[boot]"));
+        assert!(preserved.contains("command=echo hi"));
+        assert!(!preserved.contains("[wsl2]"));
+        assert!(!preserved.contains("memory=4GB"));
+        assert!(!preserved.contains("[experimental]"));
+        assert!(!preserved.contains("autoMemoryReclaim"));
+    }
+
+    #[test]
+    fn test_lines_outside_sections_preserves_comments() {
+        // Comments before any section are preserved; comments inside a managed section are removed
+        let ini = "# Global comment\n[wsl2]\nmemory=4GB\n# Inside wsl2\n[other]\n# Inside other\nfoo=bar\n";
+        let preserved = WslCliAdapter::lines_outside_sections(ini, &["wsl2"]);
+        assert!(preserved.contains("# Global comment"));
+        assert!(!preserved.contains("# Inside wsl2"));
+        assert!(preserved.contains("[other]"));
+        assert!(preserved.contains("# Inside other"));
+        assert!(preserved.contains("foo=bar"));
+    }
+
+    #[test]
+    fn test_lines_outside_sections_empty_input() {
+        let preserved = WslCliAdapter::lines_outside_sections("", &["wsl2"]);
+        assert!(preserved.is_empty());
+    }
+
+    #[test]
+    fn test_lines_outside_sections_no_managed_sections() {
+        let ini = "[boot]\ncommand=echo hi\n";
+        let preserved = WslCliAdapter::lines_outside_sections(ini, &["wsl2"]);
+        assert!(preserved.contains("[boot]"));
+        assert!(preserved.contains("command=echo hi"));
+    }
+
+    #[test]
+    fn test_parse_global_config_with_experimental() {
+        let ini = "[wsl2]\nmemory=4GB\nnetworkingMode=mirrored\n[experimental]\nautoMemoryReclaim=dropCache\nsparseVhd=true\n";
+        let sections = WslCliAdapter::parse_ini(ini);
+        let wsl2 = sections.get("wsl2").unwrap();
+        assert_eq!(wsl2.get("networkingmode").unwrap(), "mirrored");
+        let exp = sections.get("experimental").unwrap();
+        assert_eq!(exp.get("automemoryreclaim").unwrap(), "dropCache");
+        assert_eq!(exp.get("sparsevhd").unwrap(), "true");
     }
 
     mod proptests {
