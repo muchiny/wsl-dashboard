@@ -1,11 +1,11 @@
 # WSL Nexus
 
-> **Desktop application for comprehensive WSL2 distribution management** -- Monitoring, Snapshots, Configuration, and Audit Logging.
+> **Desktop application for comprehensive WSL2 distribution management** -- Monitoring, Snapshots, Terminal, Port Forwarding, Configuration, and Audit Logging.
 
 ![Tauri v2](https://img.shields.io/badge/Tauri-v2-blue?logo=tauri)
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react)
 ![Rust 1.93](https://img.shields.io/badge/Rust-1.93-orange?logo=rust)
-![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript)
+![TypeScript 5.9](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)
 ![CI](https://img.shields.io/github/actions/workflow/status/muchini/wsl-nexus/ci.yml?label=CI&logo=github)
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 
@@ -16,11 +16,15 @@
 | Feature | Description |
 |---|---|
 | **Distribution Management** | List, start, stop, restart your WSL distros |
-| **Snapshots** | Create, restore and delete backups (tar, tar.gz, tar.xz, vhdx) |
-| **Real-Time Monitoring** | CPU, memory, disk, network + process table |
+| **Snapshots** | Create, restore and delete backups (tar, vhdx) |
+| **Real-Time Monitoring** | CPU, memory, disk, network + process table + historical metrics + alerting |
+| **Terminal** | Interactive WSL terminal sessions (xterm) |
+| **Port Forwarding** | WSL-to-Windows port mapping via netsh |
 | **WSL Configuration** | Edit `.wslconfig` + compact VHDX disks |
 | **Audit Log** | Full traceability of all actions |
 | **Debug Console** | In-app real-time log viewer with level filtering (Ctrl+Shift+D) |
+| **Internationalization** | English, Spanish, French, Chinese |
+| **App Preferences** | Language and theme preferences |
 
 ---
 
@@ -28,8 +32,8 @@
 
 | Layer | Technologies |
 |---|---|
-| **Frontend** | React 19, TypeScript 5.7, Vite 7, Tailwind CSS 4 (Catppuccin), TanStack Query 5, TanStack Router 1, Zustand 5, Recharts 3, Lucide, Zod 4 |
-| **Backend** | Rust 1.93, Tauri v2, SQLx 0.8 (SQLite), Tokio, async-trait, thiserror, tracing |
+| **Frontend** | React 19, TypeScript 5.9, Vite 7, Tailwind CSS 4 (Catppuccin), TanStack Query 5, TanStack Router 1, Zustand 5, Recharts 3, Lucide, Zod 4, i18next, xterm |
+| **Backend** | Rust 1.93, Tauri v2, SQLx 0.8 (SQLite), Tokio, async-trait, thiserror, tracing, portable-pty |
 | **Testing** | Vitest 4 + Testing Library (frontend), mockall + tokio-test + proptest (backend) |
 | **Architecture** | Hexagonal Architecture + CQRS (backend), Feature-Sliced Design (frontend) |
 | **CI/CD** | GitHub Actions (lint, format, clippy, tests), automated release on tag push |
@@ -68,6 +72,7 @@ graph TB
     Infrastructure --> WSL["wsl.exe"]
     Infrastructure --> SQLite["SQLite"]
     Infrastructure --> ProcFS["/proc"]
+    Infrastructure --> Netsh["netsh"]
 ```
 
 ### Hexagonal Architecture (Ports & Adapters)
@@ -78,20 +83,32 @@ graph LR
         WMP["WslManagerPort"]
         SRP["SnapshotRepositoryPort"]
         MPP["MonitoringProviderPort"]
+        MRP["MetricsRepositoryPort"]
         ALP["AuditLoggerPort"]
+        ATP["AlertingPort"]
+        PFP["PortForwardingPort"]
+        PFRP["PortForwardRulesRepository"]
     end
 
     subgraph Adapters["Adapters (implementations)"]
         WCA["WslCliAdapter"] -->|implements| WMP
         SSR["SqliteSnapshotRepo"] -->|implements| SRP
         PFA["ProcFsMonitoringAdapter"] -->|implements| MPP
+        SMR["SqliteMetricsRepo"] -->|implements| MRP
         SAL["SqliteAuditLogger"] -->|implements| ALP
+        SAR["SqliteAlertRepo"] -->|implements| ATP
+        NA["NetshAdapter"] -->|implements| PFP
+        SPFR["SqlitePortForwardRepo"] -->|implements| PFRP
     end
 
     WCA --> wsl["wsl.exe"]
     SSR --> db["SQLite"]
     PFA --> proc["/proc/*"]
+    SMR --> db
     SAL --> db
+    SAR --> db
+    NA --> netsh["netsh"]
+    SPFR --> db
 ```
 
 ### CQRS Flow (example: listing distributions)
@@ -186,7 +203,7 @@ cd src-tauri && cargo test
 | `npm run test:watch` | `vitest` | Frontend tests (watch mode) |
 | `npm run tauri dev` | `tauri dev` | Full dev (frontend + backend) |
 | `npm run tauri build` | `tauri build` | Production build |
-| `cargo test` | -- | Backend Rust tests (154 tests) |
+| `cargo test` | -- | Backend Rust tests (~140 tests) |
 | `cargo clippy` | -- | Rust linter |
 | `cargo fmt --check` | -- | Rust format check |
 
@@ -252,7 +269,7 @@ wsl-nexus/
 │   └── src/
 │       ├── domain/                     # Pure business logic
 │       ├── application/                # CQRS handlers + DTOs
-│       ├── infrastructure/             # Adapters (WSL CLI, SQLite, ProcFS, Debug Log)
+│       ├── infrastructure/             # Adapters (WSL CLI, SQLite, ProcFS, Terminal, Port Forwarding, Debug Log)
 │       └── presentation/              # Tauri commands + AppState
 │
 └── src/                                # React Frontend
@@ -260,9 +277,10 @@ wsl-nexus/
     ├── app.tsx                         # Providers (QueryClient + Router)
     ├── router.tsx                      # 3 TanStack Router routes
     ├── app.css                         # Catppuccin Mocha/Latte theme
-    ├── features/                       # 6 feature slices
+    ├── locales/                        # i18n translations (en, es, fr, zh)
+    ├── features/                       # 8 feature slices
     ├── pages/                          # 3 routed pages
-    ├── shared/                         # API, hooks, types, utils
+    ├── shared/                         # API, hooks, types, stores, utils
     └── widgets/                        # Header + Debug Console
 ```
 
@@ -296,9 +314,9 @@ function RootLayout() {
 
 | Route | Page | Description |
 |---|---|---|
-| `/` | `DistrosPage` | Distribution grid + snapshot management |
+| `/` | `DistrosPage` | Distribution grid + snapshot management + terminal |
 | `/monitoring` | `MonitoringPage` | CPU, memory, disk, network charts + process table |
-| `/settings` | `SettingsPage` | `.wslconfig` editor, VHDX compaction, audit log |
+| `/settings` | `SettingsPage` | `.wslconfig` editor, VHDX compaction, port forwarding, preferences, audit log |
 
 ### Feature Slices (FSD)
 
@@ -309,7 +327,10 @@ function RootLayout() {
 | `monitoring-dashboard` | Real-time metrics charts and process table |
 | `wsl-config` | `.wslconfig` viewer and editor |
 | `audit-log` | Searchable action history log |
-| `distro-events` | Real-time distro state change events |
+| `terminal` | Interactive WSL terminal sessions (xterm) |
+| `port-forwarding` | WSL-to-Windows port forwarding configuration |
+| `app-preferences` | Language and theme preferences panel |
+| `distro-events` | Real-time distro state change events (hook only) |
 
 ### Widgets
 
@@ -327,28 +348,38 @@ pub struct AppState {
     pub wsl_manager: Arc<dyn WslManagerPort>,
     pub snapshot_repo: Arc<dyn SnapshotRepositoryPort>,
     pub monitoring: Arc<dyn MonitoringProviderPort>,
+    pub metrics_repo: Arc<dyn MetricsRepositoryPort>,
+    pub alerting: Arc<dyn AlertingPort>,
     pub audit_logger: Arc<dyn AuditLoggerPort>,
+    pub alert_thresholds: Arc<RwLock<Vec<AlertThreshold>>>,
+    pub port_forwarding: Arc<dyn PortForwardingPort>,
+    pub port_rules_repo: Arc<dyn PortForwardRulesRepository>,
 }
 ```
+
+`TerminalSessionManager` is managed separately for independent lifecycle.
 
 ### Tauri Plugins
 
 | Plugin | Purpose |
 |---|---|
-| `tauri-plugin-shell` | Execute `wsl.exe` commands from the backend |
-| `tauri-plugin-store` | Persist user preferences (theme, settings) |
+| `tauri-plugin-shell` | Execute `wsl.exe` and `netsh` commands from the backend |
+| `tauri-plugin-store` | Persist user preferences (theme, locale, settings) |
 | `tauri-plugin-dialog` | Native file dialogs for snapshot export/import |
+| `tauri-plugin-notification` | Desktop notifications for alerts and events |
 
 ### Registered Tauri Commands
 
 | Module | Commands |
 |---|---|
-| `distro_commands` | `list_distros`, `get_distro_details`, `start_distro`, `stop_distro`, `restart_distro`, `shutdown_all` |
+| `distro_commands` | `list_distros`, `start_distro`, `stop_distro`, `restart_distro`, `shutdown_all`, `get_distro_install_path` |
 | `snapshot_commands` | `list_snapshots`, `create_snapshot`, `delete_snapshot`, `restore_snapshot` |
-| `monitoring_commands` | `get_system_metrics`, `get_processes` |
-| `settings_commands` | `get_wsl_config`, `update_wsl_config`, `compact_vhdx` |
+| `monitoring_commands` | `get_system_metrics`, `get_processes`, `get_metrics_history`, `get_alert_thresholds`, `set_alert_thresholds`, `get_recent_alerts`, `acknowledge_alert` |
+| `settings_commands` | `get_wsl_config`, `update_wsl_config`, `compact_vhdx`, `get_wsl_version` |
 | `audit_commands` | `search_audit_log` |
 | `debug_commands` | `get_debug_logs`, `clear_debug_logs` |
+| `terminal_commands` | `terminal_create`, `terminal_write`, `terminal_resize`, `terminal_close` |
+| `port_forwarding_commands` | `list_listening_ports`, `get_port_forwarding_rules`, `add_port_forwarding`, `remove_port_forwarding`, `get_wsl_ip` |
 
 ### Styling: Catppuccin Theme
 
@@ -365,19 +396,19 @@ Colors are defined as CSS custom properties in `app.css` with semantic aliases (
 
 ## Tests
 
-### Backend Rust -- 154 tests
+### Backend Rust -- ~140 tests
 
 | Layer | Tests | Details |
 |---|---|---|
-| **Domain** | 39 | Value objects (23: DistroName, DistroState, WslVersion, MemorySize, SnapshotId), entities (8: Snapshot), services (4: DistroService), errors (4) |
-| **Application** | 31 | DTOs (14: DistroResponse, SnapshotResponse), queries (9: ListDistros, GetDistroDetails, ListSnapshots), commands (8: CreateSnapshot, DeleteSnapshot, RestoreSnapshot) |
-| **Infrastructure** | 84 | WSL CLI (20: adapter, encoding, parser), debug log (20: buffer), SQLite (19: adapter), monitoring (18: ProcFS adapter), audit (7: adapter) |
+| **Domain** | ~37 | Value objects (DistroName, DistroState, WslVersion, MemorySize, SnapshotId), entities (Snapshot), alerting (AlertType serde + proptest) |
+| **Application** | ~14 | DTOs (DistroResponse, SnapshotResponse mapping) |
+| **Infrastructure** | ~89 | WSL CLI (adapter, encoding, parser), debug log (buffer), SQLite (snapshots, metrics, alerts, port forwarding), monitoring (ProcFS adapter), audit (adapter) |
 
 ```bash
 cd src-tauri && cargo test
 ```
 
-### Frontend -- 155 tests (20 test files)
+### Frontend -- 383 tests (40 test files)
 
 ```bash
 npm run test          # Single run

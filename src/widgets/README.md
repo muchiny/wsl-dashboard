@@ -1,16 +1,16 @@
-# 🧱 Widgets
+# Widgets
 
 > Shared layout components — Header and Debug Console.
 
 ---
 
-## 🎯 Purpose
+## Purpose
 
 Widgets are **layout components** used by the root layout (`router.tsx`). They wrap all pages and provide the main navigation, global controls, and developer tooling.
 
 ---
 
-## 📁 Structure
+## Structure
 
 ```
 widgets/
@@ -24,7 +24,7 @@ widgets/
 
 ---
 
-## 🔝 Header — Top Bar with Navigation
+## Header — Top Bar with Navigation
 
 The header occupies the top bar (`h-14` / `sm:h-16`, `border-b`, `bg-mantle`) and contains three sections:
 
@@ -56,7 +56,7 @@ Pill-shaped tab bar (`rounded-xl bg-crust`) with 3 tabs:
 
 ---
 
-## 🐛 Debug Console — Real-Time Log Viewer
+## Debug Console — Real-Time Log Viewer
 
 A collapsible panel anchored to the bottom of the viewport with two parts:
 
@@ -91,21 +91,21 @@ Keyboard shortcut: **Ctrl+Shift+D** toggles the console.
 
 ---
 
-## 🔄 Layout Integration
+## Layout Integration
 
 Widgets are used in the root component of `router.tsx`:
 
 ```
 ┌──────────────────────────────────────────┐
-│ 🔝 Header (h-14)                        │
+│ Header (h-14)                            │
 │   [Branding] [Tabs: 3 pills] [Actions]  │
 ├──────────────────────────────────────────┤
 │                                          │
-│  📄 Page (Outlet)                        │
+│  Page (Outlet)                           │
 │  (flex-1, scrollable)                    │
 │                                          │
 ├──────────────────────────────────────────┤
-│ 🐛 Debug Console (toggle bar + panel)   │
+│ Debug Console (toggle bar + panel)       │
 └──────────────────────────────────────────┘
 ```
 
@@ -113,4 +113,4 @@ The layout is a vertical flex column (`flex-col h-screen`): Header on top, scrol
 
 ---
 
-> 📖 See also: [🧩 Features](../features/README.md) · [🔧 Shared](../shared/README.md) · [📄 Pages](../pages/README.md)
+> See also: [Features](../features/README.md) · [Shared](../shared/README.md) · [Pages](../pages/README.md)

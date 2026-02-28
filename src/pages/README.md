@@ -1,16 +1,16 @@
-# 📄 Pages
+# Pages
 
 > Route-level components — orchestrate features to build each view.
 
 ---
 
-## 🎯 Purpose
+## Purpose
 
 Pages are **thin components** that compose multiple features together. They manage page-level state (selected distro, active tab, modal visibility) and are associated with a TanStack Router route.
 
 ---
 
-## 📁 Convention
+## Convention
 
 ```
 pages/
@@ -23,31 +23,31 @@ Each page is registered as a route in `router.tsx`.
 
 ---
 
-## 📊 Page Inventory
+## Page Inventory
 
 | Route | Page | Features Used | Description |
 |---|---|---|---|
-| `/` | `DistrosPage` | `distro-list`, `distro-events`, `snapshot-list` | Distribution management with snapshots |
+| `/` | `DistrosPage` | `distro-list`, `distro-events`, `snapshot-list`, `terminal` | Distribution management with snapshots and terminal |
 | `/monitoring` | `MonitoringPage` | `monitoring-dashboard`, `distro-list` | Real-time metrics (requires distro selection) |
-| `/settings` | `SettingsPage` | `wsl-config`, `audit-log` | .wslconfig editor + audit trail |
+| `/settings` | `SettingsPage` | `wsl-config`, `audit-log`, `port-forwarding`, `app-preferences` | .wslconfig editor + port forwarding + preferences + audit trail |
 
 ---
 
-## 🏗️ Typical Page Structure
+## Typical Page Structure
 
 Most pages follow this pattern:
 
 ```
 ┌──────────────────────────────────────────┐
-│ 🔵 Header (icon + title + description)   │
-│ 📊 [Distro selector or stats cards]      │
+│ Header (icon + title + description)      │
+│ [Distro selector or stats cards]         │
 ├──────────────────────────────────────────┤
 │                                          │
-│  🧩 Feature component(s)                │
+│  Feature component(s)                    │
 │  (e.g. DistroList, CpuChart, etc.)      │
 │                                          │
 ├──────────────────────────────────────────┤
-│ 🪟 Modals (if needed)                   │
+│ Modals (if needed)                       │
 └──────────────────────────────────────────┘
 ```
 
@@ -58,11 +58,11 @@ Most pages follow this pattern:
 
 ---
 
-## 📝 Page Details
+## Page Details
 
 ### `/` — Distributions
 
-Full grid of `DistroCard` components with Start/Stop/Restart buttons, Shutdown All, and integrated snapshot management. This is the home page.
+Full grid of `DistroCard` components with Start/Stop/Restart buttons, Shutdown All, terminal launch, and integrated snapshot management. This is the home page.
 
 ### `/monitoring` — Monitoring
 
@@ -70,8 +70,8 @@ Distro selector, then 4 charts (CPU, memory, network, disk) + process table.
 
 ### `/settings` — Settings
 
-Two sections: `.wslconfig` editor (form) + VHDX compact panel + searchable audit trail.
+Multiple sections: `.wslconfig` editor (form) + VHDX compact panel + port forwarding panel + app preferences (language, theme, alerts) + searchable audit trail.
 
 ---
 
-> 📖 See also: [🧩 Features](../features/README.md) · [🔧 Shared](../shared/README.md) · [🧱 Widgets](../widgets/README.md)
+> See also: [Features](../features/README.md) · [Shared](../shared/README.md) · [Widgets](../widgets/README.md)

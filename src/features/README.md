@@ -1,16 +1,16 @@
-# 🧩 Features
+# Features
 
-> 6 self-contained feature slices — each encapsulates a complete application capability.
+> 8 self-contained feature slices + 1 hook-only slice — each encapsulates a complete application capability.
 
 ---
 
-## 🎯 Principle
+## Principle
 
 Each feature is a **vertical slice** that contains everything it needs: API calls, UI components, and specific hooks. Features are **independent** from each other — they only import from `shared/`.
 
 ---
 
-## 📁 Internal Convention
+## Internal Convention
 
 Each feature follows this structure:
 
@@ -22,26 +22,31 @@ feature-name/
 ├── ui/
 │   ├── component-a.tsx  # React components
 │   └── component-b.tsx
+├── model/               # (optional) Feature-specific stores
+│   └── use-xxx-store.ts
 └── hooks/               # (optional) Feature-specific hooks
     └── use-xxx.ts
 ```
 
 ---
 
-## 📊 Feature Inventory
+## Feature Inventory
 
 | Feature | Description | Queries | Mutations | UI Components |
 |---|---|---|---|---|
-| 📦 `distro-list` | WSL distribution management | `useDistros` | `useStartDistro`, `useStopDistro`, `useRestartDistro`, `useShutdownAll` | `distro-list`, `distro-card` |
-| 💾 `snapshot-list` | Snapshot creation and restoration | `useSnapshots` | `useCreateSnapshot`, `useDeleteSnapshot`, `useRestoreSnapshot` | `snapshot-list`, `snapshot-card`, `create-snapshot-dialog`, `restore-snapshot-dialog` |
-| 📈 `monitoring-dashboard` | Real-time system metrics | `useSystemMetrics`, `useProcesses` | — | `cpu-chart`, `memory-chart`, `network-chart`, `disk-gauge`, `process-table` |
-| ⚙️ `wsl-config` | .wslconfig editor + VHDX | `useWslConfig` | `useUpdateWslConfig`, `useCompactVhdx` | `wslconfig-editor`, `vhdx-compact-panel` |
-| 📝 `audit-log` | Searchable audit trail | `useAuditLog` | — | `audit-log-viewer` |
-| 📡 `distro-events` | Tauri event listener | — | — | — (hook only) |
+| `distro-list` | WSL distribution management | `useDistros` | `useStartDistro`, `useStopDistro`, `useRestartDistro`, `useShutdownAll` | `distro-list`, `distro-card` |
+| `snapshot-list` | Snapshot creation and restoration | `useSnapshots` | `useCreateSnapshot`, `useDeleteSnapshot`, `useRestoreSnapshot` | `snapshot-list`, `snapshot-card`, `create-snapshot-dialog`, `restore-snapshot-dialog` |
+| `monitoring-dashboard` | Real-time system metrics + alerting | `useSystemMetrics`, `useProcesses`, `useAlertThresholds` | `useSetAlertThresholds` | `cpu-chart`, `memory-chart`, `network-chart`, `disk-gauge`, `process-table` |
+| `wsl-config` | .wslconfig editor + VHDX | `useWslConfig` | `useUpdateWslConfig`, `useCompactVhdx` | `wslconfig-editor`, `vhdx-compact-panel` |
+| `audit-log` | Searchable audit trail | `useAuditLog` | — | `audit-log-viewer` |
+| `terminal` | Interactive WSL terminal (xterm) | — | `useCreateTerminalSession` | `terminal-panel`, `terminal-instance`, `terminal-tab-bar` |
+| `port-forwarding` | WSL-to-Windows port mapping | `useListeningPorts`, `usePortForwardingRules` | `useAddPortForwarding`, `useRemovePortForwarding` | `port-forwarding-panel`, `add-rule-dialog` |
+| `app-preferences` | Language, theme, monitoring preferences | — | — | `preferences-panel` |
+| `distro-events` | Tauri event listener | — | — | — (hook only) |
 
 ---
 
-## 📦 `distro-list` — Distribution Management
+## `distro-list` — Distribution Management
 
 **Purpose**: List, start, stop, restart WSL distributions.
 
@@ -61,7 +66,7 @@ Mutations **automatically invalidate** the distro cache after success.
 
 ---
 
-## 💾 `snapshot-list` — Snapshots
+## `snapshot-list` — Snapshots
 
 **Purpose**: Create, list, delete and restore distribution snapshots.
 
@@ -73,7 +78,7 @@ snapshot-list/
 └── ui/
     ├── snapshot-list.tsx          # Grid of SnapshotCards
     ├── snapshot-card.tsx          # Metadata (size, format, date, status)
-    ├── create-snapshot-dialog.tsx # Modal: distro choice, name, format (tar/gz/xz/vhdx)
+    ├── create-snapshot-dialog.tsx # Modal: distro choice, name, format (tar/vhdx)
     └── restore-snapshot-dialog.tsx # Modal: clone or overwrite mode, install path
 ```
 
@@ -82,14 +87,14 @@ snapshot-list/
 
 ---
 
-## 📈 `monitoring-dashboard` — Real-Time Metrics
+## `monitoring-dashboard` — Real-Time Metrics
 
-**Purpose**: Visualize CPU, memory, disk, network and processes in real-time.
+**Purpose**: Visualize CPU, memory, disk, network and processes in real-time, with alert threshold support.
 
 ```
 monitoring-dashboard/
 ├── api/
-│   └── queries.ts               # useSystemMetrics (2s), useProcesses (3s)
+│   └── queries.ts               # useSystemMetrics (2s), useProcesses (3s), useAlertThresholds, useSetAlertThresholds
 ├── hooks/
 │   └── use-metrics-history.ts   # Accumulates 60 points, computes network rates
 └── ui/
@@ -104,7 +109,7 @@ monitoring-dashboard/
 
 ---
 
-## ⚙️ `wsl-config` — WSL Configuration
+## `wsl-config` — WSL Configuration
 
 **Purpose**: Edit global `.wslconfig` settings and optimize VHDX disks.
 
@@ -122,7 +127,7 @@ wsl-config/
 
 ---
 
-## 📝 `audit-log` — Audit Trail
+## `audit-log` — Audit Trail
 
 **Purpose**: Browse the full history of all actions performed.
 
@@ -138,7 +143,59 @@ audit-log/
 
 ---
 
-## 📡 `distro-events` — Real-Time Events
+## `terminal` — Interactive WSL Terminal
+
+**Purpose**: Open interactive terminal sessions inside WSL distributions using xterm.
+
+```
+terminal/
+├── api/
+│   └── mutations.ts           # useCreateTerminalSession, writeTerminal, resizeTerminal, closeTerminal
+├── model/
+│   └── use-terminal-store.ts  # Zustand store for terminal sessions (add, remove, set active)
+└── ui/
+    ├── terminal-panel.tsx     # Terminal container with tab bar
+    ├── terminal-instance.tsx  # Single xterm instance with fit addon
+    └── terminal-tab-bar.tsx   # Tab bar for multiple sessions
+```
+
+Uses `@xterm/xterm` with `@xterm/addon-fit` and `@xterm/addon-web-links`. Backend creates PTY sessions via `portable-pty`.
+
+---
+
+## `port-forwarding` — Port Forwarding
+
+**Purpose**: Configure WSL-to-Windows port forwarding rules via netsh.
+
+```
+port-forwarding/
+├── api/
+│   ├── queries.ts       # useListeningPorts (20s), usePortForwardingRules (20s)
+│   └── mutations.ts     # useAddPortForwarding, useRemovePortForwarding
+└── ui/
+    ├── port-forwarding-panel.tsx  # Panel: listening ports table + forwarding rules table
+    └── add-rule-dialog.tsx        # Modal: select port, host port, apply rule
+```
+
+**Query Key Pattern**: `["port-forwarding", "listening", distro]` and `["port-forwarding", "rules", distro]`
+
+---
+
+## `app-preferences` — Application Preferences
+
+**Purpose**: Configure application settings — language, theme, monitoring intervals, snapshot defaults, alert thresholds.
+
+```
+app-preferences/
+└── ui/
+    └── preferences-panel.tsx  # Settings form: locale, theme, intervals, alerts
+```
+
+Uses `useThemeStore`, `useLocaleStore`, `usePreferencesStore` from `shared/`.
+
+---
+
+## `distro-events` — Real-Time Events
 
 **Purpose**: Listen for distribution state changes via Tauri events.
 
@@ -152,4 +209,4 @@ This hook is activated at the root layout level. When a distribution changes sta
 
 ---
 
-> 📖 See also: [🔧 Shared](../shared/README.md) · [📄 Pages](../pages/README.md) · [🧱 Widgets](../widgets/README.md)
+> See also: [Shared](../shared/README.md) · [Pages](../pages/README.md) · [Widgets](../widgets/README.md)

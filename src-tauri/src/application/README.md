@@ -1,31 +1,31 @@
-# 📋 Application Layer
+# Application Layer
 
 > CQRS orchestration — Commands, Queries, DTOs and Application Services.
 
 ---
 
-## 🎯 Purpose
+## Purpose
 
 The Application layer orchestrates the **use cases** of the application. It follows the **CQRS** pattern (Command Query Responsibility Segregation):
 
-- **Commands** 📝: Actions that **mutate** state (create, delete, restore snapshots)
-- **Queries** 📖: Actions that **read** state without modifying it
+- **Commands**: Actions that **mutate** state (create, delete, restore snapshots)
+- **Queries**: Actions that **read** state without modifying it
 
 ```mermaid
 graph LR
-    subgraph "📝 Commands (Write)"
+    subgraph "Commands (Write)"
         CS["CreateSnapshot"]
         DS["DeleteSnapshot"]
         RS["RestoreSnapshot"]
     end
 
-    subgraph "📖 Queries (Read)"
+    subgraph "Queries (Read)"
         LD["ListDistros"]
         GD["GetDistroDetails"]
         LS["ListSnapshots"]
     end
 
-    CS & DS & RS -->|"mutate via"| P1["🔌 Ports"]
+    CS & DS & RS -->|"mutate via"| P1["Ports"]
     LD & GD & LS -->|"read via"| P1
 ```
 
@@ -33,34 +33,34 @@ graph LR
 
 ---
 
-## 📁 Structure
+## Structure
 
 ```
 application/
-├── 📄 mod.rs
-├── 📝 commands/             # Command handlers (write)
+├── mod.rs
+├── commands/             # Command handlers (write)
 │   ├── create_snapshot.rs  # CreateSnapshotCommand + Handler
 │   ├── delete_snapshot.rs  # DeleteSnapshotCommand + Handler
 │   └── restore_snapshot.rs # RestoreSnapshotCommand + Handler
-├── 📖 queries/              # Query handlers (read)
+├── queries/              # Query handlers (read)
 │   ├── list_distros.rs     # ListDistrosHandler
 │   ├── get_distro_details.rs  # GetDistroDetailsHandler
 │   └── list_snapshots.rs   # ListSnapshotsHandler
-├── 📤 dto/                  # Data Transfer Objects
+├── dto/                  # Data Transfer Objects
 │   └── responses.rs        # DistroResponse, SnapshotResponse...
-└── 📡 services/             # Application services
+└── services/             # Application services
     └── (empty)             # No service modules currently
 ```
 
 ---
 
-## 📝 Commands (Write)
+## Commands (Write)
 
 Each command is composed of a **Command struct** (the data) and a **Handler** (the logic).
 
 | Handler | Command Struct | What It Does | Audit |
 |---|---|---|---|
-| `CreateSnapshotHandler` | `CreateSnapshotCommand { distro_name, name, desc, format, output_dir }` | Export via WSL → save to DB | `snapshot.create` |
+| `CreateSnapshotHandler` | `CreateSnapshotCommand { distro_name, name, desc, format, output_dir }` | Export via WSL -> save to DB | `snapshot.create` |
 | `DeleteSnapshotHandler` | `DeleteSnapshotCommand { snapshot_id }` | Remove from DB | `snapshot.delete` |
 | `RestoreSnapshotHandler` | `RestoreSnapshotCommand { snapshot_id, mode, new_name, location }` | Import via WSL | `snapshot.restore` |
 
@@ -68,10 +68,10 @@ Each command is composed of a **Command struct** (the data) and a **Handler** (t
 
 ```mermaid
 sequenceDiagram
-    participant P as 🎭 Presentation
-    participant H as 📝 Handler
-    participant Port as 🔌 Port
-    participant A as 📝 AuditLogger
+    participant P as Presentation
+    participant H as Handler
+    participant Port as Port
+    participant A as AuditLogger
 
     P->>H: handle(CreateSnapshotCommand)
     H->>Port: export_distro(name, path, format)
@@ -93,10 +93,10 @@ Distro start/stop/restart bypass application-layer handlers entirely. The Tauri 
 
 ```mermaid
 sequenceDiagram
-    participant P as 🎭 Tauri Command
-    participant S as ⚙️ DistroService
-    participant Port as 🔌 WslManagerPort
-    participant A as 📝 AuditLogger
+    participant P as Tauri Command
+    participant S as DistroService
+    participant Port as WslManagerPort
+    participant A as AuditLogger
 
     P->>S: distro_service.start(name)
     S->>Port: get_distro(name)
@@ -109,7 +109,7 @@ sequenceDiagram
 
 ---
 
-## 📖 Queries (Read)
+## Queries (Read)
 
 Queries have no Command struct — they take parameters directly.
 
@@ -123,7 +123,7 @@ Handlers convert **Domain entities** into **DTOs** via `From` implementations.
 
 ---
 
-## 📤 DTOs (Data Transfer Objects)
+## DTOs (Data Transfer Objects)
 
 DTOs are serializable structs sent to the frontend. They **decouple** the internal representation (Domain) from the external API.
 
@@ -154,4 +154,16 @@ DTOs are serializable structs sent to the frontend. They **decouple** the intern
 
 ---
 
-> 📖 See also: [💎 Domain](../domain/README.md) · [🔌 Infrastructure](../infrastructure/README.md) · [🎭 Presentation](../presentation/README.md)
+## Tests — ~14 tests
+
+```bash
+cargo test --lib application
+```
+
+| Module | Tests | What's Tested |
+|---|---|---|
+| `dto/responses` | 14 | DistroResponse and SnapshotResponse mapping from Domain entities |
+
+---
+
+> See also: [Domain](../domain/README.md) · [Infrastructure](../infrastructure/README.md) · [Presentation](../presentation/README.md)

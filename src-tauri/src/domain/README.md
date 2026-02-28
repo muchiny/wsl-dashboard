@@ -1,44 +1,49 @@
-# 💎 Domain Layer
+# Domain Layer
 
 > The business core of WSL Nexus — pure logic, zero external dependencies.
 
 ---
 
-## 🎯 Purpose
+## Purpose
 
 The Domain layer contains the **pure business logic** of the application. It depends on no external library (no Tauri, no SQLite, no filesystem). All interactions with the outside world go through **ports** (Rust traits) that the Infrastructure layer implements.
 
 ---
 
-## 📁 Structure
+## Structure
 
 ```
 domain/
-├── 📄 mod.rs
-├── 📦 entities/            # Business objects with identity
+├── mod.rs
+├── entities/            # Business objects with identity
 │   ├── distro.rs          # WSL Distribution
 │   ├── snapshot.rs        # Distribution backup
 │   ├── monitoring.rs      # System metrics (CPU, RAM, disk, network, processes)
-│   └── wsl_config.rs      # Global and per-distro WSL configuration
-├── 🔒 value_objects/       # Immutable objects validated at construction
+│   ├── wsl_config.rs      # Global and per-distro WSL configuration
+│   ├── wsl_version.rs     # WSL version entity
+│   └── port_forward.rs    # Port forwarding (ListeningPort, PortForwardRule)
+├── value_objects/       # Immutable objects validated at construction
 │   ├── distro_name.rs     # Distribution name (non-empty)
 │   ├── distro_state.rs    # State: Running, Stopped, Installing...
 │   ├── wsl_version.rs     # Version: V1, V2
-│   ├── memory_size.rs     # Memory size (bytes → KB/MB/GB)
+│   ├── memory_size.rs     # Memory size (bytes -> KB/MB/GB)
 │   └── snapshot_id.rs     # UUID identifier
-├── 🔌 ports/               # Interfaces (traits) to the outside world
-│   ├── wsl_manager.rs     # WSL distribution management
-│   ├── snapshot_repository.rs  # Snapshot persistence
-│   ├── monitoring_provider.rs  # Metrics collection
-│   └── audit_logger.rs         # Audit logging
-├── ⚙️ services/            # Orchestrated business logic
+├── ports/               # Interfaces (traits) to the outside world
+│   ├── wsl_manager.rs         # WSL distribution management
+│   ├── snapshot_repository.rs # Snapshot persistence
+│   ├── monitoring_provider.rs # Metrics collection
+│   ├── metrics_repository.rs  # Metrics time-series persistence
+│   ├── audit_logger.rs        # Audit logging
+│   ├── alerting.rs            # Alert thresholds + records (AlertType, AlertThreshold, AlertRecord)
+│   └── port_forwarding.rs     # Port forwarding (PortForwardingPort + PortForwardRulesRepository)
+├── services/            # Orchestrated business logic
 │   └── distro_service.rs  # Distribution management rules
-└── ❌ errors.rs            # DomainError enum
+└── errors.rs            # DomainError enum
 ```
 
 ---
 
-## 📦 Entities
+## Entities
 
 Entities are business objects with their own identity.
 
@@ -68,16 +73,28 @@ Entities are business objects with their own identity.
 | `parent_id` | `Option<SnapshotId>` | Parent (for incrementals) |
 | `status` | `SnapshotStatus` | `InProgress`, `Completed`, `Failed(reason)` |
 
+### `PortForwardRule` — Port Forwarding Rule
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `String` | Unique identifier |
+| `distro_name` | `String` | Target WSL distribution |
+| `wsl_port` | `u16` | Port inside WSL |
+| `host_port` | `u16` | Port on Windows host |
+| `protocol` | `String` | Protocol (tcp/udp) |
+| `enabled` | `bool` | Whether rule is active |
+
 ### Other Entities
 
 | Entity | File | Description |
 |---|---|---|
 | `CpuMetrics`, `MemoryMetrics`, `DiskMetrics`, `NetworkMetrics`, `ProcessInfo` | `monitoring.rs` | Real-time system metrics |
 | `WslGlobalConfig`, `WslDistroConfig` | `wsl_config.rs` | `.wslconfig` and `wsl.conf` configuration |
+| `ListeningPort` | `port_forward.rs` | Port currently listening inside WSL |
 
 ---
 
-## 🔒 Value Objects
+## Value Objects
 
 Value objects are **immutable** and **validated at construction**. Two instances with the same values are considered equal.
 
@@ -91,7 +108,7 @@ Value objects are **immutable** and **validated at construction**. Two instances
 
 ---
 
-## 🔌 Ports (Traits)
+## Ports (Traits)
 
 Ports define the **interfaces** that the Domain layer exposes to the outside world. Each port is implemented by an adapter in the Infrastructure layer.
 
@@ -109,7 +126,6 @@ classDiagram
         +shutdown_all()
         +exec_in_distro(name, command) String
         +get_global_config() WslGlobalConfig
-        +get_distro_config(name) WslDistroConfig
         +update_global_config(config)
         +set_sparse(name, enabled)
     }
@@ -125,11 +141,18 @@ classDiagram
 
     class MonitoringProviderPort {
         <<trait>>
-        +get_cpu_usage(distro) CpuMetrics
-        +get_memory_usage(distro) MemoryMetrics
-        +get_disk_usage(distro) DiskMetrics
-        +get_network_stats(distro) NetworkMetrics
+        +get_all_metrics(distro) Tuple
         +get_processes(distro) Vec~ProcessInfo~
+    }
+
+    class MetricsRepositoryPort {
+        <<trait>>
+        +store_raw(metrics)
+        +query_raw(distro, from, to) Vec~RawMetricsRow~
+        +query_aggregated(distro, from, to) Vec~AggregatedMetricsPoint~
+        +aggregate_raw_buckets(start, end) u64
+        +purge_raw_before(before) u64
+        +purge_aggregated_before(before) u64
     }
 
     class AuditLoggerPort {
@@ -138,11 +161,35 @@ classDiagram
         +log_with_details(action, target, details)
         +search(query) Vec~AuditEntry~
     }
+
+    class AlertingPort {
+        <<trait>>
+        +record_alert(distro, type, threshold, value)
+        +get_recent_alerts(distro, limit) Vec~AlertRecord~
+        +acknowledge_alert(id)
+        +purge_before(before) u64
+    }
+
+    class PortForwardingPort {
+        <<trait>>
+        +list_listening_ports(distro) Vec~ListeningPort~
+        +get_wsl_ip(distro) String
+        +apply_rule(host_port, wsl_ip, wsl_port)
+        +remove_rule(host_port)
+    }
+
+    class PortForwardRulesRepository {
+        <<trait>>
+        +save_rule(rule)
+        +delete_rule(id)
+        +list_rules(distro) Vec~PortForwardRule~
+        +get_rule(id) Option~PortForwardRule~
+    }
 ```
 
 ---
 
-## ⚙️ Services
+## Services
 
 ### `DistroService`
 
@@ -150,8 +197,8 @@ The `DistroService` encapsulates **business rules** for distribution management:
 
 | Method | Business Rule |
 |---|---|
-| `start(name)` | ❌ Error if the distro is already `Running` |
-| `stop(name)` | ❌ Error if the distro is not `Running` |
+| `start(name)` | Error if the distro is already `Running` |
+| `stop(name)` | Error if the distro is not `Running` |
 | `restart(name)` | Stop then Start sequentially |
 | `list_all()` | Delegates to the port without validation |
 
@@ -159,7 +206,7 @@ The service takes an `Arc<dyn WslManagerPort>` — dependency injection via the 
 
 ---
 
-## ❌ Errors — `DomainError`
+## Errors — `DomainError`
 
 Centralized enum with `thiserror` derive for explicit messages:
 
@@ -173,10 +220,8 @@ Centralized enum with `thiserror` derive for explicit messages:
 | `SnapshotError(String)` | Error during export/import |
 | `WslCliError(String)` | wsl.exe command error |
 | `MonitoringError(String)` | Metrics collection error |
-| `DockerError(String)` | Docker error |
 | `DatabaseError(String)` | SQLite error |
 | `ConfigError(String)` | Configuration error |
-| `IacError(String)` | IaC error |
 | `IoError(String)` | I/O error |
 | `Internal(String)` | Internal error |
 
@@ -184,14 +229,17 @@ Centralized enum with `thiserror` derive for explicit messages:
 
 ---
 
-## 🧪 Tests — 13 tests
+## Tests — ~37 tests
 
 | Module | Tests | What's Tested |
 |---|---|---|
-| `distro_name` | 3 | Valid construction, empty string rejection, whitespace trimming |
-| `distro_state` | 4 | State parsing, case-insensitive, unknown state rejection |
+| `distro_name` | 5 | Valid construction, empty string rejection, whitespace trimming |
+| `distro_state` | 5 | State parsing, case-insensitive, unknown state rejection |
 | `wsl_version` | 2 | V1 and V2 parsing |
-| `memory_size` | 4 | Display bytes, KB, MB, GB |
+| `memory_size` | 6 | Display bytes, KB, MB, GB |
+| `snapshot_id` | 6 | UUID construction, parsing, display |
+| `snapshot` | 4 | Snapshot entity construction and status transitions |
+| `alerting` | 9 | AlertType display, FromStr, serde, proptest |
 
 `DistroService` tests use **mockall** to mock the `WslManagerPort`.
 

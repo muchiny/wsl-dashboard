@@ -1,4 +1,4 @@
-# Frontend — React 19 + TypeScript 5.7
+# Frontend — React 19 + TypeScript 5.9
 
 > WSL Nexus user interface — Feature-Sliced Design, TanStack Query, Tailwind CSS v4.
 
@@ -12,8 +12,8 @@ The frontend follows the **Feature-Sliced Design** architecture with 4 layers an
 graph TD
     P["Pages<br/><small>Route-level components</small>"]
     W["Widgets<br/><small>Layout: Header, DebugConsole</small>"]
-    F["Features<br/><small>6 feature slices</small>"]
-    S["Shared<br/><small>API, hooks, types, utils</small>"]
+    F["Features<br/><small>8 feature slices + 1 hook-only</small>"]
+    S["Shared<br/><small>API, hooks, types, stores, utils</small>"]
 
     P --> F
     P --> W
@@ -51,13 +51,22 @@ src/
 ├── app.css               # Catppuccin Mocha/Latte theme (Tailwind CSS v4)
 ├── vite-env.d.ts         # Vite types
 │
-├── features/             # 6 self-contained feature slices
+├── locales/              # i18n translations
+│   ├── en/                  # English
+│   ├── es/                  # Spanish
+│   ├── fr/                  # French
+│   └── zh/                  # Chinese
+│
+├── features/             # 8 self-contained feature slices + 1 hook-only
 │   ├── distro-list/         # Distribution management
 │   ├── snapshot-list/       # Snapshots
 │   ├── monitoring-dashboard/# Real-time metrics
 │   ├── wsl-config/          # .wslconfig editor
 │   ├── audit-log/           # Audit trail
-│   └── distro-events/       # Real-time events
+│   ├── terminal/            # Interactive WSL terminal (xterm)
+│   ├── port-forwarding/     # WSL-to-Windows port mapping
+│   ├── app-preferences/     # Language and theme preferences
+│   └── distro-events/       # Real-time events (hook only)
 │
 ├── pages/                # 3 routed pages
 │   ├── distros/             # / (home)
@@ -65,12 +74,14 @@ src/
 │   └── settings/            # /settings
 │
 ├── shared/               # Shared utilities
-│   ├── api/                 # Tauri bridge (invoke + events)
-│   ├── config/              # QueryClient
-│   ├── hooks/               # useDebugConsoleStore, useThemeStore, useTauriEvent
+│   ├── api/                 # Tauri bridge (invoke, events, queries, mutations)
+│   ├── config/              # QueryClient, i18n
+│   ├── hooks/               # useDebugConsoleStore, useThemeStore, useTauriEvent, useDebounce
+│   ├── stores/              # useLocaleStore, usePreferencesStore
 │   ├── lib/                 # cn(), formatters
 │   ├── types/               # TypeScript interfaces (distro, monitoring, snapshot)
-│   └── ui/                  # ErrorBoundary
+│   ├── ui/                  # Shared components (ErrorBoundary, Select, Toast, Dialog, etc.)
+│   └── assets/              # Static assets (flag SVGs for i18n)
 │
 ├── widgets/              # Layout components
 │   ├── header/              # Top bar with pill tabs + theme toggle
@@ -78,6 +89,7 @@ src/
 │
 └── test/                 # Vitest setup + mocks
     ├── setup.ts
+    ├── test-utils.tsx
     └── mocks/
 ```
 
@@ -90,9 +102,9 @@ src/
 ```mermaid
 graph TD
     Root["Root Layout<br/><small>Header + Outlet + DebugConsole</small>"]
-    Root --> DI["/ — Distributions<br/><small>Distro grid + snapshots</small>"]
+    Root --> DI["/ — Distributions<br/><small>Distro grid + snapshots + terminal</small>"]
     Root --> MO["/monitoring — Monitoring<br/><small>CPU, RAM, disk, network</small>"]
-    Root --> SE["/settings — Settings<br/><small>WSL config + audit</small>"]
+    Root --> SE["/settings — Settings<br/><small>WSL config + port forwarding + preferences + audit</small>"]
 ```
 
 ### Root Layout
@@ -147,7 +159,7 @@ monitoringKeys = {
 
 ### Zustand 5 — UI State
 
-Two Zustand stores, both with no cross-dependencies:
+Four Zustand stores with no cross-dependencies:
 
 **`useThemeStore()`** — Theme (dark/light) with localStorage persistence:
 - Key: `wsl-nexus-theme`
@@ -160,6 +172,13 @@ Two Zustand stores, both with no cross-dependencies:
 - Actions: `toggle()`, `setFilter()`, `addLog()`, `setLogs()`, `clear()`
 - Capped at 1000 log entries (oldest evicted)
 - Keyboard shortcut: `Ctrl+Shift+D`
+
+**`useLocaleStore()`** — Language preference:
+- Persists selected locale
+- Drives i18next language switching
+
+**`usePreferencesStore()`** — General user preferences:
+- Persists user settings via Tauri plugin-store
 
 ---
 
@@ -234,6 +253,17 @@ interface Distro {
 
 ---
 
+## Internationalization (i18n)
+
+- **Framework**: i18next + react-i18next
+- **Languages**: English, Spanish, French, Chinese
+- **Config**: `shared/config/i18n.ts`
+- **Translations**: `locales/{en,es,fr,zh}/translation.json`
+- **Locale store**: `shared/stores/use-locale-store.ts`
+- **Flag assets**: `shared/assets/flags/` (gb.svg, es.svg, fr.svg, cn.svg)
+
+---
+
 ## Entry Point
 
 ```mermaid
@@ -269,10 +299,11 @@ npm run test          # Single run
 npm run test:watch    # Watch mode
 ```
 
-- **Framework**: Vitest 3.0.0
+- **Framework**: Vitest 4
 - **Environment**: jsdom (browser simulation)
 - **Setup**: `test/setup.ts` (imports `@testing-library/jest-dom`)
-- **Utilities**: `@testing-library/react` for component rendering
+- **Utilities**: `test/test-utils.tsx` (`renderWithProviders` wraps with QueryClientProvider + I18nextProvider)
+- **Test count**: 383 tests across 40 test files
 
 ---
 
