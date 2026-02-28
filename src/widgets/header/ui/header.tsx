@@ -18,6 +18,7 @@ import {
 import { useThemeStore } from "@/shared/hooks/use-theme";
 import { useDebugConsoleStore } from "@/shared/hooks/use-debug-console";
 import { cn } from "@/shared/lib/utils";
+import { LanguageSwitcher } from "./language-switcher";
 
 interface NavTab {
   to: string;
@@ -126,6 +127,7 @@ export function Header() {
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
+          <LanguageSwitcher />
 
           {/* Divider */}
           <div className="bg-surface-1 mx-1 h-5 w-px" />

@@ -45,7 +45,6 @@ export function DistroActions({
             onClick={handleStart}
             className="text-subtext-0 hover:bg-green/20 hover:text-green"
             aria-label={t("distros.startAction", { name: distroName })}
-            title={t("distros.startAction", { name: distroName })}
           />
         )}
         {isRunning && (
@@ -57,7 +56,6 @@ export function DistroActions({
               onClick={handleRestart}
               className="text-subtext-0 hover:bg-yellow/20 hover:text-yellow"
               aria-label={t("distros.restartAction", { name: distroName })}
-              title={t("distros.restartAction", { name: distroName })}
             />
             <ActionIconButton
               icon={Square}
@@ -66,7 +64,6 @@ export function DistroActions({
               onClick={handleStop}
               className="text-subtext-0 hover:bg-red/20 hover:text-red"
               aria-label={t("distros.stopAction", { name: distroName })}
-              title={t("distros.stopAction", { name: distroName })}
             />
           </>
         )}
@@ -79,7 +76,6 @@ export function DistroActions({
           onClick={handleSnapshot}
           className="text-subtext-0 hover:bg-mauve/20 hover:text-mauve"
           aria-label={t("distros.createSnapshotOf", { name: distroName })}
-          title={t("distros.createSnapshotOf", { name: distroName })}
         />
         {isRunning && (
           <ActionIconButton
@@ -89,7 +85,6 @@ export function DistroActions({
             onClick={handleTerminal}
             className="text-subtext-0 hover:bg-teal/20 hover:text-teal"
             aria-label={t("distros.openTerminalIn", { name: distroName })}
-            title={t("distros.openTerminalIn", { name: distroName })}
           />
         )}
         {isRunning && (
@@ -99,7 +94,6 @@ export function DistroActions({
             onClick={handleMonitorClick}
             className="text-subtext-0 hover:bg-sapphire/20 hover:text-sapphire rounded-lg p-1.5 transition-colors"
             aria-label={t("distros.monitorAction", { name: distroName })}
-            title={t("distros.monitorAction", { name: distroName })}
           >
             <Activity className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>

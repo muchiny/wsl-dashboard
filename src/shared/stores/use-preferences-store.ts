@@ -39,9 +39,9 @@ export const usePreferencesStore = create<PreferencesStore>()(
       sortKey: "name-asc",
       viewMode: "grid",
       alertThresholds: [
-        { alert_type: "cpu", threshold_percent: 90, enabled: true },
-        { alert_type: "memory", threshold_percent: 85, enabled: true },
-        { alert_type: "disk", threshold_percent: 90, enabled: true },
+        { alert_type: "cpu", threshold_percent: 90, enabled: false },
+        { alert_type: "memory", threshold_percent: 85, enabled: false },
+        { alert_type: "disk", threshold_percent: 90, enabled: false },
       ],
       setMetricsInterval: (ms) => set({ metricsInterval: ms }),
       setProcessesInterval: (ms) => set({ processesInterval: ms }),

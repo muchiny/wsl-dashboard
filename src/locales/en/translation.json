@@ -19,7 +19,8 @@
     "minimize": "Minimize",
     "maximize": "Maximize",
     "restore": "Restore",
-    "close": "Close"
+    "close": "Close",
+    "switchLanguage": "Switch to {{language}}"
   },
   "nav": {
     "distributions": "Distributions",
