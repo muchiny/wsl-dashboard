@@ -140,13 +140,15 @@ export function useDebugConsoleSetup() {
     // 7. IPC timing (dev only) — shows command round-trip durations
     if (import.meta.env.DEV) {
       onIpcTiming((cmd, durationMs, ok) => {
-        useDebugConsoleStore.getState().addLog(
-          createJsEntry(
-            ok ? "DEBUG" : "WARN",
-            `IPC ${cmd} ${ok ? "OK" : "FAIL"} (${durationMs.toFixed(1)}ms)`,
-            "ipc",
-          ),
-        );
+        useDebugConsoleStore
+          .getState()
+          .addLog(
+            createJsEntry(
+              ok ? "DEBUG" : "WARN",
+              `IPC ${cmd} ${ok ? "OK" : "FAIL"} (${durationMs.toFixed(1)}ms)`,
+              "ipc",
+            ),
+          );
       });
     }
 

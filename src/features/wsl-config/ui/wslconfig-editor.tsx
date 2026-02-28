@@ -283,9 +283,7 @@ export function WslConfigEditor() {
               <input
                 type="text"
                 value={form.default_vhd_size ?? ""}
-                onChange={(e) =>
-                  setForm({ ...form, default_vhd_size: e.target.value || null })
-                }
+                onChange={(e) => setForm({ ...form, default_vhd_size: e.target.value || null })}
                 onBlur={() => markTouched("default_vhd_size")}
                 placeholder={t("wslConfig.defaultVhdSizePlaceholder")}
                 maxLength={32}

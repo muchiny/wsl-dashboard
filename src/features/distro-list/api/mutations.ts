@@ -49,8 +49,7 @@ export function useResizeVhd() {
   return useTauriMutation<void, { name: string; size: string }>({
     mutationFn: ({ name, size }) => tauriInvoke("resize_vhd", { name, size }),
     invalidateKeys: [distroKeys.all],
-    successMessage: (_data, { name, size }) =>
-      i18next.t("distros.toastResized", { name, size }),
+    successMessage: (_data, { name, size }) => i18next.t("distros.toastResized", { name, size }),
     errorMessage: (err, { name }) =>
       i18next.t("distros.toastResizeFailed", { name, message: err.message }),
   });
