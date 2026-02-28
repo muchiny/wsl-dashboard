@@ -1,13 +1,15 @@
 import { useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronDown, Maximize2, Minimize2 } from "lucide-react";
 import { useTerminalStore } from "../model/use-terminal-store";
 import { TerminalTabBar } from "./terminal-tab-bar";
 import { TerminalInstance } from "./terminal-instance";
 import { createTerminal } from "../api/mutations";
-import { useDistros } from "@/features/distro-list/api/queries";
+import { useDistros } from "@/shared/api/distro-queries";
 import { cn } from "@/shared/lib/utils";
 
 export function TerminalPanel() {
+  const { t } = useTranslation();
   const { sessions, activeSessionId, isOpen, panelHeight, closePanel, setPanelHeight } =
     useTerminalStore();
   const addSession = useTerminalStore((s) => s.addSession);
@@ -77,14 +79,14 @@ export function TerminalPanel() {
           <button
             onClick={() => (isOpen ? closePanel() : useTerminalStore.getState().openPanel())}
             className="text-subtext-0 hover:text-text rounded p-1 transition-colors"
-            aria-label={isOpen ? "Minimize terminal" : "Expand terminal"}
+            aria-label={isOpen ? t("terminal.minimize") : t("terminal.expand")}
           >
             {isOpen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
           </button>
           <button
             onClick={closePanel}
             className="text-subtext-0 hover:text-text rounded p-1 transition-colors"
-            aria-label="Hide terminal"
+            aria-label={t("terminal.hide")}
           >
             <ChevronDown className="h-3.5 w-3.5" />
           </button>

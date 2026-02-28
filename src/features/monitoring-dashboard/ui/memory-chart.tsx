@@ -1,85 +1,44 @@
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { formatBytes } from "@/shared/lib/formatters";
+import { ChartPanel } from "./chart-panel";
 import type { MetricsPoint } from "../hooks/use-metrics-history";
 
 interface MemoryChartProps {
   data: MetricsPoint[];
 }
 
-export function MemoryChart({ data }: MemoryChartProps) {
+export const MemoryChart = memo(function MemoryChart({ data }: MemoryChartProps) {
+  const { t } = useTranslation();
   const latest = data.length > 0 ? data[data.length - 1] : null;
 
   return (
-    <div className="border-surface-1 bg-mantle min-w-0 overflow-hidden rounded-xl border p-4">
-      <div className="mb-2 flex items-center justify-between">
-        <h4 className="text-sm font-semibold">Memory Usage</h4>
-        {latest && (
+    <ChartPanel
+      title={t("monitoring.memoryUsage")}
+      data={data}
+      ariaLabel={t("monitoring.memoryChartAriaLabel")}
+      yDomain={[0, 100]}
+      areas={[
+        {
+          dataKey: "memPercent",
+          color: "var(--color-chart-success)",
+          gradientId: "memGrad",
+        },
+      ]}
+      headerValue={
+        latest ? (
           <span className="text-green text-lg font-bold">{latest.memPercent.toFixed(1)}%</span>
-        )}
-      </div>
-      {latest && (
-        <p className="text-subtext-0 mb-2 text-xs">
-          {formatBytes(latest.memUsed)} / {formatBytes(latest.memTotal)}
-        </p>
-      )}
-      <div className="h-40 min-w-0" aria-label="Memory usage chart">
-        {data.length === 0 && (
-          <div className="flex h-full items-end gap-1.5 px-8 pt-2 pb-4">
-            {[60, 62, 58, 65, 63, 60, 64, 61, 63, 59, 62, 64].map((h, i) => (
-              <div
-                key={i}
-                className="bg-surface-1 flex-1 animate-pulse rounded-t"
-                style={{ height: `${h}%` }}
-              />
-            ))}
-          </div>
-        )}
-        {data.length > 0 && (
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data}>
-              <defs>
-                <linearGradient id="memGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-chart-success)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="var(--color-chart-success)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis
-                dataKey="time"
-                tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
-                tickLine={false}
-                axisLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                domain={[0, 100]}
-                tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }}
-                tickLine={false}
-                axisLine={false}
-                width={35}
-                tickFormatter={(v: number) => `${v}%`}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: "var(--color-card)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: "6px",
-                  fontSize: "12px",
-                }}
-                formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(1)}%`, "Memory"]}
-              />
-              <Area
-                type="monotone"
-                dataKey="memPercent"
-                stroke="var(--color-chart-success)"
-                fill="url(#memGrad)"
-                strokeWidth={2}
-                dot={false}
-                isAnimationActive={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-    </div>
+        ) : undefined
+      }
+      subtitle={
+        latest ? (
+          <p className="text-subtext-0 text-xs">
+            {formatBytes(latest.memUsed)} / {formatBytes(latest.memTotal)}
+          </p>
+        ) : undefined
+      }
+      tooltipFormatter={(value) => [`${(value ?? 0).toFixed(1)}%`, t("monitoring.memoryTooltip")]}
+      skeletonHeights={[60, 62, 58, 65, 63, 60, 64, 61, 63, 59, 62, 64]}
+    />
   );
-}
+});

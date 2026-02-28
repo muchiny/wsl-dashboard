@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use sqlx::{Row, SqlitePool};
 
+use super::SqlxResultExt;
 use crate::domain::entities::port_forward::PortForwardRule;
 use crate::domain::errors::DomainError;
 use crate::domain::ports::port_forwarding::PortForwardRulesRepository;
@@ -30,7 +31,7 @@ impl PortForwardRulesRepository for SqlitePortForwardingRepository {
         .bind(rule.enabled)
         .execute(&self.pool)
         .await
-        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+        .db_err()?;
 
         Ok(())
     }
@@ -40,7 +41,7 @@ impl PortForwardRulesRepository for SqlitePortForwardingRepository {
             .bind(rule_id)
             .execute(&self.pool)
             .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+            .db_err()?;
 
         Ok(())
     }
@@ -65,7 +66,7 @@ impl PortForwardRulesRepository for SqlitePortForwardingRepository {
             .fetch_all(&self.pool)
             .await
         }
-        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+        .db_err()?;
 
         let rules = rows
             .iter()
@@ -91,7 +92,7 @@ impl PortForwardRulesRepository for SqlitePortForwardingRepository {
         .bind(rule_id)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+        .db_err()?;
 
         Ok(row.map(|r| PortForwardRule {
             id: r.get("id"),

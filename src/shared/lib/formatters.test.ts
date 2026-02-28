@@ -43,19 +43,19 @@ describe("formatRelativeTime", () => {
   });
 
   it("formats days ago", () => {
-    expect(formatRelativeTime("2026-01-13T12:00:00Z")).toBe("2d ago");
+    expect(formatRelativeTime("2026-01-13T12:00:00Z")).toBe("2 days ago");
   });
 
   it("formats hours ago", () => {
-    expect(formatRelativeTime("2026-01-15T09:00:00Z")).toBe("3h ago");
+    expect(formatRelativeTime("2026-01-15T09:00:00Z")).toBe("3 hours ago");
   });
 
   it("formats minutes ago", () => {
-    expect(formatRelativeTime("2026-01-15T11:55:00Z")).toBe("5m ago");
+    expect(formatRelativeTime("2026-01-15T11:55:00Z")).toBe("5 minutes ago");
   });
 
   it("formats just now", () => {
-    expect(formatRelativeTime("2026-01-15T11:59:45Z")).toBe("just now");
+    expect(formatRelativeTime("2026-01-15T11:59:45Z")).toBe("now");
   });
 });
 
@@ -112,7 +112,7 @@ describe("formatRelativeTime - property-based", () => {
       fc.property(fc.integer({ min: minMs, max: nowMs }), (ms) => {
         const isoStr = new Date(ms).toISOString();
         const result = formatRelativeTime(isoStr);
-        return result === "just now" || result.endsWith("ago");
+        return result === "now" || result.includes("ago");
       }),
     );
   });

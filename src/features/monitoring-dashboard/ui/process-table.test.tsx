@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
+import { renderWithProviders } from "@/test/test-utils";
 import { ProcessTable } from "./process-table";
 import type { ProcessInfo } from "../api/queries";
 
@@ -20,7 +21,7 @@ function makeProcess(overrides: Partial<ProcessInfo> = {}): ProcessInfo {
 describe("ProcessTable", () => {
   it("renders the correct number of processes", () => {
     const processes = [makeProcess({ pid: 1 }), makeProcess({ pid: 2 }), makeProcess({ pid: 3 })];
-    render(<ProcessTable processes={processes} />);
+    renderWithProviders(<ProcessTable processes={processes} />);
     expect(screen.getByText("Processes (3)")).toBeInTheDocument();
   });
 
@@ -33,7 +34,7 @@ describe("ProcessTable", () => {
       command: "/usr/bin/python",
       state: "R",
     });
-    render(<ProcessTable processes={[p]} />);
+    renderWithProviders(<ProcessTable processes={[p]} />);
     expect(screen.getByText("42")).toBeInTheDocument();
     expect(screen.getByText("alice")).toBeInTheDocument();
     expect(screen.getByText("15.3")).toBeInTheDocument();
@@ -48,7 +49,7 @@ describe("ProcessTable", () => {
       makeProcess({ pid: 2, command: "python app.py" }),
       makeProcess({ pid: 3, command: "Node worker.js" }),
     ];
-    render(<ProcessTable processes={processes} />);
+    renderWithProviders(<ProcessTable processes={processes} />);
     const input = screen.getByPlaceholderText("Filter processes...");
     fireEvent.change(input, { target: { value: "node" } });
 
@@ -62,7 +63,7 @@ describe("ProcessTable", () => {
       makeProcess({ pid: 1, user: "root", command: "cmd1" }),
       makeProcess({ pid: 2, user: "alice", command: "cmd2" }),
     ];
-    render(<ProcessTable processes={processes} />);
+    renderWithProviders(<ProcessTable processes={processes} />);
     const input = screen.getByPlaceholderText("Filter processes...");
     fireEvent.change(input, { target: { value: "alice" } });
 
@@ -76,7 +77,7 @@ describe("ProcessTable", () => {
       makeProcess({ pid: 2, cpu_percent: 50.0, command: "high-cpu" }),
       makeProcess({ pid: 3, cpu_percent: 25.0, command: "mid-cpu" }),
     ];
-    render(<ProcessTable processes={processes} />);
+    renderWithProviders(<ProcessTable processes={processes} />);
     const rows = screen.getAllByRole("row");
     // header + 3 data rows; first data row should be highest CPU
     expect(rows[1]!.textContent).toContain("high-cpu");
@@ -89,7 +90,7 @@ describe("ProcessTable", () => {
       makeProcess({ pid: 1, cpu_percent: 5.0, command: "low" }),
       makeProcess({ pid: 2, cpu_percent: 50.0, command: "high" }),
     ];
-    render(<ProcessTable processes={processes} />);
+    renderWithProviders(<ProcessTable processes={processes} />);
 
     // Click CPU% to toggle to ascending
     const cpuButton = screen.getByText("CPU%");
@@ -105,7 +106,7 @@ describe("ProcessTable", () => {
       makeProcess({ pid: 100, cpu_percent: 5.0, command: "a" }),
       makeProcess({ pid: 1, cpu_percent: 50.0, command: "b" }),
     ];
-    render(<ProcessTable processes={processes} />);
+    renderWithProviders(<ProcessTable processes={processes} />);
 
     // Click PID column
     const pidButton = screen.getByText("PID");
@@ -121,14 +122,14 @@ describe("ProcessTable", () => {
     const processes = Array.from({ length: 120 }, (_, i) =>
       makeProcess({ pid: i + 1, command: `cmd-${i + 1}` }),
     );
-    render(<ProcessTable processes={processes} />);
+    renderWithProviders(<ProcessTable processes={processes} />);
     // header + 100 data rows = 101
     const rows = screen.getAllByRole("row");
     expect(rows.length).toBe(101);
   });
 
   it("renders empty table when no processes", () => {
-    render(<ProcessTable processes={[]} />);
+    renderWithProviders(<ProcessTable processes={[]} />);
     expect(screen.getByText("Processes (0)")).toBeInTheDocument();
     // Only header row
     const rows = screen.getAllByRole("row");
@@ -137,7 +138,7 @@ describe("ProcessTable", () => {
 
   it("formats RSS bytes with formatBytes", () => {
     const p = makeProcess({ pid: 1, rss_bytes: 1073741824 }); // 1 GB
-    render(<ProcessTable processes={[p]} />);
+    renderWithProviders(<ProcessTable processes={[p]} />);
     expect(screen.getByText("1.00 GB")).toBeInTheDocument();
   });
 });

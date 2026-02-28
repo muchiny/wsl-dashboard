@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowUpDown } from "lucide-react";
 import { formatBytes } from "@/shared/lib/formatters";
 import type { ProcessInfo } from "../api/queries";
@@ -10,6 +11,7 @@ interface ProcessTableProps {
 type SortKey = "cpu_percent" | "mem_percent" | "pid" | "rss_bytes";
 
 export function ProcessTable({ processes }: ProcessTableProps) {
+  const { t } = useTranslation();
   const [sortKey, setSortKey] = useState<SortKey>("cpu_percent");
   const [sortAsc, setSortAsc] = useState(false);
   const [filter, setFilter] = useState("");
@@ -23,26 +25,36 @@ export function ProcessTable({ processes }: ProcessTableProps) {
     }
   };
 
-  const filtered = processes.filter(
-    (p) =>
-      p.command.toLowerCase().includes(filter.toLowerCase()) ||
-      p.user.toLowerCase().includes(filter.toLowerCase()),
+  const filtered = useMemo(
+    () =>
+      processes.filter(
+        (p) =>
+          p.command.toLowerCase().includes(filter.toLowerCase()) ||
+          p.user.toLowerCase().includes(filter.toLowerCase()),
+      ),
+    [processes, filter],
   );
 
-  const sorted = [...filtered].sort((a, b) => {
-    const mult = sortAsc ? 1 : -1;
-    return (a[sortKey] - b[sortKey]) * mult;
-  });
+  const sorted = useMemo(
+    () =>
+      [...filtered].sort((a, b) => {
+        const mult = sortAsc ? 1 : -1;
+        return (a[sortKey] - b[sortKey]) * mult;
+      }),
+    [filtered, sortKey, sortAsc],
+  );
 
   return (
     <div className="border-surface-1 bg-mantle min-w-0 overflow-hidden rounded-xl border">
       <div className="border-surface-0 flex flex-col gap-2 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
-        <h4 className="text-sm font-semibold">Processes ({processes.length})</h4>
+        <h4 className="text-sm font-semibold">
+          {t("monitoring.processes", { count: processes.length })}
+        </h4>
         <input
           type="text"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          placeholder="Filter processes..."
+          placeholder={t("monitoring.filterProcesses")}
           className="focus-ring border-surface-1 bg-base text-text w-full rounded-lg border px-2 py-1 text-xs sm:w-48"
         />
       </div>
@@ -55,16 +67,16 @@ export function ProcessTable({ processes }: ProcessTableProps) {
                   onClick={() => handleSort("pid")}
                   className="ml-auto flex items-center justify-end gap-1"
                 >
-                  PID <ArrowUpDown className="h-3 w-3" />
+                  {t("monitoring.pid")} <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
-              <th className="px-4 py-2">User</th>
+              <th className="px-4 py-2">{t("monitoring.user")}</th>
               <th className="px-4 py-2 text-right">
                 <button
                   onClick={() => handleSort("cpu_percent")}
                   className="ml-auto flex items-center justify-end gap-1"
                 >
-                  CPU% <ArrowUpDown className="h-3 w-3" />
+                  {t("monitoring.cpuPercent")} <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
               <th className="px-4 py-2 text-right">
@@ -72,7 +84,7 @@ export function ProcessTable({ processes }: ProcessTableProps) {
                   onClick={() => handleSort("mem_percent")}
                   className="ml-auto flex items-center justify-end gap-1"
                 >
-                  MEM% <ArrowUpDown className="h-3 w-3" />
+                  {t("monitoring.memPercent")} <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
               <th className="px-4 py-2 text-right">
@@ -80,11 +92,11 @@ export function ProcessTable({ processes }: ProcessTableProps) {
                   onClick={() => handleSort("rss_bytes")}
                   className="ml-auto flex items-center justify-end gap-1"
                 >
-                  RSS <ArrowUpDown className="h-3 w-3" />
+                  {t("monitoring.rss")} <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
-              <th className="px-4 py-2">State</th>
-              <th className="px-4 py-2">Command</th>
+              <th className="px-4 py-2">{t("monitoring.state")}</th>
+              <th className="px-4 py-2">{t("monitoring.command")}</th>
             </tr>
           </thead>
           <tbody>
@@ -110,7 +122,7 @@ export function ProcessTable({ processes }: ProcessTableProps) {
       </div>
       {sorted.length > 100 && (
         <p className="text-subtext-0 border-surface-0 border-t px-4 py-2 text-center text-xs">
-          Showing first 100 of {sorted.length} processes
+          {t("monitoring.showingProcesses", { shown: 100, total: sorted.length })}
         </p>
       )}
     </div>

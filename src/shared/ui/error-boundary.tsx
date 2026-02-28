@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from "react";
+import { Translation } from "react-i18next";
 import { AlertTriangle, RotateCw } from "lucide-react";
 
 interface ErrorBoundaryProps {
@@ -32,22 +33,28 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       }
 
       return (
-        <div className="flex min-h-[300px] items-center justify-center p-8">
-          <div className="max-w-md text-center">
-            <AlertTriangle className="text-red mx-auto mb-4 h-12 w-12" />
-            <h3 className="text-text mb-2 text-lg font-semibold">Something went wrong</h3>
-            <p className="text-subtext-0 mb-4 text-sm">
-              {this.state.error?.message ?? "An unexpected error occurred."}
-            </p>
-            <button
-              onClick={() => this.setState({ hasError: false, error: null })}
-              className="bg-blue text-crust hover:bg-blue/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-            >
-              <RotateCw className="h-4 w-4" />
-              Try Again
-            </button>
-          </div>
-        </div>
+        <Translation>
+          {(t) => (
+            <div className="flex min-h-[300px] items-center justify-center p-8">
+              <div className="max-w-md text-center">
+                <AlertTriangle className="text-red mx-auto mb-4 h-12 w-12" />
+                <h3 className="text-text mb-2 text-lg font-semibold">
+                  {t("errors.somethingWentWrong")}
+                </h3>
+                <p className="text-subtext-0 mb-4 text-sm">
+                  {this.state.error?.message ?? t("errors.unexpectedError")}
+                </p>
+                <button
+                  onClick={() => this.setState({ hasError: false, error: null })}
+                  className="bg-blue text-crust hover:bg-blue/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+                >
+                  <RotateCw className="h-4 w-4" />
+                  {t("errors.tryAgain")}
+                </button>
+              </div>
+            </div>
+          )}
+        </Translation>
       );
     }
 

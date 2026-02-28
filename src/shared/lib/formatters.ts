@@ -1,12 +1,25 @@
+import i18n from "@/shared/config/i18n";
+
+function getLocale(): string {
+  return i18n.language || "en";
+}
+
+function formatNumber(value: number, fractionDigits: number): string {
+  return new Intl.NumberFormat(getLocale(), {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(value);
+}
+
 export function formatBytes(bytes: number): string {
   if (bytes >= 1024 * 1024 * 1024) {
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    return `${formatNumber(bytes / (1024 * 1024 * 1024), 2)} GB`;
   }
   if (bytes >= 1024 * 1024) {
-    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    return `${formatNumber(bytes / (1024 * 1024), 2)} MB`;
   }
   if (bytes >= 1024) {
-    return `${(bytes / 1024).toFixed(2)} KB`;
+    return `${formatNumber(bytes / 1024, 2)} KB`;
   }
   return `${bytes} B`;
 }
@@ -20,8 +33,10 @@ export function formatRelativeTime(isoDate: string): string {
   const diffHour = Math.floor(diffMin / 60);
   const diffDay = Math.floor(diffHour / 24);
 
-  if (diffDay > 0) return `${diffDay}d ago`;
-  if (diffHour > 0) return `${diffHour}h ago`;
-  if (diffMin > 0) return `${diffMin}m ago`;
-  return "just now";
+  const rtf = new Intl.RelativeTimeFormat(getLocale(), { numeric: "auto" });
+
+  if (diffDay > 0) return rtf.format(-diffDay, "day");
+  if (diffHour > 0) return rtf.format(-diffHour, "hour");
+  if (diffMin > 0) return rtf.format(-diffMin, "minute");
+  return rtf.format(0, "second");
 }

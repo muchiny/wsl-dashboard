@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { CheckCircle2, XCircle, AlertTriangle, Info, X } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useToastStore } from "./toast-store";
@@ -24,14 +25,16 @@ const variantConfig: Record<
   info: { icon: Info, bg: "bg-blue/20", text: "text-blue", border: "border-blue/30" },
 };
 
-function ToastItem({ toast: t, onDismiss }: { toast: Toast; onDismiss: () => void }) {
-  useEffect(() => {
-    if (!t.duration) return;
-    const timer = setTimeout(onDismiss, t.duration);
-    return () => clearTimeout(timer);
-  }, [t.duration, onDismiss]);
+function ToastItem({ toast: toastItem, onDismiss }: { toast: Toast; onDismiss: () => void }) {
+  const { t } = useTranslation();
 
-  const config = variantConfig[t.variant];
+  useEffect(() => {
+    if (!toastItem.duration) return;
+    const timer = setTimeout(onDismiss, toastItem.duration);
+    return () => clearTimeout(timer);
+  }, [toastItem.duration, onDismiss]);
+
+  const config = variantConfig[toastItem.variant];
   const Icon = config.icon;
 
   return (
@@ -48,11 +51,11 @@ function ToastItem({ toast: t, onDismiss }: { toast: Toast; onDismiss: () => voi
       >
         <Icon className={cn("h-3.5 w-3.5", config.text)} />
       </div>
-      <p className="text-text min-w-0 flex-1 text-sm">{t.message}</p>
+      <p className="text-text min-w-0 flex-1 text-sm">{toastItem.message}</p>
       <button
         onClick={onDismiss}
         className="text-subtext-0 hover:text-text shrink-0 p-0.5 transition-colors"
-        aria-label="Dismiss notification"
+        aria-label={t("toast.dismiss")}
       >
         <X className="h-3.5 w-3.5" />
       </button>
@@ -61,6 +64,7 @@ function ToastItem({ toast: t, onDismiss }: { toast: Toast; onDismiss: () => voi
 }
 
 export function ToastContainer() {
+  const { t } = useTranslation();
   const toasts = useToastStore((s) => s.toasts);
   const dismiss = useToastStore((s) => s.dismiss);
 
@@ -69,11 +73,11 @@ export function ToastContainer() {
   return (
     <div
       aria-live="polite"
-      aria-label="Notifications"
+      aria-label={t("toast.notifications")}
       className="fixed right-4 bottom-4 z-[100] flex w-80 flex-col gap-2"
     >
-      {toasts.map((t) => (
-        <ToastItem key={t.id} toast={t} onDismiss={() => dismiss(t.id)} />
+      {toasts.map((toastItem) => (
+        <ToastItem key={toastItem.id} toast={toastItem} onDismiss={() => dismiss(toastItem.id)} />
       ))}
     </div>
   );

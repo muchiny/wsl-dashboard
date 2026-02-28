@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import { Server, Search } from "lucide-react";
 import { useStartDistro, useStopDistro, useRestartDistro } from "../api/mutations";
 import { useSnapshotCounts } from "@/features/snapshot-list/api/queries";
@@ -27,6 +28,7 @@ export function DistroList({
   onSnapshot,
   onRestore,
 }: DistroListProps) {
+  const { t } = useTranslation();
   const startDistro = useStartDistro();
   const stopDistro = useStopDistro();
   const restartDistro = useRestartDistro();
@@ -54,7 +56,7 @@ export function DistroList({
   if (error) {
     return (
       <div className="border-red/30 bg-red/10 text-red rounded-xl border p-4">
-        Failed to load distributions: {error.message}
+        {t("distros.failedToLoad", { message: error.message })}
       </div>
     );
   }
@@ -63,8 +65,8 @@ export function DistroList({
     return (
       <div className="border-surface-1 bg-mantle flex flex-col items-center rounded-xl border px-8 py-12 text-center">
         <Search className="text-surface-2 mb-3 h-10 w-10" />
-        <p className="text-text font-medium">No distributions match your filters</p>
-        <p className="text-subtext-0 mt-1 text-sm">Try adjusting your search or filter criteria.</p>
+        <p className="text-text font-medium">{t("distros.noMatchingFilters")}</p>
+        <p className="text-subtext-0 mt-1 text-sm">{t("distros.noMatchingFiltersHint")}</p>
       </div>
     );
   }
@@ -73,13 +75,14 @@ export function DistroList({
     return (
       <div className="border-surface-1 bg-mantle flex flex-col items-center rounded-xl border px-8 py-12 text-center">
         <Server className="text-surface-2 mb-3 h-10 w-10" />
-        <p className="text-text font-medium">No distributions found</p>
+        <p className="text-text font-medium">{t("distros.noDistrosFound")}</p>
         <p className="text-subtext-0 mt-1 text-sm">
-          Install a WSL distribution to get started. Run{" "}
-          <code className="bg-surface-0 rounded px-1.5 py-0.5 font-mono text-xs">
-            wsl --install
-          </code>{" "}
-          in your terminal.
+          <Trans
+            i18nKey="distros.noDistrosFoundHint"
+            components={{
+              code: <code className="bg-surface-0 rounded px-1.5 py-0.5 font-mono text-xs" />,
+            }}
+          />
         </p>
       </div>
     );
@@ -96,10 +99,10 @@ export function DistroList({
             (restartDistro.isPending && restartDistro.variables) ||
             "",
           action: startDistro.isPending
-            ? "Starting"
+            ? t("distros.pendingStarting")
             : stopDistro.isPending
-              ? "Stopping"
-              : "Restarting",
+              ? t("distros.pendingStopping")
+              : t("distros.pendingRestarting"),
         }
       : null;
 

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
+import { renderWithProviders } from "@/test/test-utils";
 import { DistroList } from "./distro-list";
 import type { Distro } from "@/shared/types/distro";
 
@@ -35,6 +36,13 @@ vi.mock("../api/mutations", () => ({
   }),
 }));
 
+vi.mock("@/features/terminal/api/mutations", () => ({
+  useCreateTerminalSession: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+}));
+
 // Mock snapshot counts hook
 vi.mock("@/features/snapshot-list/api/queries", () => ({
   useSnapshotCounts: () => ({}),
@@ -60,6 +68,9 @@ function makeDistro(overrides: Partial<Distro> = {}): Distro {
   };
 }
 
+const SNAPSHOT_LABEL = "Create snapshot of Ubuntu";
+const CARD_LABEL = "Ubuntu - Running";
+
 const noop = () => {};
 
 const defaultProps = {
@@ -78,25 +89,26 @@ describe("DistroList", () => {
   });
 
   it("shows loading skeletons when loading", () => {
-    const { container } = render(<DistroList {...defaultProps} isLoading={true} />);
+    const { container } = renderWithProviders(<DistroList {...defaultProps} isLoading={true} />);
     const skeletons = container.querySelectorAll(".animate-pulse");
     expect(skeletons).toHaveLength(3);
   });
 
   it("shows error message when query fails", () => {
-    render(<DistroList {...defaultProps} error={new Error("Connection refused")} />);
-    expect(screen.getByText(/failed to load distributions/i)).toBeInTheDocument();
-    expect(screen.getByText(/connection refused/i)).toBeInTheDocument();
+    renderWithProviders(<DistroList {...defaultProps} error={new Error("Connection refused")} />);
+    expect(
+      screen.getByText(/Failed to load distributions: Connection refused/),
+    ).toBeInTheDocument();
   });
 
   it("shows empty state when no distros and not filtered", () => {
-    render(<DistroList {...defaultProps} />);
-    expect(screen.getByText(/no distributions found/i)).toBeInTheDocument();
+    renderWithProviders(<DistroList {...defaultProps} />);
+    expect(screen.getByText("No distributions found")).toBeInTheDocument();
   });
 
   it("shows filter empty state when no distros match filters", () => {
-    render(<DistroList {...defaultProps} isFiltered={true} />);
-    expect(screen.getByText(/no distributions match your filters/i)).toBeInTheDocument();
+    renderWithProviders(<DistroList {...defaultProps} isFiltered={true} />);
+    expect(screen.getByText("No distributions match your filters")).toBeInTheDocument();
   });
 
   it("renders a distro card for each distro in grid mode", () => {
@@ -106,7 +118,7 @@ describe("DistroList", () => {
       makeDistro({ name: "Fedora" }),
     ];
 
-    render(<DistroList {...defaultProps} distros={distros} />);
+    renderWithProviders(<DistroList {...defaultProps} distros={distros} />);
     expect(screen.getByText("Ubuntu")).toBeInTheDocument();
     expect(screen.getByText("Debian")).toBeInTheDocument();
     expect(screen.getByText("Fedora")).toBeInTheDocument();
@@ -118,7 +130,7 @@ describe("DistroList", () => {
       makeDistro({ name: "Debian", state: "Stopped" }),
     ];
 
-    render(<DistroList {...defaultProps} distros={distros} viewMode="list" />);
+    renderWithProviders(<DistroList {...defaultProps} distros={distros} viewMode="list" />);
     expect(screen.getByText("Ubuntu")).toBeInTheDocument();
     expect(screen.getByText("Debian")).toBeInTheDocument();
   });
@@ -127,8 +139,8 @@ describe("DistroList", () => {
     const onSnapshot = vi.fn();
     const distros = [makeDistro({ name: "Ubuntu" })];
 
-    render(<DistroList {...defaultProps} distros={distros} onSnapshot={onSnapshot} />);
-    fireEvent.click(screen.getByLabelText("Create snapshot of Ubuntu"));
+    renderWithProviders(<DistroList {...defaultProps} distros={distros} onSnapshot={onSnapshot} />);
+    fireEvent.click(screen.getByLabelText(SNAPSHOT_LABEL));
     expect(onSnapshot).toHaveBeenCalledOnce();
     expect(onSnapshot).toHaveBeenCalledWith("Ubuntu");
   });
@@ -136,22 +148,22 @@ describe("DistroList", () => {
   it("shows snapshot panel when a distro card is clicked in grid mode", () => {
     const distros = [makeDistro({ name: "Ubuntu" })];
 
-    render(<DistroList {...defaultProps} distros={distros} />);
+    renderWithProviders(<DistroList {...defaultProps} distros={distros} />);
 
     // Panel should not be visible initially
     expect(screen.queryByTestId("snapshot-list-Ubuntu")).not.toBeInTheDocument();
 
     // Click the card to expand
-    fireEvent.click(screen.getByRole("button", { name: /^ubuntu - /i }));
+    fireEvent.click(screen.getByRole("button", { name: CARD_LABEL }));
     expect(screen.getByTestId("snapshot-list-Ubuntu")).toBeInTheDocument();
   });
 
   it("collapses panel when the same card is clicked again", () => {
     const distros = [makeDistro({ name: "Ubuntu" })];
 
-    render(<DistroList {...defaultProps} distros={distros} />);
+    renderWithProviders(<DistroList {...defaultProps} distros={distros} />);
 
-    const card = screen.getByRole("button", { name: /^ubuntu - /i });
+    const card = screen.getByRole("button", { name: CARD_LABEL });
 
     // Expand
     fireEvent.click(card);
@@ -165,17 +177,17 @@ describe("DistroList", () => {
   it("shows snapshot panel when a distro row is clicked in list mode", () => {
     const distros = [makeDistro({ name: "Ubuntu" })];
 
-    render(<DistroList {...defaultProps} distros={distros} viewMode="list" />);
+    renderWithProviders(<DistroList {...defaultProps} distros={distros} viewMode="list" />);
 
     // Panel should not be visible initially
     expect(screen.queryByTestId("snapshot-list-Ubuntu")).not.toBeInTheDocument();
 
     // Click the row to expand
-    fireEvent.click(screen.getByRole("button", { name: /^ubuntu - /i }));
+    fireEvent.click(screen.getByRole("button", { name: CARD_LABEL }));
     expect(screen.getByTestId("snapshot-list-Ubuntu")).toBeInTheDocument();
 
     // Click again to collapse
-    fireEvent.click(screen.getByRole("button", { name: /^ubuntu - /i }));
+    fireEvent.click(screen.getByRole("button", { name: CARD_LABEL }));
     expect(screen.queryByTestId("snapshot-list-Ubuntu")).not.toBeInTheDocument();
   });
 
@@ -185,14 +197,18 @@ describe("DistroList", () => {
       makeDistro({ name: "Debian", state: "Stopped" }),
     ];
 
-    render(<DistroList {...defaultProps} distros={distros} />);
+    renderWithProviders(<DistroList {...defaultProps} distros={distros} />);
+
+    // Use text to find specific cards
+    const ubuntuCard = screen.getByText("Ubuntu").closest('[role="button"]')!;
+    const debianCard = screen.getByText("Debian").closest('[role="button"]')!;
 
     // Expand Ubuntu
-    fireEvent.click(screen.getByRole("button", { name: /^ubuntu - /i }));
+    fireEvent.click(ubuntuCard);
     expect(screen.getByTestId("snapshot-list-Ubuntu")).toBeInTheDocument();
 
     // Expand Debian - Ubuntu should close
-    fireEvent.click(screen.getByRole("button", { name: /^debian - /i }));
+    fireEvent.click(debianCard);
     expect(screen.queryByTestId("snapshot-list-Ubuntu")).not.toBeInTheDocument();
     expect(screen.getByTestId("snapshot-list-Debian")).toBeInTheDocument();
   });

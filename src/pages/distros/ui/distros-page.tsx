@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { DistroList } from "@/features/distro-list/ui/distro-list";
 import { DistrosToolbar } from "@/features/distro-list/ui/distros-toolbar";
-import { useDistroEvents } from "@/features/distro-events/hooks/use-distro-events";
-import { useDistros } from "@/features/distro-list/api/queries";
+import { useDistroEvents } from "@/features/distro-list/hooks/use-distro-events";
+import { useDistros } from "@/shared/api/distro-queries";
 import { useShutdownAll } from "@/features/distro-list/api/mutations";
 import { CreateSnapshotDialog } from "@/features/snapshot-list/ui/create-snapshot-dialog";
 import { RestoreSnapshotDialog } from "@/features/snapshot-list/ui/restore-snapshot-dialog";
@@ -38,6 +39,7 @@ const SORT_COMPARATORS: Record<SortKey, (a: Distro, b: Distro) => number> = {
 };
 
 export function DistrosPage() {
+  const { t } = useTranslation();
   useDistroEvents();
   const { data: distros, isLoading, error } = useDistros();
   const shutdownAll = useShutdownAll();
@@ -142,19 +144,19 @@ export function DistrosPage() {
       />
       <ConfirmDialog
         open={showShutdownConfirm}
-        title="Shutdown all distributions"
-        description={`This will terminate all ${running} running distribution${running > 1 ? "s" : ""}. Any unsaved work will be lost.`}
-        confirmLabel="Shutdown All"
+        title={t("distros.shutdownAllTitle")}
+        description={t("distros.shutdownAllDescription", { count: running })}
+        confirmLabel={t("distros.shutdownAllConfirm")}
         variant="danger"
         isPending={shutdownAll.isPending}
         onConfirm={() => {
           shutdownAll.mutate(undefined, {
             onSuccess: () => {
-              toast.success("All distributions shut down");
+              toast.success(t("distros.shutdownSuccess"));
               setShowShutdownConfirm(false);
             },
             onError: (err) => {
-              toast.error(`Shutdown failed: ${err.message}`);
+              toast.error(t("distros.shutdownFailed", { message: err.message }));
             },
           });
         }}

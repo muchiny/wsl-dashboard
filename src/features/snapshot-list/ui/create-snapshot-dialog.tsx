@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Plus, X, Archive, FolderOpen } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Plus, X, Archive, FolderOpen, Loader2 } from "lucide-react";
 import { Select } from "@/shared/ui/select";
 import { DialogShell } from "@/shared/ui/dialog-shell";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { useDistros } from "@/features/distro-list/api/queries";
+import { useDistros } from "@/shared/api/distro-queries";
 import { useCreateSnapshot } from "../api/mutations";
 import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
 
@@ -14,6 +15,7 @@ interface CreateSnapshotDialogProps {
 }
 
 export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSnapshotDialogProps) {
+  const { t } = useTranslation();
   const { data: distros } = useDistros();
   const createSnapshot = useCreateSnapshot();
   const { defaultSnapshotDir } = usePreferencesStore();
@@ -21,11 +23,11 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
   const [distroName, setDistroName] = useState(defaultDistro ?? "");
   const [name, setName] = useState("");
 
-  // Sync distroName with prop changes (adjust-state-during-render pattern)
+  // Sync when parent changes defaultDistro (React-recommended adjust-state-during-render)
   const [prevDefaultDistro, setPrevDefaultDistro] = useState(defaultDistro);
-  if (defaultDistro && defaultDistro !== prevDefaultDistro) {
+  if (defaultDistro !== prevDefaultDistro) {
     setPrevDefaultDistro(defaultDistro);
-    setDistroName(defaultDistro);
+    if (defaultDistro) setDistroName(defaultDistro);
   }
 
   const [description, setDescription] = useState("");
@@ -68,34 +70,41 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
         <div className="flex items-center gap-2">
           <Archive className="text-mauve h-5 w-5" />
           <h3 id="create-snapshot-title" className="text-text text-lg font-semibold">
-            Create Snapshot
+            {t("snapshots.create.title")}
           </h3>
         </div>
-        <button onClick={onClose} className="text-subtext-0 hover:bg-surface-0 rounded-lg p-1">
+        <button
+          onClick={onClose}
+          className="focus-ring text-subtext-0 hover:bg-surface-0 rounded-lg p-1"
+        >
           <X className="h-5 w-5" />
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-4">
         <div>
-          <label className="text-subtext-1 mb-1 block text-sm font-medium">Distribution</label>
+          <label className="text-subtext-1 mb-1 block text-sm font-medium">
+            {t("snapshots.create.distribution")}
+          </label>
           <Select
             value={distroName}
             onChange={setDistroName}
             options={
               distros?.map((d) => ({ value: d.name, label: `${d.name} (${d.state})` })) ?? []
             }
-            placeholder="Select a distribution..."
+            placeholder={t("snapshots.create.selectDistro")}
           />
         </div>
 
         <div>
-          <label className="text-subtext-1 mb-1 block text-sm font-medium">Snapshot Name</label>
+          <label className="text-subtext-1 mb-1 block text-sm font-medium">
+            {t("snapshots.create.name")}
+          </label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Pre-upgrade backup"
+            placeholder={t("snapshots.create.namePlaceholder")}
             maxLength={64}
             className={inputClass}
             required
@@ -104,12 +113,13 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
 
         <div>
           <label className="text-subtext-1 mb-1 block text-sm font-medium">
-            Description <span className="text-overlay-0">(optional)</span>
+            {t("snapshots.create.description")}{" "}
+            <span className="text-overlay-0">{t("common.optional")}</span>
           </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe what this snapshot captures..."
+            placeholder={t("snapshots.create.descriptionPlaceholder")}
             rows={2}
             maxLength={256}
             className={`${inputClass} resize-none`}
@@ -118,15 +128,17 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="text-subtext-1 mb-1 block text-sm font-medium">Format</label>
+            <label className="text-subtext-1 mb-1 block text-sm font-medium">
+              {t("snapshots.create.format")}
+            </label>
             <Select
               value={format}
               onChange={(v) => setFormat(v as typeof format)}
               options={[
-                { value: "tar", label: "tar (fastest)" },
-                { value: "tar.gz", label: "tar.gz (compressed)" },
-                { value: "tar.xz", label: "tar.xz (best compression)" },
-                { value: "vhdx", label: "VHDX (virtual disk)" },
+                { value: "tar", label: t("snapshots.create.formatTar") },
+                { value: "tar.gz", label: t("snapshots.create.formatTarGz") },
+                { value: "tar.xz", label: t("snapshots.create.formatTarXz") },
+                { value: "vhdx", label: t("snapshots.create.formatVhdx") },
               ]}
               placeholder=""
             />
@@ -134,7 +146,7 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
 
           <div>
             <label className="text-subtext-1 mb-1 block text-sm font-medium">
-              Output Directory
+              {t("snapshots.create.outputDirectory")}
             </label>
             <div className="flex gap-1">
               <input
@@ -150,12 +162,12 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
                 onClick={async () => {
                   const dir = await openDialog({
                     directory: true,
-                    title: "Select output directory",
+                    title: t("snapshots.create.browseOutputDir"),
                   });
                   if (dir) setOutputDir(dir);
                 }}
                 className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
-                title="Browse..."
+                title={t("common.browse")}
               >
                 <FolderOpen className="h-4 w-4" />
               </button>
@@ -169,15 +181,21 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
             onClick={onClose}
             className="border-surface-1 text-subtext-1 hover:bg-surface-0 rounded-lg border px-4 py-2 text-sm transition-colors"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             type="submit"
             disabled={createSnapshot.isPending}
             className="bg-mauve text-crust hover:bg-mauve/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
           >
-            <Plus className="h-4 w-4" />
-            {createSnapshot.isPending ? "Creating..." : "Create Snapshot"}
+            {createSnapshot.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            {createSnapshot.isPending
+              ? t("snapshots.create.creating")
+              : t("snapshots.create.submit")}
           </button>
         </div>
 

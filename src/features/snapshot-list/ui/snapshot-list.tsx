@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSnapshots } from "../api/queries";
 import { useDeleteSnapshot } from "../api/mutations";
 import { SnapshotCard } from "./snapshot-card";
@@ -12,6 +13,7 @@ interface SnapshotListProps {
 }
 
 export function SnapshotList({ distroName, onRestore, hideDistroName }: SnapshotListProps) {
+  const { t } = useTranslation();
   const { data: snapshots, isLoading, error } = useSnapshots(distroName);
   const deleteSnapshot = useDeleteSnapshot();
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
@@ -29,16 +31,14 @@ export function SnapshotList({ distroName, onRestore, hideDistroName }: Snapshot
   if (error) {
     return (
       <div className="border-red/30 bg-red/10 text-red rounded-xl border p-4">
-        Failed to load snapshots: {error.message}
+        {t("snapshots.failedToLoad", { message: error.message })}
       </div>
     );
   }
 
   if (!snapshots?.length) {
     return (
-      <div className="text-subtext-0 py-6 text-center text-sm">
-        No snapshots yet. Use the Snapshot button on a distribution to create one.
-      </div>
+      <div className="text-subtext-0 py-6 text-center text-sm">{t("snapshots.noSnapshots")}</div>
     );
   }
 
@@ -58,20 +58,20 @@ export function SnapshotList({ distroName, onRestore, hideDistroName }: Snapshot
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Delete snapshot"
-        description={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
-        confirmLabel="Delete"
+        title={t("snapshots.deleteTitle")}
+        description={t("snapshots.deleteDescription", { name: deleteTarget?.name })}
+        confirmLabel={t("common.delete")}
         variant="danger"
         isPending={deleteSnapshot.isPending}
         onConfirm={() => {
           if (!deleteTarget) return;
           deleteSnapshot.mutate(deleteTarget.id, {
             onSuccess: () => {
-              toast.success(`Snapshot "${deleteTarget.name}" deleted`);
+              toast.success(t("snapshots.deleteSuccess", { name: deleteTarget.name }));
               setDeleteTarget(null);
             },
             onError: (err) => {
-              toast.error(`Failed to delete snapshot: ${err.message}`);
+              toast.error(t("snapshots.deleteFailed", { message: err.message }));
             },
           });
         }}

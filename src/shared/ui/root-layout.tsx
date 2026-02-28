@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Outlet } from "@tanstack/react-router";
 import { Header } from "@/widgets/header/ui/header";
 import { DebugConsole } from "@/widgets/debug-console/ui/debug-console";
@@ -9,6 +10,7 @@ import { ErrorBoundary } from "@/shared/ui/error-boundary";
 import { useDebugConsoleSetup } from "@/shared/hooks/use-debug-console";
 
 export function RootLayout() {
+  const { t } = useTranslation();
   useDebugConsoleSetup();
 
   // Ctrl+` to toggle terminal panel
@@ -29,7 +31,7 @@ export function RootLayout() {
         href="#main-content"
         className="bg-blue text-crust fixed top-0 left-1/2 z-[200] -translate-x-1/2 -translate-y-full rounded-b-lg px-4 py-2 text-sm font-medium transition-transform focus:translate-y-0"
       >
-        Skip to main content
+        {t("header.skipToContent")}
       </a>
       <Header />
       <main

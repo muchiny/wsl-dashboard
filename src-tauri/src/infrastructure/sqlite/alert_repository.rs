@@ -3,6 +3,7 @@ use chrono::{DateTime, Utc};
 use sqlx::Row;
 
 use super::adapter::SqliteDb;
+use super::SqlxResultExt;
 use crate::domain::errors::DomainError;
 use crate::domain::ports::alerting::{AlertRecord, AlertType, AlertingPort};
 use crate::domain::value_objects::DistroName;
@@ -37,7 +38,7 @@ impl AlertingPort for SqliteAlertRepository {
         .bind(Utc::now().to_rfc3339())
         .execute(&self.db.pool)
         .await
-        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+        .db_err()?;
 
         Ok(())
     }
@@ -57,7 +58,7 @@ impl AlertingPort for SqliteAlertRepository {
         .bind(limit as i64)
         .fetch_all(&self.db.pool)
         .await
-        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+        .db_err()?;
 
         rows.iter()
             .map(|row| {
@@ -86,7 +87,7 @@ impl AlertingPort for SqliteAlertRepository {
             .bind(alert_id)
             .execute(&self.db.pool)
             .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+            .db_err()?;
 
         Ok(())
     }
@@ -96,7 +97,7 @@ impl AlertingPort for SqliteAlertRepository {
             .bind(before.to_rfc3339())
             .execute(&self.db.pool)
             .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+            .db_err()?;
 
         Ok(result.rows_affected())
     }

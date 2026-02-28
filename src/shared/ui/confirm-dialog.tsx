@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { DialogShell } from "./dialog-shell";
 
@@ -21,11 +22,14 @@ export function ConfirmDialog({
   onCancel,
   title,
   description,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   variant = "danger",
   isPending = false,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
+  const resolvedConfirmLabel = confirmLabel ?? t("common.confirm");
+  const resolvedCancelLabel = cancelLabel ?? t("common.cancel");
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   // Focus cancel button on open
@@ -71,7 +75,7 @@ export function ConfirmDialog({
           disabled={isPending}
           className="focus-ring border-surface-1 text-subtext-1 hover:bg-surface-0 rounded-lg border px-4 py-2 text-sm font-medium transition-colors"
         >
-          {cancelLabel}
+          {resolvedCancelLabel}
         </button>
         <button
           onClick={onConfirm}
@@ -83,7 +87,10 @@ export function ConfirmDialog({
               : "bg-yellow text-crust hover:bg-yellow/90",
           )}
         >
-          {isPending ? "..." : confirmLabel}
+          <span className="flex items-center gap-1.5">
+            {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {resolvedConfirmLabel}
+          </span>
         </button>
       </div>
     </DialogShell>

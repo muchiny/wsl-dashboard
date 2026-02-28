@@ -1,57 +1,44 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import i18next from "i18next";
 import { tauriInvoke } from "@/shared/api/tauri-client";
+import { useTauriMutation } from "@/shared/api/use-tauri-mutation";
 import { toast } from "@/shared/ui/toast-store";
-import { distroKeys } from "./queries";
+import { distroKeys } from "@/shared/api/distro-queries";
 
 export function useStartDistro() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (name: string) => tauriInvoke("start_distro", { name }),
-    onSuccess: (_data, name) => {
-      queryClient.invalidateQueries({ queryKey: distroKeys.all });
-      toast.success(`${name} started`);
-    },
-    onError: (err, name) => {
-      toast.error(`Failed to start ${name}: ${err.message}`);
-    },
+  return useTauriMutation<void, string>({
+    mutationFn: (name) => tauriInvoke("start_distro", { name }),
+    invalidateKeys: [distroKeys.all],
+    successMessage: (_data, name) => i18next.t("distros.toastStarted", { name }),
+    errorMessage: (err, name) =>
+      i18next.t("distros.toastStartFailed", { name, message: err.message }),
   });
 }
 
 export function useStopDistro() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (name: string) => tauriInvoke("stop_distro", { name }),
-    onSuccess: (_data, name) => {
-      queryClient.invalidateQueries({ queryKey: distroKeys.all });
-      toast.success(`${name} stopped`);
-    },
-    onError: (err, name) => {
-      toast.error(`Failed to stop ${name}: ${err.message}`);
-    },
+  return useTauriMutation<void, string>({
+    mutationFn: (name) => tauriInvoke("stop_distro", { name }),
+    invalidateKeys: [distroKeys.all],
+    successMessage: (_data, name) => i18next.t("distros.toastStopped", { name }),
+    errorMessage: (err, name) =>
+      i18next.t("distros.toastStopFailed", { name, message: err.message }),
   });
 }
 
 export function useRestartDistro() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (name: string) => tauriInvoke("restart_distro", { name }),
-    onSuccess: (_data, name) => {
-      queryClient.invalidateQueries({ queryKey: distroKeys.all });
-      toast.success(`${name} restarted`);
-    },
-    onError: (err, name) => {
-      toast.error(`Failed to restart ${name}: ${err.message}`);
-    },
+  return useTauriMutation<void, string>({
+    mutationFn: (name) => tauriInvoke("restart_distro", { name }),
+    invalidateKeys: [distroKeys.all],
+    successMessage: (_data, name) => i18next.t("distros.toastRestarted", { name }),
+    errorMessage: (err, name) =>
+      i18next.t("distros.toastRestartFailed", { name, message: err.message }),
   });
 }
 
 export function useShutdownAll() {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useTauriMutation({
     mutationFn: () => tauriInvoke("shutdown_all"),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: distroKeys.all });
-    },
+    invalidateKeys: [distroKeys.all],
   });
 }
 
@@ -69,14 +56,14 @@ export function useStartAll() {
     onSuccess: ({ succeeded, failed }) => {
       queryClient.invalidateQueries({ queryKey: distroKeys.all });
       if (succeeded > 0) {
-        toast.success(`Started ${succeeded} distribution${succeeded > 1 ? "s" : ""}`);
+        toast.success(i18next.t("distros.toastStartAllSuccess", { count: succeeded }));
       }
       if (failed > 0) {
-        toast.error(`Failed to start ${failed} distribution${failed > 1 ? "s" : ""}`);
+        toast.error(i18next.t("distros.toastStartAllFailed", { count: failed }));
       }
     },
     onError: (err) => {
-      toast.error(`Start all failed: ${err.message}`);
+      toast.error(i18next.t("distros.toastStartAllError", { message: err.message }));
     },
   });
 }

@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { TimeRange } from "@/shared/types/monitoring";
 
 interface TimeRangePickerProps {
@@ -5,14 +7,18 @@ interface TimeRangePickerProps {
   onChange: (range: TimeRange) => void;
 }
 
-const options: { value: TimeRange; label: string }[] = [
-  { value: "live", label: "Live" },
-  { value: "1h", label: "1h" },
-  { value: "6h", label: "6h" },
-  { value: "24h", label: "24h" },
-];
-
 export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
+  const { t } = useTranslation();
+
+  const options = useMemo<{ value: TimeRange; label: string }[]>(
+    () => [
+      { value: "live", label: t("monitoring.timeRangeLive") },
+      { value: "1h", label: t("monitoring.timeRange1h") },
+      { value: "6h", label: t("monitoring.timeRange6h") },
+      { value: "24h", label: t("monitoring.timeRange24h") },
+    ],
+    [t],
+  );
   return (
     <div className="bg-surface-0 flex items-center gap-1 rounded-lg p-1">
       {options.map((opt) => (

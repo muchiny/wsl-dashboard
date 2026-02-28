@@ -1,12 +1,15 @@
 import { useState } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import { Network, Plus, Trash2, ArrowRight, AlertTriangle, Loader2 } from "lucide-react";
 import { Select } from "@/shared/ui/select";
-import { useDistros } from "@/features/distro-list/api/queries";
+import { ActionIconButton } from "@/shared/ui/action-icon-button";
+import { useDistros } from "@/shared/api/distro-queries";
 import { useListeningPorts, usePortForwardingRules } from "../api/queries";
 import { useRemovePortForwarding } from "../api/mutations";
 import { AddRuleDialog } from "./add-rule-dialog";
 
 export function PortForwardingPanel() {
+  const { t } = useTranslation();
   const { data: distros } = useDistros();
   const [selectedDistro, setSelectedDistro] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -24,22 +27,25 @@ export function PortForwardingPanel() {
       <div className="border-surface-1 bg-mantle rounded-xl border p-5">
         <div className="mb-4 flex items-center gap-2">
           <Network className="text-blue h-5 w-5" />
-          <h4 className="text-text font-semibold">Port Forwarding</h4>
+          <h4 className="text-text font-semibold">{t("portForwarding.title")}</h4>
         </div>
 
         <p className="text-subtext-0 mb-4 text-sm">
-          Forward ports from WSL2 distributions to the Windows host using{" "}
-          <code className="bg-surface-0 rounded px-1 text-xs">netsh portproxy</code>. Select a
-          running distribution to view its listening ports and manage forwarding rules.
+          <Trans
+            i18nKey="portForwarding.description"
+            components={{ code: <code className="bg-surface-0 rounded px-1 text-xs" /> }}
+          />
         </p>
 
         <div>
-          <label className="text-subtext-0 mb-1 block text-xs font-medium">Distribution</label>
+          <label className="text-subtext-0 mb-1 block text-xs font-medium">
+            {t("portForwarding.distribution")}
+          </label>
           <Select
             value={selectedDistro}
             onChange={setSelectedDistro}
             options={runningDistros.map((d) => ({ value: d.name, label: d.name }))}
-            placeholder="All distributions"
+            placeholder={t("portForwarding.allDistributions")}
             className="max-w-xs"
           />
         </div>
@@ -48,25 +54,23 @@ export function PortForwardingPanel() {
       {/* Active rules */}
       <div className="border-surface-1 bg-mantle rounded-xl border p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h4 className="text-text font-semibold">Active Rules</h4>
+          <h4 className="text-text font-semibold">{t("portForwarding.activeRules")}</h4>
           <button
             onClick={() => setShowAddDialog(true)}
             className="bg-blue text-crust hover:bg-blue/90 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
-            Add Rule
+            {t("portForwarding.addRule")}
           </button>
         </div>
 
         {loadingRules ? (
           <div className="text-subtext-0 flex items-center gap-2 py-4 text-sm">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Loading rules...
+            {t("portForwarding.loadingRules")}
           </div>
         ) : !rules?.length ? (
-          <p className="text-subtext-0 py-4 text-center text-sm">
-            No forwarding rules configured. Click &quot;Add Rule&quot; to create one.
-          </p>
+          <p className="text-subtext-0 py-4 text-center text-sm">{t("portForwarding.noRules")}</p>
         ) : (
           <div className="space-y-2">
             {rules.map((rule) => (
@@ -83,14 +87,15 @@ export function PortForwardingPanel() {
                     {rule.protocol}
                   </span>
                 </div>
-                <button
-                  onClick={() => removeRule.mutate(rule.id)}
+                <ActionIconButton
+                  icon={Trash2}
+                  loading={removeRule.isPending && removeRule.variables === rule.id}
                   disabled={removeRule.isPending}
-                  className="text-overlay-0 hover:text-red transition-colors disabled:opacity-50"
-                  title="Remove rule"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                  onClick={() => removeRule.mutate(rule.id)}
+                  className="text-overlay-0 hover:text-red"
+                  iconClassName="h-4 w-4"
+                  title={t("portForwarding.removeRule")}
+                />
               </div>
             ))}
           </div>
@@ -98,36 +103,35 @@ export function PortForwardingPanel() {
 
         <div className="border-surface-0 bg-base/50 mt-4 flex items-start gap-2 rounded-lg border p-3">
           <AlertTriangle className="text-yellow mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <p className="text-subtext-0 text-xs">
-            Port forwarding requires administrator privileges. If rules fail to apply, restart WSL
-            Nexus as administrator.
-          </p>
+          <p className="text-subtext-0 text-xs">{t("portForwarding.adminWarning")}</p>
         </div>
       </div>
 
       {/* Listening ports */}
       {selectedDistro && (
         <div className="border-surface-1 bg-mantle rounded-xl border p-5">
-          <h4 className="text-text mb-4 font-semibold">Listening Ports on {selectedDistro}</h4>
+          <h4 className="text-text mb-4 font-semibold">
+            {t("portForwarding.listeningPorts", { name: selectedDistro })}
+          </h4>
 
           {loadingPorts ? (
             <div className="text-subtext-0 flex items-center gap-2 py-4 text-sm">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Scanning ports...
+              {t("portForwarding.scanningPorts")}
             </div>
           ) : !listeningPorts?.length ? (
             <p className="text-subtext-0 py-4 text-center text-sm">
-              No listening ports detected on {selectedDistro}.
+              {t("portForwarding.noListeningPorts", { name: selectedDistro })}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-subtext-0 border-surface-0 border-b text-left text-xs">
-                    <th className="pr-4 pb-2 font-medium">Port</th>
-                    <th className="pr-4 pb-2 font-medium">Protocol</th>
-                    <th className="pr-4 pb-2 font-medium">Process</th>
-                    <th className="pb-2 font-medium">PID</th>
+                    <th className="pr-4 pb-2 font-medium">{t("portForwarding.port")}</th>
+                    <th className="pr-4 pb-2 font-medium">{t("portForwarding.protocol")}</th>
+                    <th className="pr-4 pb-2 font-medium">{t("portForwarding.process")}</th>
+                    <th className="pb-2 font-medium">{t("monitoring.pid")}</th>
                   </tr>
                 </thead>
                 <tbody>

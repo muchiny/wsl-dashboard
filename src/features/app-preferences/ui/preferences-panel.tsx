@@ -1,10 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Moon, Sun, Timer, Archive, FolderOpen, Bell } from "lucide-react";
 import { Select } from "@/shared/ui/select";
 import { ToggleSwitch } from "@/shared/ui/toggle-switch";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useThemeStore } from "@/shared/hooks/use-theme";
 import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
+import { useLocaleStore } from "@/shared/stores/use-locale-store";
+import { supportedLocales, localeLabels, type Locale } from "@/shared/config/i18n";
 import {
   useAlertThresholds,
   useSetAlertThresholds,
@@ -13,24 +16,30 @@ import type { AlertThreshold } from "@/shared/types/monitoring";
 import { cn } from "@/shared/lib/utils";
 
 const INTERVAL_OPTIONS = [
-  { label: "1 second", value: 1000 },
-  { label: "2 seconds", value: 2000 },
-  { label: "3 seconds", value: 3000 },
-  { label: "5 seconds", value: 5000 },
-  { label: "10 seconds", value: 10000 },
-  { label: "30 seconds", value: 30000 },
+  { key: "preferences.interval1s", value: 1000 },
+  { key: "preferences.interval2s", value: 2000 },
+  { key: "preferences.interval3s", value: 3000 },
+  { key: "preferences.interval5s", value: 5000 },
+  { key: "preferences.interval10s", value: 10000 },
+  { key: "preferences.interval30s", value: 30000 },
 ];
 
 const inputClass =
   "focus-ring border-surface-1 bg-base text-text w-full rounded-lg border px-3 py-2 text-sm";
 
-const intervalOptions = INTERVAL_OPTIONS.map((opt) => ({
-  value: String(opt.value),
-  label: opt.label,
-}));
-
 export function PreferencesPanel() {
+  const { t } = useTranslation();
   const { theme, toggleTheme } = useThemeStore();
+  const { locale, setLocale } = useLocaleStore();
+
+  const intervalOptions = useMemo(
+    () =>
+      INTERVAL_OPTIONS.map((opt) => ({
+        value: String(opt.value),
+        label: t(opt.key),
+      })),
+    [t],
+  );
   const {
     metricsInterval,
     processesInterval,
@@ -65,7 +74,7 @@ export function PreferencesPanel() {
   return (
     <div className="space-y-6">
       <div className="border-surface-1 bg-mantle rounded-xl border p-5">
-        <h4 className="text-text mb-4 font-semibold">Appearance</h4>
+        <h4 className="text-text mb-4 font-semibold">{t("preferences.appearance")}</h4>
         <div className="flex gap-3">
           <button
             onClick={() => theme === "light" && toggleTheme()}
@@ -78,8 +87,8 @@ export function PreferencesPanel() {
           >
             <Moon className="h-5 w-5 shrink-0" />
             <div className="text-left">
-              <p className="text-text text-sm font-medium">Mocha (Dark)</p>
-              <p className="text-subtext-0 text-xs">Dark theme with warm tones</p>
+              <p className="text-text text-sm font-medium">{t("preferences.mochaDark")}</p>
+              <p className="text-subtext-0 text-xs">{t("preferences.mochaDarkDesc")}</p>
             </div>
           </button>
           <button
@@ -93,25 +102,34 @@ export function PreferencesPanel() {
           >
             <Sun className="h-5 w-5 shrink-0" />
             <div className="text-left">
-              <p className="text-text text-sm font-medium">Latte (Light)</p>
-              <p className="text-subtext-0 text-xs">Light theme for bright environments</p>
+              <p className="text-text text-sm font-medium">{t("preferences.latteLight")}</p>
+              <p className="text-subtext-0 text-xs">{t("preferences.latteLightDesc")}</p>
             </div>
           </button>
+        </div>
+        <div className="mt-4">
+          <label className="text-subtext-0 mb-1 block text-xs font-medium">
+            {t("preferences.language")}
+          </label>
+          <Select
+            value={locale}
+            onChange={(v) => setLocale(v as Locale)}
+            options={supportedLocales.map((l) => ({ value: l, label: localeLabels[l] }))}
+            placeholder=""
+          />
         </div>
       </div>
 
       <div className="border-surface-1 bg-mantle rounded-xl border p-5">
         <div className="mb-4 flex items-center gap-2">
           <Timer className="text-mauve h-5 w-5" />
-          <h4 className="text-text font-semibold">Monitoring</h4>
+          <h4 className="text-text font-semibold">{t("preferences.monitoring")}</h4>
         </div>
-        <p className="text-subtext-0 mb-4 text-xs">
-          Adjust how often metrics are polled from running distributions.
-        </p>
+        <p className="text-subtext-0 mb-4 text-xs">{t("preferences.monitoringDesc")}</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="text-subtext-0 mb-1 block text-xs font-medium">
-              System Metrics Interval
+              {t("preferences.metricsInterval")}
             </label>
             <Select
               value={String(metricsInterval)}
@@ -122,7 +140,7 @@ export function PreferencesPanel() {
           </div>
           <div>
             <label className="text-subtext-0 mb-1 block text-xs font-medium">
-              Process List Interval
+              {t("preferences.processListInterval")}
             </label>
             <Select
               value={String(processesInterval)}
@@ -137,22 +155,20 @@ export function PreferencesPanel() {
       <div className="border-surface-1 bg-mantle rounded-xl border p-5">
         <div className="mb-4 flex items-center gap-2">
           <Archive className="text-mauve h-5 w-5" />
-          <h4 className="text-text font-semibold">Snapshots</h4>
+          <h4 className="text-text font-semibold">{t("preferences.snapshotsSection")}</h4>
         </div>
-        <p className="text-subtext-0 mb-4 text-xs">
-          Default directories used when creating or restoring snapshots.
-        </p>
+        <p className="text-subtext-0 mb-4 text-xs">{t("preferences.snapshotsDesc")}</p>
         <div className="space-y-4">
           <div>
             <label className="text-subtext-0 mb-1 block text-xs font-medium">
-              Default Snapshot Directory
+              {t("preferences.defaultSnapshotDir")}
             </label>
             <div className="flex gap-1">
               <input
                 type="text"
                 value={defaultSnapshotDir}
                 onChange={(e) => setDefaultSnapshotDir(e.target.value)}
-                placeholder="C:\WSL-Snapshots"
+                placeholder={t("preferences.snapshotDirPlaceholder")}
                 maxLength={260}
                 className={`${inputClass} flex-1`}
               />
@@ -161,30 +177,28 @@ export function PreferencesPanel() {
                 onClick={async () => {
                   const dir = await openDialog({
                     directory: true,
-                    title: "Select default snapshot directory",
+                    title: t("preferences.browseSnapshotDirTitle"),
                   });
                   if (dir) setDefaultSnapshotDir(dir);
                 }}
                 className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
-                aria-label="Browse snapshot directory"
+                aria-label={t("preferences.browseSnapshotDir")}
               >
                 <FolderOpen className="h-4 w-4" />
               </button>
             </div>
-            <p className="text-overlay-0 mt-1 text-xs">
-              Where snapshot files (.tar, .vhdx) are saved by default.
-            </p>
+            <p className="text-overlay-0 mt-1 text-xs">{t("preferences.defaultSnapshotDirHint")}</p>
           </div>
           <div>
             <label className="text-subtext-0 mb-1 block text-xs font-medium">
-              Default Install Location
+              {t("preferences.defaultInstallLocation")}
             </label>
             <div className="flex gap-1">
               <input
                 type="text"
                 value={defaultInstallLocation}
                 onChange={(e) => setDefaultInstallLocation(e.target.value)}
-                placeholder="C:\WSL"
+                placeholder={t("preferences.installLocationPlaceholder")}
                 maxLength={260}
                 className={`${inputClass} flex-1`}
               />
@@ -193,18 +207,18 @@ export function PreferencesPanel() {
                 onClick={async () => {
                   const dir = await openDialog({
                     directory: true,
-                    title: "Select default install location",
+                    title: t("preferences.browseInstallLocationTitle"),
                   });
                   if (dir) setDefaultInstallLocation(dir);
                 }}
                 className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
-                aria-label="Browse install location"
+                aria-label={t("preferences.browseInstallLocation")}
               >
                 <FolderOpen className="h-4 w-4" />
               </button>
             </div>
             <p className="text-overlay-0 mt-1 text-xs">
-              Where restored distributions are installed by default.
+              {t("preferences.defaultInstallLocationHint")}
             </p>
           </div>
         </div>
@@ -213,19 +227,17 @@ export function PreferencesPanel() {
       <div className="border-surface-1 bg-mantle rounded-xl border p-5">
         <div className="mb-4 flex items-center gap-2">
           <Bell className="text-mauve h-5 w-5" />
-          <h4 className="text-text font-semibold">Alerts</h4>
+          <h4 className="text-text font-semibold">{t("preferences.alerts")}</h4>
         </div>
-        <p className="text-subtext-0 mb-4 text-xs">
-          Configure thresholds for desktop notifications when resource usage is high.
-        </p>
+        <p className="text-subtext-0 mb-4 text-xs">{t("preferences.alertsDesc")}</p>
         <div className="space-y-4">
           {alertThresholds.map((threshold) => {
             const label =
               threshold.alert_type === "cpu"
-                ? "CPU"
+                ? t("preferences.alertCpu")
                 : threshold.alert_type === "memory"
-                  ? "Memory"
-                  : "Disk";
+                  ? t("preferences.alertMemory")
+                  : t("preferences.alertDisk");
             return (
               <div key={threshold.alert_type} className="flex items-center gap-4">
                 <ToggleSwitch
@@ -233,7 +245,7 @@ export function PreferencesPanel() {
                   onChange={() =>
                     updateThreshold(threshold.alert_type, { enabled: !threshold.enabled })
                   }
-                  label={`Toggle ${label} alert`}
+                  label={t("preferences.toggleAlert", { label })}
                   hideLabel
                 />
                 <div className="flex-1">

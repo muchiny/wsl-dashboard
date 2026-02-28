@@ -1,3 +1,5 @@
+import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Trash2, RotateCw, Archive, Clock, HardDrive, Loader2 } from "lucide-react";
 import type { Snapshot } from "@/shared/types/snapshot";
 import { formatBytes, formatRelativeTime } from "@/shared/lib/formatters";
@@ -10,7 +12,13 @@ interface SnapshotCardProps {
   hideDistroName?: boolean;
 }
 
-export function SnapshotCard({ snapshot, onDelete, onRestore, hideDistroName }: SnapshotCardProps) {
+export const SnapshotCard = memo(function SnapshotCard({
+  snapshot,
+  onDelete,
+  onRestore,
+  hideDistroName,
+}: SnapshotCardProps) {
+  const { t } = useTranslation();
   const isCompleted = snapshot.status === "completed";
   const isInProgress = snapshot.status === "in_progress";
   const isFailed = snapshot.status.startsWith("failed");
@@ -39,7 +47,11 @@ export function SnapshotCard({ snapshot, onDelete, onRestore, hideDistroName }: 
             isFailed && "bg-red/25 text-red",
           )}
         >
-          {isCompleted ? "Completed" : isInProgress ? "Exporting..." : "Failed"}
+          {isCompleted
+            ? t("snapshots.completed")
+            : isInProgress
+              ? t("snapshots.exporting")
+              : t("snapshots.failed")}
         </span>
       </div>
 
@@ -67,7 +79,7 @@ export function SnapshotCard({ snapshot, onDelete, onRestore, hideDistroName }: 
               onRestore();
             }}
             className="text-subtext-0 hover:bg-blue/20 hover:text-blue rounded-lg p-1.5 transition-colors"
-            title="Restore snapshot"
+            title={t("snapshots.restoreSnapshot")}
           >
             <RotateCw className="h-4 w-4" />
           </button>
@@ -78,11 +90,11 @@ export function SnapshotCard({ snapshot, onDelete, onRestore, hideDistroName }: 
             onDelete();
           }}
           className="text-subtext-0 hover:bg-red/20 hover:text-red rounded-lg p-1.5 transition-colors"
-          title="Delete snapshot"
+          title={t("snapshots.deleteSnapshot")}
         >
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
     </div>
   );
-}
+});

@@ -140,7 +140,11 @@ impl WslCliAdapter {
         Ok(output.stdout)
     }
 
-    /// Run a command inside a distro and return UTF-8 output
+    /// Run a command inside a distro and return UTF-8 output.
+    ///
+    /// # Safety
+    /// The `command` parameter is passed to `sh -c`, so it is shell-interpreted.
+    /// Only call this with hardcoded command strings. NEVER pass user input directly.
     async fn exec_in_distro_raw(&self, distro: &str, command: &str) -> Result<String, DomainError> {
         let output = self
             .wsl_command()

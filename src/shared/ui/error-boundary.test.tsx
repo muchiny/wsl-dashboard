@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
+import { renderWithProviders } from "@/test/test-utils";
 import { ErrorBoundary } from "./error-boundary";
 
 function ProblemChild({ shouldThrow }: { shouldThrow: boolean }) {
@@ -20,7 +21,7 @@ describe("ErrorBoundary", () => {
   });
 
   it("renders children when no error occurs", () => {
-    render(
+    renderWithProviders(
       <ErrorBoundary>
         <ProblemChild shouldThrow={false} />
       </ErrorBoundary>,
@@ -29,7 +30,7 @@ describe("ErrorBoundary", () => {
   });
 
   it("renders error UI when a child throws", () => {
-    render(
+    renderWithProviders(
       <ErrorBoundary>
         <ProblemChild shouldThrow={true} />
       </ErrorBoundary>,
@@ -39,7 +40,7 @@ describe("ErrorBoundary", () => {
   });
 
   it("displays the thrown error message", () => {
-    render(
+    renderWithProviders(
       <ErrorBoundary>
         <ProblemChild shouldThrow={true} />
       </ErrorBoundary>,
@@ -48,7 +49,7 @@ describe("ErrorBoundary", () => {
   });
 
   it("shows a Try Again button that resets the error state", () => {
-    render(
+    renderWithProviders(
       <ErrorBoundary>
         <ProblemChild shouldThrow={true} />
       </ErrorBoundary>,
@@ -68,7 +69,7 @@ describe("ErrorBoundary", () => {
       return <div>Recovered content</div>;
     }
 
-    render(
+    renderWithProviders(
       <ErrorBoundary>
         <ConditionalChild />
       </ErrorBoundary>,
@@ -85,7 +86,7 @@ describe("ErrorBoundary", () => {
   });
 
   it("renders a custom fallback when provided", () => {
-    render(
+    renderWithProviders(
       <ErrorBoundary fallback={<div>Custom fallback UI</div>}>
         <ProblemChild shouldThrow={true} />
       </ErrorBoundary>,
@@ -103,7 +104,7 @@ describe("ErrorBoundary", () => {
       throw err;
     }
 
-    render(
+    renderWithProviders(
       <ErrorBoundary>
         <ThrowNull />
       </ErrorBoundary>,

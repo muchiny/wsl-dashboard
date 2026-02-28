@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { RotateCw, X, FolderOpen, Loader2 } from "lucide-react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { DialogShell } from "@/shared/ui/dialog-shell";
@@ -20,6 +21,7 @@ export function RestoreSnapshotDialog({
   distroName,
   onClose,
 }: RestoreSnapshotDialogProps) {
+  const { t } = useTranslation();
   const restoreSnapshot = useRestoreSnapshot();
   const { defaultInstallLocation } = usePreferencesStore();
 
@@ -64,7 +66,7 @@ export function RestoreSnapshotDialog({
   const VALID_DISTRO_NAME = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
   const nameError =
     mode === "clone" && newName && !VALID_DISTRO_NAME.test(newName)
-      ? "Only letters, numbers, dots, hyphens and underscores allowed"
+      ? t("snapshots.restore.nameError")
       : null;
 
   const effectiveInstallLocation = mode === "overwrite" ? overwritePath : installLocation;
@@ -105,7 +107,7 @@ export function RestoreSnapshotDialog({
         <div className="flex items-center gap-2">
           <RotateCw className="text-blue h-5 w-5" />
           <h3 id="restore-snapshot-title" className="text-text text-lg font-semibold">
-            Restore Snapshot
+            {t("snapshots.restore.title")}
           </h3>
         </div>
         <button onClick={onClose} className="text-subtext-0 hover:bg-surface-0 rounded-lg p-1">
@@ -115,7 +117,9 @@ export function RestoreSnapshotDialog({
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-4">
         <div>
-          <label className="text-subtext-1 mb-2 block text-sm font-medium">Restore Mode</label>
+          <label className="text-subtext-1 mb-2 block text-sm font-medium">
+            {t("snapshots.restore.mode")}
+          </label>
           <div className="flex flex-col gap-3 sm:flex-row">
             <label className="border-surface-1 has-[:checked]:border-blue has-[:checked]:bg-blue/5 flex flex-1 cursor-pointer items-center gap-2 rounded-lg border p-3">
               <input
@@ -127,8 +131,8 @@ export function RestoreSnapshotDialog({
                 className="accent-blue"
               />
               <div>
-                <p className="text-text text-sm font-medium">Clone</p>
-                <p className="text-subtext-0 text-xs">Create as new distro</p>
+                <p className="text-text text-sm font-medium">{t("snapshots.restore.clone")}</p>
+                <p className="text-subtext-0 text-xs">{t("snapshots.restore.cloneDescription")}</p>
               </div>
             </label>
             <label className="border-surface-1 has-[:checked]:border-blue has-[:checked]:bg-blue/5 flex flex-1 cursor-pointer items-center gap-2 rounded-lg border p-3">
@@ -141,8 +145,10 @@ export function RestoreSnapshotDialog({
                 className="accent-blue"
               />
               <div>
-                <p className="text-text text-sm font-medium">Overwrite</p>
-                <p className="text-subtext-0 text-xs">Replace original distro</p>
+                <p className="text-text text-sm font-medium">{t("snapshots.restore.overwrite")}</p>
+                <p className="text-subtext-0 text-xs">
+                  {t("snapshots.restore.overwriteDescription")}
+                </p>
               </div>
             </label>
           </div>
@@ -151,13 +157,13 @@ export function RestoreSnapshotDialog({
         {mode === "clone" && (
           <div>
             <label className="text-subtext-1 mb-1 block text-sm font-medium">
-              New Distribution Name
+              {t("snapshots.restore.newDistroName")}
             </label>
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g. Ubuntu-restored"
+              placeholder={t("snapshots.restore.newDistroNamePlaceholder")}
               maxLength={64}
               className={cn(inputClass, nameError && "border-red")}
               required
@@ -168,15 +174,14 @@ export function RestoreSnapshotDialog({
 
         {mode === "overwrite" && (
           <div className="border-yellow/30 bg-yellow/20 text-yellow rounded-lg border p-3 text-sm">
-            This will terminate and replace the original distribution. Make sure to back up any
-            unsaved work.
+            {t("snapshots.restore.overwriteWarning")}
           </div>
         )}
 
         {mode === "clone" && (
           <div>
             <label className="text-subtext-1 mb-1 block text-sm font-medium">
-              Install Location
+              {t("snapshots.restore.installLocation")}
             </label>
             <div className="flex gap-1">
               <input
@@ -193,18 +198,18 @@ export function RestoreSnapshotDialog({
                 onClick={async () => {
                   const dir = await openDialog({
                     directory: true,
-                    title: "Select install location",
+                    title: t("snapshots.restore.browseInstallLocationTitle"),
                   });
                   if (dir) setInstallLocation(dir);
                 }}
                 className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
-                aria-label="Browse install location"
+                aria-label={t("snapshots.restore.browseInstallLocation")}
               >
                 <FolderOpen className="h-4 w-4" />
               </button>
             </div>
             <p className="text-overlay-0 mt-1 text-xs">
-              Directory where the distribution&apos;s virtual disk will be stored.
+              {t("snapshots.restore.installLocationHint")}
             </p>
           </div>
         )}
@@ -212,22 +217,19 @@ export function RestoreSnapshotDialog({
         {mode === "overwrite" && (
           <div>
             <label className="text-subtext-1 mb-1 block text-sm font-medium">
-              Install Location
+              {t("snapshots.restore.installLocation")}
             </label>
             {overwritePathLoading ? (
               <div className="text-subtext-0 flex items-center gap-2 text-sm">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Detecting install path...
+                {t("snapshots.restore.detectingPath")}
               </div>
             ) : overwritePath ? (
               <p className="text-text bg-surface-0 rounded-lg px-3 py-2 font-mono text-xs">
                 {overwritePath}
               </p>
             ) : (
-              <p className="text-overlay-0 text-xs">
-                Could not detect the original install path. The distro will be restored to its
-                default location.
-              </p>
+              <p className="text-overlay-0 text-xs">{t("snapshots.restore.cannotDetectPath")}</p>
             )}
           </div>
         )}
@@ -238,15 +240,21 @@ export function RestoreSnapshotDialog({
             onClick={onClose}
             className="border-surface-1 text-subtext-1 hover:bg-surface-0 rounded-lg border px-4 py-2 text-sm transition-colors"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             type="submit"
             disabled={restoreSnapshot.isPending || !!nameError || overwritePathLoading}
             className="bg-blue text-crust hover:bg-blue/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
           >
-            <RotateCw className="h-4 w-4" />
-            {restoreSnapshot.isPending ? "Restoring..." : "Restore"}
+            {restoreSnapshot.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RotateCw className="h-4 w-4" />
+            )}
+            {restoreSnapshot.isPending
+              ? t("snapshots.restore.restoring")
+              : t("snapshots.restore.submit")}
           </button>
         </div>
 

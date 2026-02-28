@@ -3,6 +3,7 @@ use chrono::{DateTime, Utc};
 use sqlx::Row;
 
 use super::adapter::SqliteDb;
+use super::SqlxResultExt;
 use crate::domain::entities::monitoring::SystemMetrics;
 use crate::domain::errors::DomainError;
 use crate::domain::ports::metrics_repository::{
@@ -56,7 +57,7 @@ impl MetricsRepositoryPort for SqliteMetricsRepository {
         .bind(net_tx as i64)
         .execute(&self.db.pool)
         .await
-        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+        .db_err()?;
 
         Ok(())
     }
@@ -77,7 +78,7 @@ impl MetricsRepositoryPort for SqliteMetricsRepository {
         .bind(to.to_rfc3339())
         .fetch_all(&self.db.pool)
         .await
-        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+        .db_err()?;
 
         rows.iter()
             .map(|row| {
@@ -126,7 +127,7 @@ impl MetricsRepositoryPort for SqliteMetricsRepository {
         .bind(to.to_rfc3339())
         .fetch_all(&self.db.pool)
         .await
-        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+        .db_err()?;
 
         rows.iter()
             .map(|row| {
@@ -199,7 +200,7 @@ impl MetricsRepositoryPort for SqliteMetricsRepository {
         .bind(bucket_end.to_rfc3339())
         .execute(&self.db.pool)
         .await
-        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+        .db_err()?;
 
         Ok(result.rows_affected())
     }
@@ -209,7 +210,7 @@ impl MetricsRepositoryPort for SqliteMetricsRepository {
             .bind(before.to_rfc3339())
             .execute(&self.db.pool)
             .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+            .db_err()?;
 
         Ok(result.rows_affected())
     }
@@ -219,7 +220,7 @@ impl MetricsRepositoryPort for SqliteMetricsRepository {
             .bind(before.to_rfc3339())
             .execute(&self.db.pool)
             .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+            .db_err()?;
 
         Ok(result.rows_affected())
     }

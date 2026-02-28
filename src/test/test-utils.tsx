@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { I18nextProvider } from "react-i18next";
 import { render, type RenderOptions } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
+import i18n from "@/shared/config/i18n";
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -14,7 +16,9 @@ function createTestQueryClient() {
 export function createWrapper() {
   const queryClient = createTestQueryClient();
   return ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <I18nextProvider i18n={i18n}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </I18nextProvider>
   );
 }
 
@@ -22,7 +26,9 @@ export function renderWithProviders(ui: ReactElement, options?: Omit<RenderOptio
   const queryClient = createTestQueryClient();
   return render(ui, {
     wrapper: ({ children }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <I18nextProvider i18n={i18n}>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </I18nextProvider>
     ),
     ...options,
   });

@@ -1,19 +1,9 @@
-import {
-  Play,
-  Square,
-  RotateCw,
-  Star,
-  Archive,
-  Activity,
-  Loader2,
-  ChevronDown,
-  TerminalSquare,
-} from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { memo } from "react";
+import { Star, Archive, Loader2, ChevronDown } from "lucide-react";
 import type { Distro } from "@/shared/types/distro";
 import { cn } from "@/shared/lib/utils";
-import { createTerminal } from "@/features/terminal/api/mutations";
-import { useTerminalStore } from "@/features/terminal/model/use-terminal-store";
+import { useDistroActions } from "../hooks/use-distro-actions";
+import { DistroActions } from "./distro-actions";
 
 interface DistroCardProps {
   distro: Distro;
@@ -27,7 +17,7 @@ interface DistroCardProps {
   snapshotCount: number;
 }
 
-export function DistroCard({
+export const DistroCard = memo(function DistroCard({
   distro,
   onStart,
   onStop,
@@ -38,22 +28,30 @@ export function DistroCard({
   isExpanded,
   snapshotCount,
 }: DistroCardProps) {
-  const isRunning = distro.state === "Running";
-  const isPending = !!pendingAction;
+  const {
+    t,
+    isRunning,
+    isPending,
+    stateLabel,
+    createTerminalSession,
+    handleKeyDown,
+    handleStart,
+    handleStop,
+    handleRestart,
+    handleSnapshot,
+    handleTerminal,
+    handleMonitorClick,
+    ariaLabel,
+  } = useDistroActions({ distro, pendingAction, onStart, onStop, onRestart, onSnapshot, onExpand });
 
   return (
     <div
       role="button"
       tabIndex={0}
       onClick={onExpand}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onExpand();
-        }
-      }}
+      onKeyDown={handleKeyDown}
       aria-expanded={isExpanded}
-      aria-label={`${distro.name} - ${distro.state}${distro.is_default ? " (default)" : ""}`}
+      aria-label={ariaLabel}
       className={cn(
         "group border-surface-1 bg-mantle focus-ring cursor-pointer rounded-xl border p-5 transition-all duration-200",
         isExpanded
@@ -75,7 +73,7 @@ export function DistroCard({
           {distro.is_default && (
             <Star
               className="fill-yellow text-yellow h-3.5 w-3.5"
-              aria-label="Default distribution"
+              aria-label={t("distros.defaultDistribution")}
             />
           )}
         </div>
@@ -90,7 +88,7 @@ export function DistroCard({
           )}
         >
           {isPending && <Loader2 className="h-3 w-3 animate-spin" />}
-          {isPending ? pendingAction : distro.state}
+          {isPending ? pendingAction : stateLabel}
         </span>
       </div>
 
@@ -116,100 +114,22 @@ export function DistroCard({
       </div>
 
       {/* Actions */}
-      <div className="border-surface-0 mt-4 flex items-center justify-between border-t pt-4">
-        <div className="flex gap-1">
-          {!isRunning && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onStart();
-              }}
-              disabled={isPending}
-              className="text-subtext-0 hover:bg-green/20 hover:text-green flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
-              aria-label={`Start ${distro.name}`}
-            >
-              <Play className="h-3.5 w-3.5" aria-hidden="true" />
-              Start
-            </button>
-          )}
-          {isRunning && (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRestart();
-                }}
-                disabled={isPending}
-                className="text-subtext-0 hover:bg-yellow/20 hover:text-yellow flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
-                aria-label={`Restart ${distro.name}`}
-              >
-                <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
-                Restart
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onStop();
-                }}
-                disabled={isPending}
-                className="text-subtext-0 hover:bg-red/20 hover:text-red flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
-                aria-label={`Stop ${distro.name}`}
-              >
-                <Square className="h-3.5 w-3.5" aria-hidden="true" />
-                Stop
-              </button>
-            </>
-          )}
-        </div>
-
-        <div className="flex gap-1">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onSnapshot();
-            }}
-            className="text-subtext-0 hover:bg-mauve/20 hover:text-mauve flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-            aria-label={`Create snapshot of ${distro.name}`}
-          >
-            <Archive className="h-3.5 w-3.5" aria-hidden="true" />
-            Snapshot
-          </button>
-          {isRunning && (
-            <button
-              onClick={async (e) => {
-                e.stopPropagation();
-                try {
-                  const sessionId = await createTerminal(distro.name);
-                  useTerminalStore.getState().addSession({
-                    id: sessionId,
-                    distroName: distro.name,
-                    title: distro.name,
-                  });
-                } catch (err) {
-                  console.error("Failed to open terminal:", err);
-                }
-              }}
-              className="text-subtext-0 hover:bg-teal/20 hover:text-teal flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-              aria-label={`Open terminal in ${distro.name}`}
-            >
-              <TerminalSquare className="h-3.5 w-3.5" aria-hidden="true" />
-              Terminal
-            </button>
-          )}
-          {isRunning && (
-            <Link
-              to="/monitoring"
-              search={{ distro: distro.name }}
-              onClick={(e) => e.stopPropagation()}
-              className="text-subtext-0 hover:bg-sapphire/20 hover:text-sapphire flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-              aria-label={`Monitor ${distro.name}`}
-            >
-              <Activity className="h-3.5 w-3.5" aria-hidden="true" />
-              Monitor
-            </Link>
-          )}
-        </div>
+      <div className="mt-4 flex items-center justify-between">
+        <DistroActions
+          t={t}
+          isRunning={isRunning}
+          isPending={isPending}
+          createTerminalSession={createTerminalSession}
+          handleStart={handleStart}
+          handleStop={handleStop}
+          handleRestart={handleRestart}
+          handleSnapshot={handleSnapshot}
+          handleTerminal={handleTerminal}
+          handleMonitorClick={handleMonitorClick}
+          distroName={distro.name}
+          pendingAction={pendingAction}
+        />
       </div>
     </div>
   );
-}
+});

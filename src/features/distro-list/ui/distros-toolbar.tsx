@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Search,
   RefreshCw,
@@ -11,6 +12,7 @@ import {
   X,
   Check,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDistros, distroKeys } from "../api/queries";
@@ -36,24 +38,24 @@ interface DistrosToolbarProps {
 }
 
 const statusOptions = [
-  { value: "all" as const, label: "All" },
-  { value: "running" as const, label: "Running" },
-  { value: "stopped" as const, label: "Stopped" },
+  { value: "all" as const, key: "distros.filterAll" },
+  { value: "running" as const, key: "distros.filterRunning" },
+  { value: "stopped" as const, key: "distros.filterStopped" },
 ];
 
 const wslVersionOptions = [
-  { value: "all" as const, label: "All" },
-  { value: 1 as const, label: "WSL 1" },
-  { value: 2 as const, label: "WSL 2" },
+  { value: "all" as const, key: "distros.wslVersionAll" },
+  { value: 1 as const, key: "distros.wslVersion1" },
+  { value: 2 as const, key: "distros.wslVersion2" },
 ];
 
-const sortOptions: { value: SortKey; label: string }[] = [
-  { value: "name-asc", label: "Name (A-Z)" },
-  { value: "name-desc", label: "Name (Z-A)" },
-  { value: "status-running", label: "Running first" },
-  { value: "status-stopped", label: "Stopped first" },
-  { value: "default-first", label: "Default first" },
-  { value: "vhdx-size", label: "Disk size" },
+const sortOptions: { value: SortKey; key: string }[] = [
+  { value: "name-asc", key: "distros.sortNameAsc" },
+  { value: "name-desc", key: "distros.sortNameDesc" },
+  { value: "status-running", key: "distros.sortRunningFirst" },
+  { value: "status-stopped", key: "distros.sortStoppedFirst" },
+  { value: "default-first", key: "distros.sortDefaultFirst" },
+  { value: "vhdx-size", key: "distros.sortDiskSize" },
 ];
 
 const pill =
@@ -76,6 +78,7 @@ export function DistrosToolbar({
   stopped,
   total,
 }: DistrosToolbarProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { isFetching } = useDistros();
   const startAll = useStartAll();
@@ -107,11 +110,11 @@ export function DistrosToolbar({
       <div className="flex items-center gap-2">
         {/* Inline stats */}
         <div className="flex items-center gap-1.5 text-xs font-medium">
-          <span className="text-subtext-0">{total} distros</span>
+          <span className="text-subtext-0">{t("distros.count", { count: total })}</span>
           <span className="text-overlay-0">·</span>
-          <span className="text-green">{running} up</span>
+          <span className="text-green">{t("distros.running", { count: running })}</span>
           <span className="text-overlay-0">·</span>
-          <span className="text-overlay-0">{stopped} off</span>
+          <span className="text-overlay-0">{t("distros.stopped", { count: stopped })}</span>
         </div>
 
         <div className="bg-surface-1/50 h-4 w-px" aria-hidden="true" />
@@ -120,7 +123,7 @@ export function DistrosToolbar({
           <Search className="text-overlay-0 pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search distributions..."
+            placeholder={t("distros.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="focus-ring bg-base text-text placeholder:text-overlay-0 w-full rounded-lg py-2 pr-8 pl-9 text-sm"
@@ -139,7 +142,7 @@ export function DistrosToolbar({
           onClick={handleRefresh}
           disabled={isFetching}
           className="text-subtext-0 hover:bg-surface-0 hover:text-text rounded-lg p-2 transition-colors disabled:opacity-40"
-          aria-label="Refresh distributions"
+          aria-label={t("distros.refreshDistributions")}
         >
           <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
         </button>
@@ -151,7 +154,7 @@ export function DistrosToolbar({
               "rounded-md p-1.5 transition-colors",
               viewMode === "grid" ? "bg-blue text-crust" : "text-subtext-0 hover:text-text",
             )}
-            aria-label="Grid view"
+            aria-label={t("distros.gridView")}
           >
             <LayoutGrid className="h-4 w-4" />
           </button>
@@ -161,7 +164,7 @@ export function DistrosToolbar({
               "rounded-md p-1.5 transition-colors",
               viewMode === "list" ? "bg-blue text-crust" : "text-subtext-0 hover:text-text",
             )}
-            aria-label="List view"
+            aria-label={t("distros.listView")}
           >
             <List className="h-4 w-4" />
           </button>
@@ -178,7 +181,7 @@ export function DistrosToolbar({
               onClick={() => onStatusFilterChange(opt.value)}
               className={cn(pill, statusFilter === opt.value ? pillActive : pillInactive)}
             >
-              {opt.label}
+              {t(opt.key)}
             </button>
           ))}
         </div>
@@ -191,7 +194,7 @@ export function DistrosToolbar({
               onClick={() => onWslVersionFilterChange(opt.value)}
               className={cn(pill, wslVersionFilter === opt.value ? pillActive : pillInactive)}
             >
-              {opt.label}
+              {t(opt.key)}
             </button>
           ))}
         </div>
@@ -203,7 +206,7 @@ export function DistrosToolbar({
             className="bg-surface-0/50 text-subtext-1 hover:text-text flex items-center gap-1.5 rounded-full py-1 pr-2.5 pl-2.5 text-xs font-medium transition-colors"
           >
             <ArrowUpDown className="h-3.5 w-3.5" />
-            {sortOptions.find((o) => o.value === sortKey)?.label}
+            {t(sortOptions.find((o) => o.value === sortKey)?.key ?? "")}
             <ChevronDown className={cn("h-3 w-3 transition-transform", sortOpen && "rotate-180")} />
           </button>
           {sortOpen && (
@@ -225,7 +228,7 @@ export function DistrosToolbar({
                   <Check
                     className={cn("h-3 w-3", sortKey === opt.value ? "opacity-100" : "opacity-0")}
                   />
-                  {opt.label}
+                  {t(opt.key)}
                 </button>
               ))}
             </div>
@@ -241,8 +244,12 @@ export function DistrosToolbar({
             disabled={startAll.isPending || stoppedNames.length === 0}
             className="bg-green/20 text-green hover:bg-green/30 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
           >
-            <Play className="h-3.5 w-3.5" />
-            {startAll.isPending ? "Starting..." : "Start All"}
+            {startAll.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Play className="h-3.5 w-3.5" />
+            )}
+            {startAll.isPending ? t("distros.startAllPending") : t("distros.startAll")}
           </button>
 
           <button
@@ -250,7 +257,7 @@ export function DistrosToolbar({
             className="bg-mauve/20 text-mauve hover:bg-mauve/30 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
-            Snapshot
+            {t("distros.snapshot")}
           </button>
 
           <button
@@ -258,8 +265,12 @@ export function DistrosToolbar({
             disabled={shutdownAllPending || running === 0}
             className="bg-red/20 text-red hover:bg-red/30 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
           >
-            <Power className="h-3.5 w-3.5" />
-            {shutdownAllPending ? "Stopping..." : "Stop All"}
+            {shutdownAllPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Power className="h-3.5 w-3.5" />
+            )}
+            {shutdownAllPending ? t("distros.stopAllPending") : t("distros.stopAll")}
           </button>
         </div>
       </div>

@@ -1,17 +1,10 @@
-import {
-  Play,
-  Square,
-  RotateCw,
-  Star,
-  Archive,
-  Activity,
-  Loader2,
-  ChevronDown,
-} from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { memo } from "react";
+import { Star, Archive, Loader2, ChevronDown } from "lucide-react";
 import type { Distro } from "@/shared/types/distro";
 import { cn } from "@/shared/lib/utils";
 import { formatBytes } from "@/shared/lib/formatters";
+import { useDistroActions } from "../hooks/use-distro-actions";
+import { DistroActions } from "./distro-actions";
 
 interface DistroRowProps {
   distro: Distro;
@@ -25,7 +18,7 @@ interface DistroRowProps {
   isExpanded: boolean;
 }
 
-export function DistroRow({
+export const DistroRow = memo(function DistroRow({
   distro,
   onStart,
   onStop,
@@ -36,22 +29,30 @@ export function DistroRow({
   onExpand,
   isExpanded,
 }: DistroRowProps) {
-  const isRunning = distro.state === "Running";
-  const isPending = !!pendingAction;
+  const {
+    t,
+    isRunning,
+    isPending,
+    stateLabel,
+    createTerminalSession,
+    handleKeyDown,
+    handleStart,
+    handleStop,
+    handleRestart,
+    handleSnapshot,
+    handleTerminal,
+    handleMonitorClick,
+    ariaLabel,
+  } = useDistroActions({ distro, pendingAction, onStart, onStop, onRestart, onSnapshot, onExpand });
 
   return (
     <div
       role="button"
       tabIndex={0}
       onClick={onExpand}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onExpand();
-        }
-      }}
+      onKeyDown={handleKeyDown}
       aria-expanded={isExpanded}
-      aria-label={`${distro.name} - ${distro.state}${distro.is_default ? " (default)" : ""}`}
+      aria-label={ariaLabel}
       className={cn(
         "border-surface-1 bg-mantle focus-ring flex cursor-pointer items-center gap-4 rounded-xl border px-4 py-3 transition-colors",
         isExpanded ? "border-mauve/50" : "hover:border-blue/40",
@@ -70,7 +71,7 @@ export function DistroRow({
         {distro.is_default && (
           <Star
             className="fill-yellow text-yellow h-3.5 w-3.5 shrink-0"
-            aria-label="Default distribution"
+            aria-label={t("distros.defaultDistribution")}
           />
         )}
         {snapshotCount > 0 && (
@@ -93,7 +94,7 @@ export function DistroRow({
         )}
       >
         {isPending && <Loader2 className="h-3 w-3 animate-spin" />}
-        {isPending ? pendingAction : distro.state}
+        {isPending ? pendingAction : stateLabel}
       </span>
 
       {/* WSL version */}
@@ -107,68 +108,20 @@ export function DistroRow({
       </span>
 
       {/* Actions */}
-      <div className="flex shrink-0 gap-1">
-        {!isRunning && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onStart();
-            }}
-            disabled={isPending}
-            className="text-subtext-0 hover:bg-green/15 hover:text-green rounded-lg p-1.5 transition-colors disabled:pointer-events-none disabled:opacity-40"
-            aria-label={`Start ${distro.name}`}
-          >
-            <Play className="h-3.5 w-3.5" />
-          </button>
-        )}
-        {isRunning && (
-          <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRestart();
-              }}
-              disabled={isPending}
-              className="text-subtext-0 hover:bg-yellow/15 hover:text-yellow rounded-lg p-1.5 transition-colors disabled:pointer-events-none disabled:opacity-40"
-              aria-label={`Restart ${distro.name}`}
-            >
-              <RotateCw className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onStop();
-              }}
-              disabled={isPending}
-              className="text-subtext-0 hover:bg-red/15 hover:text-red rounded-lg p-1.5 transition-colors disabled:pointer-events-none disabled:opacity-40"
-              aria-label={`Stop ${distro.name}`}
-            >
-              <Square className="h-3.5 w-3.5" />
-            </button>
-          </>
-        )}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onSnapshot();
-          }}
-          className="text-subtext-0 hover:bg-mauve/15 hover:text-mauve rounded-lg p-1.5 transition-colors"
-          aria-label={`Create snapshot of ${distro.name}`}
-        >
-          <Archive className="h-3.5 w-3.5" />
-        </button>
-        {isRunning && (
-          <Link
-            to="/monitoring"
-            search={{ distro: distro.name }}
-            onClick={(e) => e.stopPropagation()}
-            className="text-subtext-0 hover:bg-sapphire/15 hover:text-sapphire rounded-lg p-1.5 transition-colors"
-            aria-label={`Monitor ${distro.name}`}
-          >
-            <Activity className="h-3.5 w-3.5" />
-          </Link>
-        )}
-      </div>
+      <DistroActions
+        t={t}
+        isRunning={isRunning}
+        isPending={isPending}
+        createTerminalSession={createTerminalSession}
+        handleStart={handleStart}
+        handleStop={handleStop}
+        handleRestart={handleRestart}
+        handleSnapshot={handleSnapshot}
+        handleTerminal={handleTerminal}
+        handleMonitorClick={handleMonitorClick}
+        distroName={distro.name}
+        pendingAction={pendingAction}
+      />
 
       {/* Expand indicator */}
       <ChevronDown
@@ -180,4 +133,4 @@ export function DistroRow({
       />
     </div>
   );
-}
+});

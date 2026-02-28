@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ScrollText, Search, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuditLog, auditKeys } from "../api/queries";
@@ -6,6 +7,7 @@ import { useDebounce } from "@/shared/hooks/use-debounce";
 import { formatRelativeTime } from "@/shared/lib/formatters";
 
 export function AuditLogViewer() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [actionFilter, setActionFilter] = useState("");
   const [targetFilter, setTargetFilter] = useState("");
@@ -23,12 +25,16 @@ export function AuditLogViewer() {
       <div className="border-surface-0 flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <ScrollText className="text-lavender h-5 w-5" />
-          <h4 className="text-text font-semibold">Audit Log</h4>
-          {entries && <span className="text-subtext-0 text-xs">({entries.length} entries)</span>}
+          <h4 className="text-text font-semibold">{t("auditLog.title")}</h4>
+          {entries && (
+            <span className="text-subtext-0 text-xs">
+              {t("auditLog.entries", { count: entries.length })}
+            </span>
+          )}
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: auditKeys.all })}
             className="text-subtext-0 hover:bg-surface-0 hover:text-text focus-ring rounded-lg p-1.5 transition-colors"
-            aria-label="Refresh audit log"
+            aria-label={t("auditLog.refreshAuditLog")}
           >
             <RefreshCw className="h-4 w-4" />
           </button>
@@ -43,8 +49,8 @@ export function AuditLogViewer() {
               type="text"
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              placeholder="Filter action..."
-              aria-label="Filter by action"
+              placeholder={t("auditLog.filterAction")}
+              aria-label={t("auditLog.filterByAction")}
               className="focus-ring border-surface-1 bg-base text-text w-full rounded-lg border py-1 pr-2 pl-7 text-xs sm:w-36"
             />
           </div>
@@ -57,8 +63,8 @@ export function AuditLogViewer() {
               type="text"
               value={targetFilter}
               onChange={(e) => setTargetFilter(e.target.value)}
-              placeholder="Filter target..."
-              aria-label="Filter by target"
+              placeholder={t("auditLog.filterTarget")}
+              aria-label={t("auditLog.filterByTarget")}
               className="focus-ring border-surface-1 bg-base text-text w-full rounded-lg border py-1 pr-2 pl-7 text-xs sm:w-36"
             />
           </div>
@@ -76,7 +82,7 @@ export function AuditLogViewer() {
       {entries && entries.length === 0 && (
         <div className="flex flex-col items-center px-8 py-10 text-center">
           <ScrollText className="text-surface-2 mb-2 h-8 w-8" />
-          <p className="text-subtext-0 text-sm">No audit entries found.</p>
+          <p className="text-subtext-0 text-sm">{t("auditLog.noEntries")}</p>
         </div>
       )}
 
@@ -85,10 +91,10 @@ export function AuditLogViewer() {
           <table className="w-full text-xs">
             <thead className="bg-mantle sticky top-0">
               <tr className="border-surface-0 text-subtext-0 border-b text-left">
-                <th className="px-4 py-2">Time</th>
-                <th className="px-4 py-2">Action</th>
-                <th className="px-4 py-2">Target</th>
-                <th className="px-4 py-2">Details</th>
+                <th className="px-4 py-2">{t("auditLog.time")}</th>
+                <th className="px-4 py-2">{t("auditLog.action")}</th>
+                <th className="px-4 py-2">{t("auditLog.target")}</th>
+                <th className="px-4 py-2">{t("auditLog.details")}</th>
               </tr>
             </thead>
             <tbody>

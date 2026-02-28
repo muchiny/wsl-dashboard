@@ -55,20 +55,26 @@ pub fn run() {
     use tracing_subscriber::filter::Targets;
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
+    use tracing_subscriber::EnvFilter;
     use tracing_subscriber::Layer as _;
 
-    // INFO by default; suppress noisy tao/wry event-loop warnings on WSL2/Linux
+    // Ring-buffer filter: suppress noisy tao/wry event-loop warnings on WSL2/Linux
     let target_filter = Targets::new()
         .with_default(tracing::Level::INFO)
         .with_target("tao", tracing::Level::ERROR)
         .with_target("wry", tracing::Level::ERROR)
         .with_target("log", tracing::Level::ERROR);
 
+    // Console filter: honour RUST_LOG env var, fall back to same defaults
+    let console_filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("info,tao=error,wry=error,log=error"));
+
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::fmt::layer()
                 .with_target(true)
-                .with_filter(target_filter.clone()),
+                .with_ansi(true)
+                .with_filter(console_filter),
         )
         .with(debug_layer.with_filter(target_filter))
         .init();

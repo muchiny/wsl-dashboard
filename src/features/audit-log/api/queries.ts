@@ -33,6 +33,5 @@ export function useAuditLog(args: SearchAuditArgs = {}) {
           offset: args.offset ?? 0,
         },
       }),
-    refetchInterval: 10_000,
   });
 }

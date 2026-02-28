@@ -1,3 +1,5 @@
+import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { formatBytes } from "@/shared/lib/formatters";
 import type { DiskMetrics } from "@/shared/types/monitoring";
 import type { MetricsPoint } from "../hooks/use-metrics-history";
@@ -9,7 +11,9 @@ interface DiskGaugeProps {
   historicalData?: MetricsPoint[];
 }
 
-export function DiskGauge({ disk, historicalData }: DiskGaugeProps) {
+export const DiskGauge = memo(function DiskGauge({ disk, historicalData }: DiskGaugeProps) {
+  const { t } = useTranslation();
+
   // In historical mode, derive percent from the latest chart data point
   const histLatest =
     !disk && historicalData && historicalData.length > 0
@@ -24,7 +28,7 @@ export function DiskGauge({ disk, historicalData }: DiskGaugeProps) {
   return (
     <div className="border-surface-1 bg-mantle min-w-0 overflow-hidden rounded-xl border p-4">
       <div className="mb-2 flex items-center justify-between">
-        <h4 className="text-sm font-semibold">Disk Usage</h4>
+        <h4 className="text-sm font-semibold">{t("monitoring.diskUsage")}</h4>
         {hasData && (
           <span
             className={cn(
@@ -48,9 +52,15 @@ export function DiskGauge({ disk, historicalData }: DiskGaugeProps) {
             />
           </div>
           <div className="text-subtext-0 flex justify-between text-xs">
-            <span>Used: {formatBytes(disk.used_bytes)}</span>
-            <span>Free: {formatBytes(disk.available_bytes)}</span>
-            <span>Total: {formatBytes(disk.total_bytes)}</span>
+            <span>
+              {t("monitoring.used")} {formatBytes(disk.used_bytes)}
+            </span>
+            <span>
+              {t("monitoring.free")} {formatBytes(disk.available_bytes)}
+            </span>
+            <span>
+              {t("monitoring.total")} {formatBytes(disk.total_bytes)}
+            </span>
           </div>
         </>
       )}
@@ -65,7 +75,7 @@ export function DiskGauge({ disk, historicalData }: DiskGaugeProps) {
               style={{ width: `${Math.min(percent, 100)}%` }}
             />
           </div>
-          <p className="text-subtext-0 text-xs">Historical average</p>
+          <p className="text-subtext-0 text-xs">{t("monitoring.historicalAverage")}</p>
         </>
       )}
       {!hasData && (
@@ -82,4 +92,4 @@ export function DiskGauge({ disk, historicalData }: DiskGaugeProps) {
       )}
     </div>
   );
-}
+});

@@ -2,6 +2,10 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ConfirmDialog } from "./confirm-dialog";
 
+// Without i18n initialization, useTranslation returns raw keys
+const CONFIRM_KEY = "common.confirm";
+const CANCEL_KEY = "common.cancel";
+
 describe("ConfirmDialog", () => {
   const defaultProps = {
     open: true,
@@ -24,8 +28,8 @@ describe("ConfirmDialog", () => {
 
   it("renders default button labels", () => {
     render(<ConfirmDialog {...defaultProps} />);
-    expect(screen.getByText("Cancel")).toBeInTheDocument();
-    expect(screen.getByText("Confirm")).toBeInTheDocument();
+    expect(screen.getByText(CANCEL_KEY)).toBeInTheDocument();
+    expect(screen.getByText(CONFIRM_KEY)).toBeInTheDocument();
   });
 
   it("renders custom button labels", () => {
@@ -37,14 +41,14 @@ describe("ConfirmDialog", () => {
   it("calls onCancel when cancel button is clicked", () => {
     const onCancel = vi.fn();
     render(<ConfirmDialog {...defaultProps} onCancel={onCancel} />);
-    fireEvent.click(screen.getByText("Cancel"));
+    fireEvent.click(screen.getByText(CANCEL_KEY));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
   it("calls onConfirm when confirm button is clicked", () => {
     const onConfirm = vi.fn();
     render(<ConfirmDialog {...defaultProps} onConfirm={onConfirm} />);
-    fireEvent.click(screen.getByText("Confirm"));
+    fireEvent.click(screen.getByText(CONFIRM_KEY));
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
@@ -65,15 +69,18 @@ describe("ConfirmDialog", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
-  it("shows '...' text when isPending", () => {
-    render(<ConfirmDialog {...defaultProps} isPending={true} />);
-    expect(screen.getByText("...")).toBeInTheDocument();
+  it("shows spinner when isPending", () => {
+    const { container } = render(<ConfirmDialog {...defaultProps} isPending={true} />);
+    const spinner = container.querySelector(".animate-spin");
+    expect(spinner).toBeTruthy();
+    // Confirm label is still visible alongside spinner
+    expect(screen.getByText(CONFIRM_KEY)).toBeInTheDocument();
   });
 
   it("disables buttons when isPending", () => {
     render(<ConfirmDialog {...defaultProps} isPending={true} />);
-    expect(screen.getByText("Cancel")).toBeDisabled();
-    expect(screen.getByText("...")).toBeDisabled();
+    expect(screen.getByText(CANCEL_KEY)).toBeDisabled();
+    expect(screen.getByText(CONFIRM_KEY).closest("button")).toBeDisabled();
   });
 
   it("has correct ARIA attributes", () => {

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
+import { renderWithProviders } from "@/test/test-utils";
 import { DistroCard } from "./distro-card";
 import type { Distro } from "@/shared/types/distro";
 
@@ -10,6 +11,19 @@ vi.mock("@tanstack/react-router", () => ({
     </a>
   ),
 }));
+
+vi.mock("@/features/terminal/api/mutations", () => ({
+  useCreateTerminalSession: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+}));
+
+const START_LABEL = "Start Ubuntu";
+const STOP_LABEL = "Stop Ubuntu";
+const RESTART_LABEL = "Restart Ubuntu";
+const SNAPSHOT_LABEL = "Create snapshot of Ubuntu";
+const CARD_LABEL = "Ubuntu - Running";
 
 function makeDistro(overrides: Partial<Distro> = {}): Distro {
   return {
@@ -38,72 +52,72 @@ const defaultProps = {
 
 describe("DistroCard", () => {
   it("displays the distro name", () => {
-    render(<DistroCard distro={makeDistro({ name: "Debian" })} {...defaultProps} />);
+    renderWithProviders(<DistroCard distro={makeDistro({ name: "Debian" })} {...defaultProps} />);
     expect(screen.getByText("Debian")).toBeInTheDocument();
   });
 
   it("shows Running badge when running", () => {
-    render(<DistroCard distro={makeDistro({ state: "Running" })} {...defaultProps} />);
+    renderWithProviders(<DistroCard distro={makeDistro({ state: "Running" })} {...defaultProps} />);
     expect(screen.getByText("Running")).toBeInTheDocument();
   });
 
   it("shows Stopped badge when stopped", () => {
-    render(<DistroCard distro={makeDistro({ state: "Stopped" })} {...defaultProps} />);
+    renderWithProviders(<DistroCard distro={makeDistro({ state: "Stopped" })} {...defaultProps} />);
     expect(screen.getByText("Stopped")).toBeInTheDocument();
   });
 
   it("shows WSL version", () => {
-    render(<DistroCard distro={makeDistro({ wsl_version: 2 })} {...defaultProps} />);
+    renderWithProviders(<DistroCard distro={makeDistro({ wsl_version: 2 })} {...defaultProps} />);
     expect(screen.getByText("WSL 2")).toBeInTheDocument();
   });
 
   it("shows Start button when stopped", () => {
-    render(<DistroCard distro={makeDistro({ state: "Stopped" })} {...defaultProps} />);
-    expect(screen.getByLabelText("Start Ubuntu")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Stop Ubuntu")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Restart Ubuntu")).not.toBeInTheDocument();
+    renderWithProviders(<DistroCard distro={makeDistro({ state: "Stopped" })} {...defaultProps} />);
+    expect(screen.getByLabelText(START_LABEL)).toBeInTheDocument();
+    expect(screen.queryByLabelText(STOP_LABEL)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(RESTART_LABEL)).not.toBeInTheDocument();
   });
 
   it("shows Stop and Restart buttons when running", () => {
-    render(<DistroCard distro={makeDistro({ state: "Running" })} {...defaultProps} />);
-    expect(screen.getByLabelText("Stop Ubuntu")).toBeInTheDocument();
-    expect(screen.getByLabelText("Restart Ubuntu")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Start Ubuntu")).not.toBeInTheDocument();
+    renderWithProviders(<DistroCard distro={makeDistro({ state: "Running" })} {...defaultProps} />);
+    expect(screen.getByLabelText(STOP_LABEL)).toBeInTheDocument();
+    expect(screen.getByLabelText(RESTART_LABEL)).toBeInTheDocument();
+    expect(screen.queryByLabelText(START_LABEL)).not.toBeInTheDocument();
   });
 
   it("calls onStart when Start button is clicked", () => {
     const onStart = vi.fn();
-    render(
+    renderWithProviders(
       <DistroCard distro={makeDistro({ state: "Stopped" })} {...defaultProps} onStart={onStart} />,
     );
-    fireEvent.click(screen.getByLabelText("Start Ubuntu"));
+    fireEvent.click(screen.getByLabelText(START_LABEL));
     expect(onStart).toHaveBeenCalledOnce();
   });
 
   it("calls onStop when Stop button is clicked", () => {
     const onStop = vi.fn();
-    render(
+    renderWithProviders(
       <DistroCard distro={makeDistro({ state: "Running" })} {...defaultProps} onStop={onStop} />,
     );
-    fireEvent.click(screen.getByLabelText("Stop Ubuntu"));
+    fireEvent.click(screen.getByLabelText(STOP_LABEL));
     expect(onStop).toHaveBeenCalledOnce();
   });
 
   it("calls onRestart when Restart button is clicked", () => {
     const onRestart = vi.fn();
-    render(
+    renderWithProviders(
       <DistroCard
         distro={makeDistro({ state: "Running" })}
         {...defaultProps}
         onRestart={onRestart}
       />,
     );
-    fireEvent.click(screen.getByLabelText("Restart Ubuntu"));
+    fireEvent.click(screen.getByLabelText(RESTART_LABEL));
     expect(onRestart).toHaveBeenCalledOnce();
   });
 
   it("shows star icon when is_default is true", () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <DistroCard distro={makeDistro({ is_default: true })} {...defaultProps} />,
     );
     const starSvg = container.querySelector(".fill-yellow");
@@ -111,26 +125,53 @@ describe("DistroCard", () => {
   });
 
   it("shows snapshot count badge when count > 0", () => {
-    render(<DistroCard distro={makeDistro()} {...defaultProps} snapshotCount={3} />);
+    renderWithProviders(<DistroCard distro={makeDistro()} {...defaultProps} snapshotCount={3} />);
     expect(screen.getByText("3")).toBeInTheDocument();
   });
 
   it("does not show snapshot count badge when count is 0", () => {
-    render(<DistroCard distro={makeDistro()} {...defaultProps} snapshotCount={0} />);
+    renderWithProviders(<DistroCard distro={makeDistro()} {...defaultProps} snapshotCount={0} />);
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 
   it("calls onExpand when card is clicked", () => {
     const onExpand = vi.fn();
-    render(<DistroCard distro={makeDistro()} {...defaultProps} onExpand={onExpand} />);
-    fireEvent.click(screen.getByRole("button", { name: /^ubuntu - /i }));
+    renderWithProviders(<DistroCard distro={makeDistro()} {...defaultProps} onExpand={onExpand} />);
+    fireEvent.click(screen.getByRole("button", { name: CARD_LABEL }));
     expect(onExpand).toHaveBeenCalledOnce();
+  });
+
+  it("shows spinner on start button when pendingAction is Starting", () => {
+    renderWithProviders(
+      <DistroCard
+        distro={makeDistro({ state: "Stopped" })}
+        {...defaultProps}
+        pendingAction="Starting"
+      />,
+    );
+    const startBtn = screen.getByLabelText(START_LABEL);
+    const spinner = startBtn.querySelector(".animate-spin");
+    expect(spinner).toBeTruthy();
+    expect(startBtn).toBeDisabled();
+  });
+
+  it("disables all action buttons when any action is pending", () => {
+    renderWithProviders(
+      <DistroCard
+        distro={makeDistro({ state: "Running" })}
+        {...defaultProps}
+        pendingAction="Stopping"
+      />,
+    );
+    expect(screen.getByLabelText(RESTART_LABEL)).toBeDisabled();
+    expect(screen.getByLabelText(STOP_LABEL)).toBeDisabled();
+    expect(screen.getByLabelText(SNAPSHOT_LABEL)).toBeDisabled();
   });
 
   it("does not call onExpand when action button is clicked", () => {
     const onExpand = vi.fn();
     const onStop = vi.fn();
-    render(
+    renderWithProviders(
       <DistroCard
         distro={makeDistro({ state: "Running" })}
         {...defaultProps}
@@ -138,7 +179,7 @@ describe("DistroCard", () => {
         onStop={onStop}
       />,
     );
-    fireEvent.click(screen.getByLabelText("Stop Ubuntu"));
+    fireEvent.click(screen.getByLabelText(STOP_LABEL));
     expect(onStop).toHaveBeenCalledOnce();
     expect(onExpand).not.toHaveBeenCalled();
   });

@@ -72,6 +72,10 @@ impl PortForwardingPort for NetshAdapter {
             ));
         }
 
+        // Validate IP format to prevent malformed input reaching netsh
+        ip.parse::<std::net::IpAddr>()
+            .map_err(|_| DomainError::IoError(format!("Invalid WSL IP address: {ip}")))?;
+
         Ok(ip)
     }
 

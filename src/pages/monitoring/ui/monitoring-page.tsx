@@ -1,9 +1,10 @@
 import { useState, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Activity, BarChart3, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Select } from "@/shared/ui/select";
 import { useSearch } from "@tanstack/react-router";
-import { useDistros } from "@/features/distro-list/api/queries";
+import { useDistros } from "@/shared/api/distro-queries";
 import {
   useProcesses,
   useMetricsHistory as useMetricsHistoryQuery,
@@ -21,6 +22,7 @@ import type { TimeRange, MetricsHistoryPoint } from "@/shared/types/monitoring";
 import type { MetricsPoint } from "@/features/monitoring-dashboard/hooks/use-metrics-history";
 
 export function MonitoringPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data: distros } = useDistros();
   const searchParams = useSearch({ strict: false }) as { distro?: string };
@@ -29,33 +31,23 @@ export function MonitoringPage() {
     [distros],
   );
 
-  const [selectedDistro, setSelectedDistro] = useState<string>("");
-  const [initializedFromParam, setInitializedFromParam] = useState(false);
+  const [manualSelection, setManualSelection] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>("live");
 
-  // Pre-select distro from search param (one-time, adjust-state-during-render)
-  if (!initializedFromParam && searchParams.distro && runningDistros.length > 0) {
-    const match = runningDistros.find((d) => d.name === searchParams.distro);
-    if (match) {
-      setSelectedDistro(match.name);
-      setInitializedFromParam(true);
+  // Derive selected distro: manual pick > URL param > first running
+  const selectedDistro = useMemo(() => {
+    if (manualSelection !== null && runningDistros.some((d) => d.name === manualSelection)) {
+      return manualSelection;
     }
-  }
-
-  // Reset when selected distro is no longer running, auto-select first available
-  const [prevRunning, setPrevRunning] = useState(runningDistros);
-  if (prevRunning !== runningDistros) {
-    setPrevRunning(runningDistros);
-    if (selectedDistro && !runningDistros.some((d) => d.name === selectedDistro)) {
-      setSelectedDistro("");
-    } else if (!selectedDistro && !initializedFromParam && runningDistros.length > 0) {
-      const first = runningDistros[0];
-      if (first) setSelectedDistro(first.name);
+    if (searchParams.distro) {
+      const match = runningDistros.find((d) => d.name === searchParams.distro);
+      if (match) return match.name;
     }
-  }
+    return runningDistros[0]?.name ?? "";
+  }, [manualSelection, runningDistros, searchParams.distro]);
 
   const handleDistroChange = useCallback((name: string) => {
-    setSelectedDistro(name);
+    setManualSelection(name);
     setTimeRange("live");
   }, []);
 
@@ -96,9 +88,11 @@ export function MonitoringPage() {
             <AlertBadge />
           </div>
           <div>
-            <h2 className="text-text text-xl font-bold">Monitoring</h2>
+            <h2 className="text-text text-xl font-bold">{t("monitoring.title")}</h2>
             <p className="text-subtext-0 text-sm">
-              {timeRange === "live" ? "Real-time system metrics" : `Last ${timeRange} history`}
+              {timeRange === "live"
+                ? t("monitoring.subtitleLive")
+                : t("monitoring.subtitleHistory", { range: timeRange })}
             </p>
           </div>
         </div>
@@ -107,7 +101,7 @@ export function MonitoringPage() {
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: monitoringKeys.all })}
             className="text-subtext-0 hover:bg-surface-0 hover:text-text focus-ring rounded-lg p-2 transition-colors"
-            aria-label="Refresh monitoring data"
+            aria-label={t("monitoring.refreshData")}
           >
             <RefreshCw className="h-4 w-4" />
           </button>
@@ -115,8 +109,8 @@ export function MonitoringPage() {
             value={selectedDistro}
             onChange={handleDistroChange}
             options={runningDistros.map((d) => ({ value: d.name, label: d.name }))}
-            placeholder="Select a distro..."
-            aria-label="Select distribution to monitor"
+            placeholder={t("monitoring.selectDistroPlaceholder")}
+            aria-label={t("monitoring.selectDistroAriaLabel")}
             className="w-full sm:w-48"
           />
         </div>
@@ -126,12 +120,12 @@ export function MonitoringPage() {
         <div className="border-surface-1 bg-mantle flex flex-col items-center rounded-xl border px-8 py-12 text-center">
           <BarChart3 className="text-surface-2 mb-3 h-10 w-10" />
           <p className="text-text font-medium">
-            {runningDistros.length === 0 ? "No running distributions" : "Select a distribution"}
+            {runningDistros.length === 0 ? t("monitoring.noRunning") : t("monitoring.selectDistro")}
           </p>
           <p className="text-subtext-0 mt-1 text-sm">
             {runningDistros.length === 0
-              ? "Start a distro from the Distributions tab to view real-time metrics."
-              : "Choose a running distribution from the dropdown above to start monitoring."}
+              ? t("monitoring.noRunningHint")
+              : t("monitoring.selectDistroHint")}
           </p>
         </div>
       )}

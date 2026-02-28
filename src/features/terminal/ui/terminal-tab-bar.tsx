@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { X, Plus } from "lucide-react";
 import { useTerminalStore, type TerminalSession } from "../model/use-terminal-store";
 import { cn } from "@/shared/lib/utils";
@@ -7,6 +8,7 @@ interface TerminalTabBarProps {
 }
 
 export function TerminalTabBar({ onNewTerminal }: TerminalTabBarProps) {
+  const { t } = useTranslation();
   const { sessions, activeSessionId, setActiveSession, removeSession } = useTerminalStore();
 
   return (
@@ -23,7 +25,7 @@ export function TerminalTabBar({ onNewTerminal }: TerminalTabBarProps) {
       <button
         onClick={onNewTerminal}
         className="text-subtext-0 hover:bg-surface-0 hover:text-text ml-1 flex items-center gap-1 rounded px-2 py-1.5 text-xs transition-colors"
-        aria-label="New terminal"
+        aria-label={t("terminal.newTerminal")}
       >
         <Plus className="h-3.5 w-3.5" />
       </button>
@@ -42,6 +44,7 @@ function TerminalTab({
   onSelect: () => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       role="tab"
@@ -60,7 +63,7 @@ function TerminalTab({
           onClose();
         }}
         className="text-overlay-0 hover:text-red shrink-0 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-        aria-label={`Close ${session.title}`}
+        aria-label={t("terminal.closeTab", { title: session.title })}
       >
         <X className="h-3 w-3" />
       </button>

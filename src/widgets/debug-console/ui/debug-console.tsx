@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Terminal, X, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import {
   useDebugConsoleStore,
@@ -7,12 +8,12 @@ import {
 } from "@/shared/hooks/use-debug-console";
 import { cn } from "@/shared/lib/utils";
 
-const LEVEL_FILTERS: { label: string; value: LogFilter }[] = [
-  { label: "All", value: "ALL" },
-  { label: "Error", value: "ERROR" },
-  { label: "Warn", value: "WARN" },
-  { label: "Info", value: "INFO" },
-  { label: "Debug", value: "DEBUG" },
+const LEVEL_FILTERS: { key: string; value: LogFilter }[] = [
+  { key: "debug.filterAll", value: "ALL" },
+  { key: "debug.filterError", value: "ERROR" },
+  { key: "debug.filterWarn", value: "WARN" },
+  { key: "debug.filterInfo", value: "INFO" },
+  { key: "debug.filterDebug", value: "DEBUG" },
 ];
 
 const LEVEL_COLORS: Record<LogLevel, string> = {
@@ -24,6 +25,7 @@ const LEVEL_COLORS: Record<LogLevel, string> = {
 };
 
 export function DebugConsole() {
+  const { t } = useTranslation();
   const { isOpen, logs, filter, toggle, setFilter, clear } = useDebugConsoleStore();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -48,7 +50,7 @@ export function DebugConsole() {
       >
         <div className="text-subtext-0 flex items-center gap-2">
           <Terminal className="h-3.5 w-3.5" />
-          <span className="font-medium">Debug Console</span>
+          <span className="font-medium">{t("debug.title")}</span>
           {errorCount > 0 && (
             <span className="bg-red/15 text-red rounded-full px-1.5 py-0.5 font-mono">
               {errorCount}
@@ -61,7 +63,9 @@ export function DebugConsole() {
           )}
         </div>
         <div className="text-subtext-0 flex items-center gap-1">
-          <span className="text-overlay-1 font-mono">{logs.length} entries</span>
+          <span className="text-overlay-1 font-mono">
+            {t("debug.entries", { count: logs.length })}
+          </span>
           {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
         </div>
       </button>
@@ -84,7 +88,7 @@ export function DebugConsole() {
                       : "text-subtext-0 hover:bg-surface-0 hover:text-text",
                   )}
                 >
-                  {f.label}
+                  {t(f.key)}
                 </button>
               ))}
             </div>
@@ -94,14 +98,14 @@ export function DebugConsole() {
               <button
                 onClick={clear}
                 className="text-subtext-0 hover:bg-surface-0 hover:text-text rounded p-1 transition-colors"
-                title="Clear logs"
+                title={t("debug.clearLogs")}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={toggle}
                 className="text-subtext-0 hover:bg-surface-0 hover:text-text rounded p-1 transition-colors"
-                title="Close"
+                title={t("debug.close")}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -112,7 +116,7 @@ export function DebugConsole() {
           <div ref={scrollRef} className="flex-1 overflow-auto font-mono text-xs">
             {filteredLogs.length === 0 ? (
               <div className="text-overlay-0 flex h-full items-center justify-center">
-                No log entries
+                {t("debug.noLogEntries")}
               </div>
             ) : (
               <table className="w-full">

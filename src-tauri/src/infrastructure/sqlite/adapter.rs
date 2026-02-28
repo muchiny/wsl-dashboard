@@ -8,6 +8,7 @@ use crate::domain::errors::DomainError;
 use crate::domain::ports::audit_logger::{AuditEntry, AuditLoggerPort, AuditQuery};
 use crate::domain::ports::snapshot_repository::SnapshotRepositoryPort;
 use crate::domain::value_objects::{DistroName, MemorySize, SnapshotId};
+use super::SqlxResultExt;
 
 /// Shared SQLite connection pool.
 #[derive(Clone)]
@@ -18,7 +19,7 @@ pub struct SqliteDb {
 impl SqliteDb {
     pub async fn new(db_path: &str) -> Result<Self, DomainError> {
         let options = SqliteConnectOptions::from_str(db_path)
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?
+            .db_err()?
             .create_if_missing(true)
             .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
             .synchronous(sqlx::sqlite::SqliteSynchronous::Normal)
@@ -31,23 +32,23 @@ impl SqliteDb {
             .max_connections(2)
             .connect_with(options)
             .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+            .db_err()?;
 
         // Run migrations
         sqlx::query(include_str!("migrations/001_initial.sql"))
             .execute(&pool)
             .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+            .db_err()?;
 
         sqlx::query(include_str!("migrations/002_metrics.sql"))
             .execute(&pool)
             .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+            .db_err()?;
 
         sqlx::query(include_str!("migrations/003_port_forwarding.sql"))
             .execute(&pool)
             .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+            .db_err()?;
 
         Ok(Self { pool })
     }
@@ -143,7 +144,7 @@ impl SnapshotRepositoryPort for SqliteSnapshotRepository {
         .bind(&status_str)
         .execute(&self.db.pool)
         .await
-        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+        .db_err()?;
 
         Ok(())
     }
@@ -154,7 +155,7 @@ impl SnapshotRepositoryPort for SqliteSnapshotRepository {
                 .bind(distro.as_str())
                 .fetch_all(&self.db.pool)
                 .await
-                .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+                .db_err()?;
 
         rows.iter().map(|r| self.row_to_snapshot(r)).collect()
     }
@@ -163,7 +164,7 @@ impl SnapshotRepositoryPort for SqliteSnapshotRepository {
         let rows = sqlx::query("SELECT * FROM snapshots ORDER BY created_at DESC")
             .fetch_all(&self.db.pool)
             .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+            .db_err()?;
 
         rows.iter().map(|r| self.row_to_snapshot(r)).collect()
     }
@@ -173,7 +174,7 @@ impl SnapshotRepositoryPort for SqliteSnapshotRepository {
             .bind(id.as_str())
             .fetch_optional(&self.db.pool)
             .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?
+            .db_err()?
             .ok_or_else(|| DomainError::SnapshotNotFound(id.to_string()))?;
 
         self.row_to_snapshot(&row)
@@ -184,7 +185,7 @@ impl SnapshotRepositoryPort for SqliteSnapshotRepository {
             .bind(id.as_str())
             .execute(&self.db.pool)
             .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+            .db_err()?;
         Ok(())
     }
 }
@@ -211,7 +212,7 @@ impl AuditLoggerPort for SqliteAuditLogger {
         .bind(target)
         .execute(&self.db.pool)
         .await
-        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+        .db_err()?;
         tracing::info!(action = action, target = target, "Audit log");
         Ok(())
     }
@@ -228,7 +229,7 @@ impl AuditLoggerPort for SqliteAuditLogger {
             .bind(details)
             .execute(&self.db.pool)
             .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+            .db_err()?;
         tracing::info!(
             action = action,
             target = target,
@@ -270,7 +271,7 @@ impl AuditLoggerPort for SqliteAuditLogger {
         let rows = q
             .fetch_all(&self.db.pool)
             .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+            .db_err()?;
 
         let entries = rows
             .iter()

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Settings,
   FileText,
@@ -16,17 +17,18 @@ import { PortForwardingPanel } from "@/features/port-forwarding/ui/port-forwardi
 import { cn } from "@/shared/lib/utils";
 
 const tabs = [
-  { id: "config", label: "WSL Configuration", icon: FileText },
-  { id: "network", label: "Network", icon: Network },
-  { id: "optimization", label: "Optimization", icon: HardDrive },
-  { id: "audit", label: "Audit Log", icon: ScrollText },
-  { id: "preferences", label: "Preferences", icon: SlidersHorizontal },
+  { id: "config", key: "settings.tabs.config", icon: FileText },
+  { id: "network", key: "settings.tabs.network", icon: Network },
+  { id: "optimization", key: "settings.tabs.optimization", icon: HardDrive },
+  { id: "audit", key: "settings.tabs.audit", icon: ScrollText },
+  { id: "preferences", key: "settings.tabs.preferences", icon: SlidersHorizontal },
 ] as const;
 
 type SettingsTab = (typeof tabs)[number]["id"];
 
 export function SettingsPage() {
   const [tab, setTab] = useState<SettingsTab>("config");
+  const { t } = useTranslation();
 
   return (
     <div className="space-y-6">
@@ -35,14 +37,14 @@ export function SettingsPage() {
           <Settings className="text-peach h-5 w-5" />
         </div>
         <div>
-          <h2 className="text-text text-xl font-bold">Settings</h2>
-          <p className="text-subtext-0 text-sm">Configure WSL2, optimize disks, and view logs</p>
+          <h2 className="text-text text-xl font-bold">{t("settings.title")}</h2>
+          <p className="text-subtext-0 text-sm">{t("settings.subtitle")}</p>
         </div>
       </div>
 
       <div
         role="tablist"
-        aria-label="Settings sections"
+        aria-label={t("settings.ariaLabel")}
         className="border-surface-1 bg-mantle flex flex-wrap gap-1 rounded-xl border p-1"
       >
         {tabs.map((item) => (
@@ -61,7 +63,7 @@ export function SettingsPage() {
             )}
           >
             <item.icon className="h-4 w-4" aria-hidden="true" />
-            {item.label}
+            {t(item.key)}
           </button>
         ))}
       </div>

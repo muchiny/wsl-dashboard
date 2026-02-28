@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
@@ -20,17 +21,18 @@ import { cn } from "@/shared/lib/utils";
 
 interface NavTab {
   to: string;
-  label: string;
+  key: string;
   icon: LucideIcon;
 }
 
 const navTabs: NavTab[] = [
-  { to: "/", label: "Distributions", icon: Server },
-  { to: "/monitoring", label: "Monitoring", icon: Activity },
-  { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/", key: "nav.distributions", icon: Server },
+  { to: "/monitoring", key: "nav.monitoring", icon: Activity },
+  { to: "/settings", key: "nav.settings", icon: Settings },
 ];
 
 export function Header() {
+  const { t } = useTranslation();
   const { theme, toggleTheme } = useThemeStore();
   const matchRoute = useMatchRoute();
   const [isMaximized, setIsMaximized] = useState(false);
@@ -73,8 +75,8 @@ export function Header() {
             <Server className="text-blue h-5 w-5" />
           </div>
           <div className="hidden sm:block">
-            <h1 className="text-text text-base font-bold">WSL Nexus</h1>
-            <p className="text-subtext-0 text-xs">WSL2 Management</p>
+            <h1 className="text-text text-base font-bold">{t("header.appName")}</h1>
+            <p className="text-subtext-0 text-xs">{t("header.subtitle")}</p>
           </div>
         </div>
 
@@ -101,7 +103,7 @@ export function Header() {
                 )}
               >
                 <tab.icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="hidden sm:inline">{t(tab.key)}</span>
               </Link>
             );
           })}
@@ -112,15 +114,15 @@ export function Header() {
           <button
             onClick={useDebugConsoleStore.getState().toggle}
             className="text-subtext-0 hover:bg-surface-0 hover:text-text flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
-            aria-label="Toggle debug console (Ctrl+Shift+D)"
-            title="Debug Console (Ctrl+Shift+D)"
+            aria-label={t("header.toggleDebugConsole")}
+            title={t("header.debugConsoleTitle")}
           >
             <Terminal className="h-4 w-4" />
           </button>
           <button
             onClick={toggleTheme}
             className="text-subtext-0 hover:bg-surface-0 hover:text-text flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
-            aria-label="Toggle theme"
+            aria-label={t("header.toggleTheme")}
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
@@ -132,14 +134,14 @@ export function Header() {
           <button
             onClick={() => getCurrentWindow().minimize()}
             className="text-subtext-0 hover:bg-surface-0 hover:text-text flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-            aria-label="Minimize"
+            aria-label={t("header.minimize")}
           >
             <Minus className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => getCurrentWindow().toggleMaximize()}
             className="text-subtext-0 hover:bg-surface-0 hover:text-text flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-            aria-label={isMaximized ? "Restore" : "Maximize"}
+            aria-label={isMaximized ? t("header.restore") : t("header.maximize")}
           >
             {isMaximized ? (
               <Minimize2 className="h-3.5 w-3.5" />
@@ -150,7 +152,7 @@ export function Header() {
           <button
             onClick={() => getCurrentWindow().hide()}
             className="text-subtext-0 hover:bg-red/20 hover:text-red flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-            aria-label="Close"
+            aria-label={t("header.close")}
           >
             <X className="h-3.5 w-3.5" />
           </button>

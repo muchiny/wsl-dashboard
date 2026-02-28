@@ -92,6 +92,10 @@ impl MetricsCollector {
                     }
                 }
             }
+
+            // Purge expired cooldown entries to prevent unbounded growth
+            alert_cooldowns
+                .retain(|_, last_fired| last_fired.elapsed().as_secs() < ALERT_COOLDOWN_SECS);
         }
     }
 

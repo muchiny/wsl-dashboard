@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
+import { renderWithProviders } from "@/test/test-utils";
 import { SnapshotCard } from "./snapshot-card";
 import type { Snapshot } from "@/shared/types/snapshot";
 
@@ -24,7 +25,7 @@ const noop = () => {};
 
 describe("SnapshotCard", () => {
   it("displays the snapshot name", () => {
-    render(
+    renderWithProviders(
       <SnapshotCard
         snapshot={makeSnapshot({ name: "Weekly Backup" })}
         onDelete={noop}
@@ -35,7 +36,7 @@ describe("SnapshotCard", () => {
   });
 
   it("shows Completed badge for completed status", () => {
-    render(
+    renderWithProviders(
       <SnapshotCard
         snapshot={makeSnapshot({ status: "completed" })}
         onDelete={noop}
@@ -46,7 +47,7 @@ describe("SnapshotCard", () => {
   });
 
   it("shows In Progress badge for in_progress status", () => {
-    render(
+    renderWithProviders(
       <SnapshotCard
         snapshot={makeSnapshot({ status: "in_progress" })}
         onDelete={noop}
@@ -57,7 +58,7 @@ describe("SnapshotCard", () => {
   });
 
   it("shows Failed badge for failed status", () => {
-    render(
+    renderWithProviders(
       <SnapshotCard
         snapshot={makeSnapshot({ status: "failed: export error" })}
         onDelete={noop}
@@ -68,7 +69,7 @@ describe("SnapshotCard", () => {
   });
 
   it("shows Restore button only when completed", () => {
-    render(
+    renderWithProviders(
       <SnapshotCard
         snapshot={makeSnapshot({ status: "completed" })}
         onDelete={noop}
@@ -79,7 +80,7 @@ describe("SnapshotCard", () => {
   });
 
   it("hides Restore button when not completed", () => {
-    render(
+    renderWithProviders(
       <SnapshotCard
         snapshot={makeSnapshot({ status: "in_progress" })}
         onDelete={noop}
@@ -90,7 +91,7 @@ describe("SnapshotCard", () => {
   });
 
   it("always shows Delete button", () => {
-    render(
+    renderWithProviders(
       <SnapshotCard
         snapshot={makeSnapshot({ status: "in_progress" })}
         onDelete={noop}
@@ -101,7 +102,7 @@ describe("SnapshotCard", () => {
   });
 
   it("displays description when provided", () => {
-    render(
+    renderWithProviders(
       <SnapshotCard
         snapshot={makeSnapshot({ description: "Before upgrade" })}
         onDelete={noop}
@@ -112,7 +113,7 @@ describe("SnapshotCard", () => {
   });
 
   it("does not render description when null", () => {
-    render(
+    renderWithProviders(
       <SnapshotCard
         snapshot={makeSnapshot({ description: null })}
         onDelete={noop}
@@ -123,7 +124,7 @@ describe("SnapshotCard", () => {
   });
 
   it("displays distro name", () => {
-    render(
+    renderWithProviders(
       <SnapshotCard
         snapshot={makeSnapshot({ distro_name: "Arch" })}
         onDelete={noop}
@@ -134,7 +135,7 @@ describe("SnapshotCard", () => {
   });
 
   it("displays format and type", () => {
-    render(
+    renderWithProviders(
       <SnapshotCard
         snapshot={makeSnapshot({ format: "tar.gz", snapshot_type: "full" })}
         onDelete={noop}
@@ -146,7 +147,7 @@ describe("SnapshotCard", () => {
   });
 
   it("displays file size when > 0", () => {
-    render(
+    renderWithProviders(
       <SnapshotCard
         snapshot={makeSnapshot({ file_size_bytes: 1073741824 })}
         onDelete={noop}
@@ -158,7 +159,7 @@ describe("SnapshotCard", () => {
 
   it("calls onRestore when Restore button is clicked", () => {
     const onRestore = vi.fn();
-    render(
+    renderWithProviders(
       <SnapshotCard
         snapshot={makeSnapshot({ status: "completed" })}
         onDelete={noop}
@@ -171,13 +172,15 @@ describe("SnapshotCard", () => {
 
   it("calls onDelete when Delete button is clicked", () => {
     const onDelete = vi.fn();
-    render(<SnapshotCard snapshot={makeSnapshot()} onDelete={onDelete} onRestore={noop} />);
+    renderWithProviders(
+      <SnapshotCard snapshot={makeSnapshot()} onDelete={onDelete} onRestore={noop} />,
+    );
     fireEvent.click(screen.getByTitle("Delete snapshot"));
     expect(onDelete).toHaveBeenCalledOnce();
   });
 
   it("hides distro name when hideDistroName is true", () => {
-    render(
+    renderWithProviders(
       <SnapshotCard
         snapshot={makeSnapshot({ distro_name: "Arch" })}
         onDelete={noop}
@@ -189,7 +192,7 @@ describe("SnapshotCard", () => {
   });
 
   it("shows distro name when hideDistroName is false", () => {
-    render(
+    renderWithProviders(
       <SnapshotCard
         snapshot={makeSnapshot({ distro_name: "Arch" })}
         onDelete={noop}

@@ -32,7 +32,7 @@ export function useListeningPorts(distroName: string) {
         distroName,
       }),
     enabled: !!distroName,
-    refetchInterval: 10_000,
+    refetchInterval: 20_000,
   });
 }
 
@@ -43,6 +43,6 @@ export function usePortForwardingRules(distroName?: string) {
       tauriInvoke<PortForwardRule[]>("get_port_forwarding_rules", {
         distroName: distroName ?? null,
       }),
-    refetchInterval: 10_000,
+    refetchInterval: 20_000,
   });
 }
