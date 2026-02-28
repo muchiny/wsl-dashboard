@@ -203,11 +203,13 @@ export function DistrosToolbar({
         <div className="relative" ref={sortRef}>
           <button
             onClick={() => setSortOpen((v) => !v)}
-            className="bg-surface-0/50 text-subtext-1 hover:text-text flex items-center gap-1.5 rounded-full py-1 pr-2.5 pl-2.5 text-xs font-medium transition-colors"
+            className="bg-surface-0/50 text-subtext-1 hover:text-text flex max-w-[180px] items-center gap-1.5 rounded-full py-1 pr-2.5 pl-2.5 text-xs font-medium transition-colors"
           >
-            <ArrowUpDown className="h-3.5 w-3.5" />
-            {t(sortOptions.find((o) => o.value === sortKey)?.key ?? "")}
-            <ChevronDown className={cn("h-3 w-3 transition-transform", sortOpen && "rotate-180")} />
+            <ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">
+              {t(sortOptions.find((o) => o.value === sortKey)?.key ?? "")}
+            </span>
+            <ChevronDown className={cn("h-3 w-3 shrink-0 transition-transform", sortOpen && "rotate-180")} />
           </button>
           {sortOpen && (
             <div className="bg-surface-0 border-surface-1 absolute top-full left-0 z-50 mt-1 min-w-[160px] rounded-lg border py-1 shadow-lg">
@@ -226,9 +228,9 @@ export function DistrosToolbar({
                   )}
                 >
                   <Check
-                    className={cn("h-3 w-3", sortKey === opt.value ? "opacity-100" : "opacity-0")}
+                    className={cn("h-3 w-3 shrink-0", sortKey === opt.value ? "opacity-100" : "opacity-0")}
                   />
-                  {t(opt.key)}
+                  <span className="truncate">{t(opt.key)}</span>
                 </button>
               ))}
             </div>

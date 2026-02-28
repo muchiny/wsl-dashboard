@@ -157,7 +157,7 @@ export function Select({
           open && "border-blue",
         )}
       >
-        <span className={cn(!selectedLabel && "text-overlay-0")}>
+        <span className={cn("truncate", !selectedLabel && "text-overlay-0")}>
           {selectedLabel ?? placeholder}
         </span>
         <ChevronDown
@@ -197,7 +197,7 @@ export function Select({
                 <Check
                   className={cn("h-3.5 w-3.5 shrink-0", isSelected ? "opacity-100" : "opacity-0")}
                 />
-                {item.label}
+                <span className="truncate">{item.label}</span>
               </button>
             );
           })}
