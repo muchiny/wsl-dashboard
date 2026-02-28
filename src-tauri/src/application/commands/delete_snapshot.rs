@@ -59,7 +59,7 @@ mod tests {
             name: "test".into(),
             description: None,
             snapshot_type: SnapshotType::Full,
-            format: ExportFormat::TarGz,
+            format: ExportFormat::Tar,
             file_path: file_path.to_string(),
             file_size: MemorySize::from_bytes(1024),
             parent_id: None,
@@ -90,7 +90,7 @@ mod tests {
     async fn test_delete_calls_repo_delete_and_audit() {
         // Use a non-existent file path so fs::remove_file is skipped
         let mut repo_mock = MockSnapshotRepositoryPort::new();
-        let snap = make_snapshot("/nonexistent/path/file.tar.gz");
+        let snap = make_snapshot("/nonexistent/path/file.tar");
         repo_mock
             .expect_get_by_id()
             .returning(move |_| Ok(snap.clone()));

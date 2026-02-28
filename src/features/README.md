@@ -77,7 +77,7 @@ snapshot-list/
     └── restore-snapshot-dialog.tsx # Modal: clone or overwrite mode, install path
 ```
 
-**Supported formats**: `tar`, `tar.gz`, `tar.xz`, `vhdx`
+**Supported formats**: `tar`, `vhdx`
 **Restore modes**: Clone (new name) or Overwrite (replaces existing)
 
 ---

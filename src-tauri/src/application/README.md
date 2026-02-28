@@ -147,7 +147,7 @@ DTOs are serializable structs sent to the frontend. They **decouple** the intern
 | `distro_name` | `String` | — |
 | `name` | `String` | — |
 | `snapshot_type` | `String` | `"full"` or `"incremental"` |
-| `format` | `String` | `"tar"`, `"tar.gz"`, `"tar.xz"`, `"vhdx"` |
+| `format` | `String` | `"tar"`, `"vhdx"` |
 | `file_path` | `String` | — |
 | `file_size_bytes` | `u64` | — |
 | `status` | `String` | `"in_progress"`, `"completed"`, `"failed: ..."` |

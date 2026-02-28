@@ -86,10 +86,8 @@ impl SqliteSnapshotRepository {
 
         let format_str: String = row.get("format");
         let format = match format_str.as_str() {
-            "tar.gz" => ExportFormat::TarGz,
-            "tar.xz" => ExportFormat::TarXz,
             "vhdx" => ExportFormat::Vhd,
-            _ => ExportFormat::Tar,
+            _ => ExportFormat::Tar, // "tar" + legacy "tar.gz"/"tar.xz" (always plain tar)
         };
 
         let parent_id: Option<String> = row.get("parent_id");
@@ -513,8 +511,8 @@ mod tests {
             name: "fedora-backup".to_string(),
             description: None,
             snapshot_type: SnapshotType::PseudoIncremental,
-            format: ExportFormat::TarGz,
-            file_path: "/backups/fedora.tar.gz".to_string(),
+            format: ExportFormat::Tar,
+            file_path: "/backups/fedora.tar".to_string(),
             file_size: MemorySize::from_bytes(5_000_000),
             parent_id: None,
             created_at: now,
@@ -531,15 +529,15 @@ mod tests {
         assert_eq!(retrieved.distro_name.as_str(), "Fedora");
         assert_eq!(retrieved.name, "fedora-backup");
         assert_eq!(retrieved.description, None);
-        assert_eq!(retrieved.file_path, "/backups/fedora.tar.gz");
+        assert_eq!(retrieved.file_path, "/backups/fedora.tar");
         assert_eq!(retrieved.file_size.bytes(), 5_000_000);
         match retrieved.snapshot_type {
             SnapshotType::PseudoIncremental => {}
             other => panic!("Expected PseudoIncremental, got: {:?}", other),
         }
         match retrieved.format {
-            ExportFormat::TarGz => {}
-            other => panic!("Expected TarGz, got: {:?}", other),
+            ExportFormat::Tar => {}
+            other => panic!("Expected Tar, got: {:?}", other),
         }
         match retrieved.status {
             SnapshotStatus::InProgress => {}
@@ -615,8 +613,6 @@ mod tests {
 
         let formats = vec![
             ("fmt-tar", ExportFormat::Tar),
-            ("fmt-targz", ExportFormat::TarGz),
-            ("fmt-tarxz", ExportFormat::TarXz),
             ("fmt-vhd", ExportFormat::Vhd),
         ];
 
@@ -645,22 +641,27 @@ mod tests {
         assert_eq!(retrieved.format.extension(), "tar");
 
         let retrieved = repo
-            .get_by_id(&SnapshotId::from_string("fmt-targz".to_string()))
-            .await
-            .unwrap();
-        assert_eq!(retrieved.format.extension(), "tar.gz");
-
-        let retrieved = repo
-            .get_by_id(&SnapshotId::from_string("fmt-tarxz".to_string()))
-            .await
-            .unwrap();
-        assert_eq!(retrieved.format.extension(), "tar.xz");
-
-        let retrieved = repo
             .get_by_id(&SnapshotId::from_string("fmt-vhd".to_string()))
             .await
             .unwrap();
         assert_eq!(retrieved.format.extension(), "vhdx");
+
+        // Legacy "tar.gz"/"tar.xz" values in DB should deserialize as Tar
+        // (wsl --export always produced plain tar regardless of extension)
+        sqlx::query("INSERT INTO snapshots (id, distro_name, name, description, snapshot_type, format, file_path, file_size, parent_id, created_at, status) VALUES (?, ?, ?, NULL, 'full', 'tar.gz', '/tmp/legacy', 100, NULL, ?, 'completed')")
+            .bind("fmt-legacy-gz")
+            .bind("Ubuntu")
+            .bind("legacy-gz")
+            .bind(now.to_rfc3339())
+            .execute(&repo.db.pool)
+            .await
+            .unwrap();
+
+        let retrieved = repo
+            .get_by_id(&SnapshotId::from_string("fmt-legacy-gz".to_string()))
+            .await
+            .unwrap();
+        assert_eq!(retrieved.format.extension(), "tar");
     }
 
     // ---- SqliteAuditLogger tests ----

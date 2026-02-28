@@ -116,8 +116,8 @@ mod tests {
             name: "backup".into(),
             description: Some("test desc".into()),
             snapshot_type: stype,
-            format: ExportFormat::TarGz,
-            file_path: "/tmp/backup.tar.gz".into(),
+            format: ExportFormat::Tar,
+            file_path: "/tmp/backup.tar".into(),
             file_size: MemorySize::from_bytes(1_048_576),
             parent_id: Some(SnapshotId::from_string("parent-001".into())),
             created_at: Utc::now(),
@@ -215,7 +215,7 @@ mod tests {
             SnapshotStatus::Completed,
             SnapshotType::Full,
         ));
-        assert_eq!(resp.format, "tar.gz");
+        assert_eq!(resp.format, "tar");
     }
 
     #[test]

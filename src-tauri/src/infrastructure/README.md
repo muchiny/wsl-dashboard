@@ -145,7 +145,7 @@ CREATE TABLE snapshots (
     name TEXT NOT NULL,
     description TEXT,
     snapshot_type TEXT,        -- "full" | "incremental"
-    format TEXT,               -- "tar" | "tar.gz" | "tar.xz" | "vhdx"
+    format TEXT,               -- "tar" | "vhdx"
     file_path TEXT NOT NULL,
     file_size INTEGER,
     parent_id TEXT,

@@ -410,16 +410,20 @@ impl WslManagerPort for WslCliAdapter {
         name: &DistroName,
         install_location: &str,
         file_path: &str,
+        format: ExportFormat,
     ) -> Result<(), DomainError> {
         let win_loc = linux_to_windows_path(install_location);
         let win_file = linux_to_windows_path(file_path);
-        self.run_wsl_raw(&[
+        let mut args = vec![
             "--import",
             name.as_str(),
             win_loc.as_str(),
             win_file.as_str(),
-        ])
-        .await?;
+        ];
+        if let Some(flag) = format.wsl_flag() {
+            args.push(flag);
+        }
+        self.run_wsl_raw(&args).await?;
         Ok(())
     }
 

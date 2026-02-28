@@ -104,7 +104,7 @@ impl MetricsCollector {
         wsl_manager: &Arc<dyn WslManagerPort>,
         cache: &mut Option<(Instant, Vec<Distro>)>,
     ) -> Option<Vec<Distro>> {
-        if let Some((ts, ref list)) = cache {
+        if let &mut Some((ref mut ts, ref list)) = cache {
             if ts.elapsed().as_secs() < DISTRO_CACHE_TTL_SECS {
                 return Some(list.clone());
             }

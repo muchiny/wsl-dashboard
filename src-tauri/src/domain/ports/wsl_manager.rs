@@ -39,6 +39,7 @@ pub trait WslManagerPort: Send + Sync {
         name: &DistroName,
         install_location: &str,
         file_path: &str,
+        format: ExportFormat,
     ) -> Result<(), DomainError>;
 
     /// Shutdown all WSL instances

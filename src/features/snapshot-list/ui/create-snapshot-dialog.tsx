@@ -31,7 +31,7 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
   }
 
   const [description, setDescription] = useState("");
-  const [format, setFormat] = useState<"tar" | "tar.gz" | "tar.xz" | "vhdx">("tar");
+  const [format, setFormat] = useState<"tar" | "vhdx">("tar");
   const [outputDir, setOutputDir] = useState(defaultSnapshotDir);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -136,8 +136,6 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
               onChange={(v) => setFormat(v as typeof format)}
               options={[
                 { value: "tar", label: t("snapshots.create.formatTar") },
-                { value: "tar.gz", label: t("snapshots.create.formatTarGz") },
-                { value: "tar.xz", label: t("snapshots.create.formatTarXz") },
                 { value: "vhdx", label: t("snapshots.create.formatVhdx") },
               ]}
               placeholder=""

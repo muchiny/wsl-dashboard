@@ -67,8 +67,13 @@ export function TerminalInstance({ sessionId, isActive }: TerminalInstanceProps)
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const isActiveRef = useRef(isActive);
   const theme = useThemeStore((s) => s.theme);
   const removeSession = useTerminalStore((s) => s.removeSession);
+
+  useEffect(() => {
+    isActiveRef.current = isActive;
+  }, [isActive]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -132,6 +137,17 @@ export function TerminalInstance({ sessionId, isActive }: TerminalInstanceProps)
     });
     resizeObserver.observe(container);
 
+    // Refit terminal when window is restored from minimize
+    const handleVisibilityChange = () => {
+      if (!document.hidden && isActiveRef.current) {
+        requestAnimationFrame(() => {
+          fitAddon.fit();
+          terminal.refresh(0, terminal.rows - 1);
+        });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     terminalRef.current = terminal;
     fitAddonRef.current = fitAddon;
 
@@ -140,6 +156,7 @@ export function TerminalInstance({ sessionId, isActive }: TerminalInstanceProps)
       outputUnlisten.then((fn) => fn());
       exitUnlisten.then((fn) => fn());
       resizeObserver.disconnect();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       terminal.dispose();
       closeTerminal(sessionId).catch(() => {});
     };

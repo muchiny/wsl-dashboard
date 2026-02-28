@@ -62,7 +62,7 @@ Entities are business objects with their own identity.
 | `distro_name` | `DistroName` | Source distribution |
 | `name` | `String` | User-given name |
 | `snapshot_type` | `SnapshotType` | `Full` or `PseudoIncremental` |
-| `format` | `ExportFormat` | `Tar`, `TarGz`, `TarXz`, `Vhd` |
+| `format` | `ExportFormat` | `Tar`, `Vhd` |
 | `file_path` | `String` | Exported file path |
 | `file_size` | `MemorySize` | File size |
 | `parent_id` | `Option<SnapshotId>` | Parent (for incrementals) |

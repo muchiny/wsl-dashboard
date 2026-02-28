@@ -23,7 +23,8 @@ pub async fn list_snapshots(
         None => None,
     };
     let handler = ListSnapshotsHandler::new(state.snapshot_repo.clone());
-    handler.handle(name).await
+    let result = handler.handle(name).await;
+    result
 }
 
 #[derive(Debug, Deserialize)]
@@ -41,8 +42,6 @@ pub async fn create_snapshot(
     state: State<'_, AppState>,
 ) -> Result<SnapshotResponse, DomainError> {
     let format = match args.format.as_deref() {
-        Some("tar.gz") => ExportFormat::TarGz,
-        Some("tar.xz") => ExportFormat::TarXz,
         Some("vhdx") => ExportFormat::Vhd,
         _ => ExportFormat::Tar,
     };
@@ -73,11 +72,12 @@ pub async fn delete_snapshot(
     let handler =
         DeleteSnapshotHandler::new(state.snapshot_repo.clone(), state.audit_logger.clone());
 
-    handler
+    let result = handler
         .handle(DeleteSnapshotCommand {
             snapshot_id: SnapshotId::from_string(snapshot_id),
         })
-        .await
+        .await;
+    result
 }
 
 #[derive(Debug, Deserialize)]
@@ -128,11 +128,12 @@ pub async fn restore_snapshot(
         state.audit_logger.clone(),
     );
 
-    handler
+    let result = handler
         .handle(RestoreSnapshotCommand {
             snapshot_id: SnapshotId::from_string(args.snapshot_id),
             mode,
             install_location,
         })
-        .await
+        .await;
+    result
 }

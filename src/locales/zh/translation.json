@@ -116,8 +116,6 @@
       "descriptionPlaceholder": "描述此快照捕获的内容...",
       "format": "格式",
       "formatTar": "tar（最快）",
-      "formatTarGz": "tar.gz（压缩）",
-      "formatTarXz": "tar.xz（最佳压缩）",
       "formatVhdx": "VHDX（虚拟磁盘）",
       "outputDirectory": "输出目录",
       "browseOutputDir": "选择输出目录",

@@ -11,8 +11,8 @@ function makeSnapshot(overrides: Partial<Snapshot> = {}): Snapshot {
     name: "My Backup",
     description: null,
     snapshot_type: "full",
-    format: "tar.gz",
-    file_path: "/tmp/snap.tar.gz",
+    format: "tar",
+    file_path: "/tmp/snap.tar",
     file_size_bytes: 1073741824,
     parent_id: null,
     created_at: new Date().toISOString(),
@@ -137,12 +137,12 @@ describe("SnapshotCard", () => {
   it("displays format and type", () => {
     renderWithProviders(
       <SnapshotCard
-        snapshot={makeSnapshot({ format: "tar.gz", snapshot_type: "full" })}
+        snapshot={makeSnapshot({ format: "tar", snapshot_type: "full" })}
         onDelete={noop}
         onRestore={noop}
       />,
     );
-    expect(screen.getByText("tar.gz")).toBeInTheDocument();
+    expect(screen.getByText("tar")).toBeInTheDocument();
     expect(screen.getByText("full")).toBeInTheDocument();
   });
 

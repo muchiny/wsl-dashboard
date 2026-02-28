@@ -16,7 +16,7 @@ export interface CreateSnapshotArgs {
   distro_name: string;
   name: string;
   description?: string;
-  format?: "tar" | "tar.gz" | "tar.xz" | "vhdx";
+  format?: "tar" | "vhdx";
   output_dir: string;
 }
 

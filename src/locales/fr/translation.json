@@ -116,8 +116,6 @@
       "descriptionPlaceholder": "Décrivez ce que ce snapshot capture...",
       "format": "Format",
       "formatTar": "tar (le plus rapide)",
-      "formatTarGz": "tar.gz (compressé)",
-      "formatTarXz": "tar.xz (meilleure compression)",
       "formatVhdx": "VHDX (disque virtuel)",
       "outputDirectory": "Répertoire de sortie",
       "browseOutputDir": "Sélectionner le répertoire de sortie",

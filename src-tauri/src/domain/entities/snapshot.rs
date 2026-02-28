@@ -26,8 +26,6 @@ pub enum SnapshotType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExportFormat {
     Tar,
-    TarGz,
-    TarXz,
     Vhd,
 }
 
@@ -35,8 +33,6 @@ impl ExportFormat {
     pub fn extension(&self) -> &str {
         match self {
             Self::Tar => "tar",
-            Self::TarGz => "tar.gz",
-            Self::TarXz => "tar.xz",
             Self::Vhd => "vhdx",
         }
     }
@@ -44,7 +40,7 @@ impl ExportFormat {
     pub fn wsl_flag(&self) -> Option<&str> {
         match self {
             Self::Vhd => Some("--vhd"),
-            _ => None,
+            Self::Tar => None,
         }
     }
 }
@@ -72,16 +68,6 @@ mod tests {
     }
 
     #[test]
-    fn test_export_format_targz_extension() {
-        assert_eq!(ExportFormat::TarGz.extension(), "tar.gz");
-    }
-
-    #[test]
-    fn test_export_format_tarxz_extension() {
-        assert_eq!(ExportFormat::TarXz.extension(), "tar.xz");
-    }
-
-    #[test]
     fn test_export_format_vhd_extension() {
         assert_eq!(ExportFormat::Vhd.extension(), "vhdx");
     }
@@ -96,13 +82,4 @@ mod tests {
         assert_eq!(ExportFormat::Tar.wsl_flag(), None);
     }
 
-    #[test]
-    fn test_wsl_flag_targz_returns_none() {
-        assert_eq!(ExportFormat::TarGz.wsl_flag(), None);
-    }
-
-    #[test]
-    fn test_wsl_flag_tarxz_returns_none() {
-        assert_eq!(ExportFormat::TarXz.wsl_flag(), None);
-    }
 }
