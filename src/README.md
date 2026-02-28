@@ -1,19 +1,19 @@
-# Frontend — React 19 + TypeScript 5.9
+# 🖼️ Frontend — React 19 + TypeScript 5.9
 
 > WSL Nexus user interface — Feature-Sliced Design, TanStack Query, Tailwind CSS v4.
 
 ---
 
-## Feature-Sliced Design Architecture (FSD)
+## 🏗️ Feature-Sliced Design Architecture (FSD)
 
 The frontend follows the **Feature-Sliced Design** architecture with 4 layers and strict import rules:
 
 ```mermaid
 graph TD
-    P["Pages<br/><small>Route-level components</small>"]
-    W["Widgets<br/><small>Layout: Header, DebugConsole</small>"]
-    F["Features<br/><small>8 feature slices + 1 hook-only</small>"]
-    S["Shared<br/><small>API, hooks, types, stores, utils</small>"]
+    P["📄 Pages<br/><small>Route-level components</small>"]
+    W["🔲 Widgets<br/><small>Layout: Header, DebugConsole</small>"]
+    F["🧩 Features<br/><small>8 feature slices + 1 hook-only</small>"]
+    S["📦 Shared<br/><small>API, hooks, types, stores, utils</small>"]
 
     P --> F
     P --> W
@@ -21,8 +21,8 @@ graph TD
     W --> S
     F --> S
 
-    P -.-x|"FORBIDDEN"| P
-    F -.-x|"FORBIDDEN"| F
+    P -.-x|"🚫 FORBIDDEN"| P
+    F -.-x|"🚫 FORBIDDEN"| F
 
     style S fill:#2d6a4f,stroke:#333,color:#fff
     style F fill:#1d3557,stroke:#333,color:#fff
@@ -32,62 +32,62 @@ graph TD
 
 | Layer | Directory | Can Import From |
 |---|---|---|
-| **Shared** | [`shared/`](shared/README.md) | Nothing (lowest layer) |
-| **Features** | [`features/`](features/README.md) | `shared/` only |
-| **Widgets** | [`widgets/`](widgets/README.md) | `shared/` only |
-| **Pages** | [`pages/`](pages/README.md) | `features/`, `widgets/`, `shared/` |
+| 📦 **Shared** | [`shared/`](shared/README.md) | Nothing (lowest layer) |
+| 🧩 **Features** | [`features/`](features/README.md) | `shared/` only |
+| 🔲 **Widgets** | [`widgets/`](widgets/README.md) | `shared/` only |
+| 📄 **Pages** | [`pages/`](pages/README.md) | `features/`, `widgets/`, `shared/` |
 
-> **Golden rule**: A feature can **never** import from another feature. A page can **never** import from another page.
+> 🚫 **Golden rule**: A feature can **never** import from another feature. A page can **never** import from another page.
 
 ---
 
-## Structure
+## 📂 Structure
 
 ```
 src/
-├── main.tsx              # React 19 entry point (createRoot)
-├── app.tsx               # Providers: QueryClientProvider + RouterProvider
-├── router.tsx            # 3 TanStack Router routes
-├── app.css               # Catppuccin Mocha/Latte theme (Tailwind CSS v4)
-├── vite-env.d.ts         # Vite types
+├── main.tsx              # ⚡ React 19 entry point (createRoot)
+├── app.tsx               # 🔗 Providers: QueryClientProvider + RouterProvider
+├── router.tsx            # 🗺️ 3 TanStack Router routes
+├── app.css               # 🎨 Catppuccin Mocha/Latte theme (Tailwind CSS v4)
+├── vite-env.d.ts         # 📝 Vite types
 │
-├── locales/              # i18n translations
-│   ├── en/                  # English
-│   ├── es/                  # Spanish
-│   ├── fr/                  # French
-│   └── zh/                  # Chinese
+├── locales/              # 🌍 i18n translations
+│   ├── en/                  # 🇬🇧 English
+│   ├── es/                  # 🇪🇸 Spanish
+│   ├── fr/                  # 🇫🇷 French
+│   └── zh/                  # 🇨🇳 Chinese
 │
-├── features/             # 8 self-contained feature slices + 1 hook-only
-│   ├── distro-list/         # Distribution management
-│   ├── snapshot-list/       # Snapshots
-│   ├── monitoring-dashboard/# Real-time metrics
-│   ├── wsl-config/          # .wslconfig editor
-│   ├── audit-log/           # Audit trail
-│   ├── terminal/            # Interactive WSL terminal (xterm)
-│   ├── port-forwarding/     # WSL-to-Windows port mapping
-│   ├── app-preferences/     # Language and theme preferences
-│   └── distro-events/       # Real-time events (hook only)
+├── features/             # 🧩 8 self-contained feature slices + 1 hook-only
+│   ├── distro-list/         # 🖥️ Distribution management
+│   ├── snapshot-list/       # 📸 Snapshots
+│   ├── monitoring-dashboard/# 📊 Real-time metrics
+│   ├── wsl-config/          # ⚙️ .wslconfig editor
+│   ├── audit-log/           # 📋 Audit trail
+│   ├── terminal/            # 💻 Interactive WSL terminal (xterm)
+│   ├── port-forwarding/     # 🔀 WSL-to-Windows port mapping
+│   ├── app-preferences/     # 🎨 Language and theme preferences
+│   └── distro-events/       # ⚡ Real-time events (hook only)
 │
-├── pages/                # 3 routed pages
-│   ├── distros/             # / (home)
-│   ├── monitoring/          # /monitoring
-│   └── settings/            # /settings
+├── pages/                # 📄 3 routed pages
+│   ├── distros/             # 🏠 / (home)
+│   ├── monitoring/          # 📊 /monitoring
+│   └── settings/            # ⚙️ /settings
 │
-├── shared/               # Shared utilities
-│   ├── api/                 # Tauri bridge (invoke, events, queries, mutations)
-│   ├── config/              # QueryClient, i18n
-│   ├── hooks/               # useDebugConsoleStore, useThemeStore, useTauriEvent, useDebounce
-│   ├── stores/              # useLocaleStore, usePreferencesStore
-│   ├── lib/                 # cn(), formatters
-│   ├── types/               # TypeScript interfaces (distro, monitoring, snapshot)
-│   ├── ui/                  # Shared components (ErrorBoundary, Select, Toast, Dialog, etc.)
-│   └── assets/              # Static assets (flag SVGs for i18n)
+├── shared/               # 📦 Shared utilities
+│   ├── api/                 # 🔗 Tauri bridge (invoke, events, queries, mutations)
+│   ├── config/              # ⚙️ QueryClient, i18n
+│   ├── hooks/               # 🪝 useDebugConsoleStore, useThemeStore, useTauriEvent, useDebounce
+│   ├── stores/              # 🗃️ useLocaleStore, usePreferencesStore
+│   ├── lib/                 # 🔧 cn(), formatters
+│   ├── types/               # 📝 TypeScript interfaces (distro, monitoring, snapshot)
+│   ├── ui/                  # 🎨 Shared components (ErrorBoundary, Select, Toast, Dialog, etc.)
+│   └── assets/              # 🏳️ Static assets (flag SVGs for i18n)
 │
-├── widgets/              # Layout components
-│   ├── header/              # Top bar with pill tabs + theme toggle
-│   └── debug-console/       # Collapsible in-app log viewer
+├── widgets/              # 🔲 Layout components
+│   ├── header/              # 📌 Top bar with pill tabs + theme toggle
+│   └── debug-console/       # 🐛 Collapsible in-app log viewer
 │
-└── test/                 # Vitest setup + mocks
+└── test/                 # 🧪 Vitest setup + mocks
     ├── setup.ts
     ├── test-utils.tsx
     └── mocks/
@@ -95,19 +95,19 @@ src/
 
 ---
 
-## Routing — TanStack Router
+## 🗺️ Routing — TanStack Router
 
 3 code-based routes (no file-based routing) defined in `router.tsx`:
 
 ```mermaid
 graph TD
-    Root["Root Layout<br/><small>Header + Outlet + DebugConsole</small>"]
-    Root --> DI["/ — Distributions<br/><small>Distro grid + snapshots + terminal</small>"]
-    Root --> MO["/monitoring — Monitoring<br/><small>CPU, RAM, disk, network</small>"]
-    Root --> SE["/settings — Settings<br/><small>WSL config + port forwarding + preferences + audit</small>"]
+    Root["🏠 Root Layout<br/><small>Header + Outlet + DebugConsole</small>"]
+    Root --> DI["🖥️ / — Distributions<br/><small>Distro grid + snapshots + terminal</small>"]
+    Root --> MO["📊 /monitoring — Monitoring<br/><small>CPU, RAM, disk, network</small>"]
+    Root --> SE["⚙️ /settings — Settings<br/><small>WSL config + port forwarding + preferences + audit</small>"]
 ```
 
-### Root Layout
+### 🖼️ Root Layout
 
 ```tsx
 <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -123,19 +123,19 @@ graph TD
 
 ---
 
-## State Management
+## 🗃️ State Management
 
-### TanStack Query 5 — Server State
+### ⚡ TanStack Query 5 — Server State
 
 Manages all data coming from the Tauri backend:
 
-| Config | Value |
+| ⚙️ Config | Value |
 |---|---|
 | `staleTime` | 5 seconds |
 | `retry` | 1 attempt |
 | `refetchOnWindowFocus` | Disabled |
 
-**Query key patterns** (for caching):
+**🔑 Query key patterns** (for caching):
 ```typescript
 distroKeys = {
   all: ["distros"],
@@ -149,46 +149,46 @@ monitoringKeys = {
 }
 ```
 
-**Refetch intervals**:
-| Feature | Interval |
+**🔄 Refetch intervals**:
+| 🧩 Feature | ⏱️ Interval |
 |---|---|
 | Distributions | 10s |
 | System metrics | 2s |
 | Processes | 3s |
 | Audit log | 10s |
 
-### Zustand 5 — UI State
+### 🗃️ Zustand 5 — UI State
 
 Four Zustand stores with no cross-dependencies:
 
-**`useThemeStore()`** — Theme (dark/light) with localStorage persistence:
+🎨 **`useThemeStore()`** — Theme (dark/light) with localStorage persistence:
 - Key: `wsl-nexus-theme`
 - State: `theme`
 - Actions: `toggleTheme()`
 - Synced to DOM via `data-theme` attribute on `<html>`
 
-**`useDebugConsoleStore()`** — Debug console panel state:
+🐛 **`useDebugConsoleStore()`** — Debug console panel state:
 - State: `isOpen`, `logs`, `filter`
 - Actions: `toggle()`, `setFilter()`, `addLog()`, `setLogs()`, `clear()`
 - Capped at 1000 log entries (oldest evicted)
 - Keyboard shortcut: `Ctrl+Shift+D`
 
-**`useLocaleStore()`** — Language preference:
+🌍 **`useLocaleStore()`** — Language preference:
 - Persists selected locale
 - Drives i18next language switching
 
-**`usePreferencesStore()`** — General user preferences:
+⚙️ **`usePreferencesStore()`** — General user preferences:
 - Persists user settings via Tauri plugin-store
 
 ---
 
-## Styling
+## 🎨 Styling
 
-### Tailwind CSS v4 + Catppuccin
+### 🐱 Tailwind CSS v4 + Catppuccin
 
-Dual-theme system using **Catppuccin Mocha** (dark, default) and **Catppuccin Latte** (light), toggled via the `data-theme` attribute:
+Dual-theme system using **Catppuccin Mocha** 🌙 (dark, default) and **Catppuccin Latte** ☀️ (light), toggled via the `data-theme` attribute:
 
-| Token | Mocha (dark) | Latte (light) | Usage |
+| Token | 🌙 Mocha (dark) | ☀️ Latte (light) | Usage |
 |---|---|---|---|
 | `--color-background` | `#1e1e2e` (base) | `#eff1f5` (base) | Main background |
 | `--color-foreground` | `#cdd6f4` (text) | `#4c4f69` (text) | Main text |
@@ -199,7 +199,7 @@ Dual-theme system using **Catppuccin Mocha** (dark, default) and **Catppuccin La
 | `--color-card` | `#181825` (mantle) | `#e6e9ef` (mantle) | Card backgrounds |
 | `--color-border` | `#45475a` (surface-1) | `#bcc0cc` (surface-1) | Subtle borders |
 
-### shadcn/ui
+### 🧩 shadcn/ui
 
 - **Style**: new-york
 - **Components**: in `shared/ui/`
@@ -208,29 +208,29 @@ Dual-theme system using **Catppuccin Mocha** (dark, default) and **Catppuccin La
 
 ---
 
-## Tauri Bridge
+## 🔗 Tauri Bridge
 
 ### `tauriInvoke<T>(cmd, args?)`
 
 Typed wrapper around `@tauri-apps/api/core.invoke()`:
-- Handles errors and converts them to `TauriError`
-- Used by all TanStack Query hooks
+- ⚠️ Handles errors and converts them to `TauriError`
+- 🧩 Used by all TanStack Query hooks
 
 ### `useTauriEvent<T>(event, handler)`
 
 React hook for listening to Tauri events:
-- Automatic setup/cleanup in `useEffect`
-- Used by `distro-events` for cache invalidation
+- 🔄 Automatic setup/cleanup in `useEffect`
+- ⚡ Used by `distro-events` for cache invalidation
 
-### Listened Events
+### 📡 Listened Events
 
 | Constant | Event | Usage |
 |---|---|---|
-| `EVENTS.DISTRO_STATE_CHANGED` | `distro-state-changed` | Distro query invalidation |
+| `EVENTS.DISTRO_STATE_CHANGED` | `distro-state-changed` | 🔄 Distro query invalidation |
 
 ---
 
-## Shared Types
+## 📝 Shared Types
 
 Three type files in `shared/types/`:
 
@@ -253,10 +253,10 @@ interface Distro {
 
 ---
 
-## Internationalization (i18n)
+## 🌍 Internationalization (i18n)
 
 - **Framework**: i18next + react-i18next
-- **Languages**: English, Spanish, French, Chinese
+- **Languages**: 🇬🇧 English · 🇪🇸 Spanish · 🇫🇷 French · 🇨🇳 Chinese
 - **Config**: `shared/config/i18n.ts`
 - **Translations**: `locales/{en,es,fr,zh}/translation.json`
 - **Locale store**: `shared/stores/use-locale-store.ts`
@@ -264,13 +264,13 @@ interface Distro {
 
 ---
 
-## Entry Point
+## ⚡ Entry Point
 
 ```mermaid
 graph LR
-    M["main.tsx<br/><small>createRoot()</small>"]
-    A["app.tsx<br/><small>QueryClientProvider + RouterProvider</small>"]
-    R["router.tsx<br/><small>3 routes + root layout</small>"]
+    M["⚡ main.tsx<br/><small>createRoot()</small>"]
+    A["🔗 app.tsx<br/><small>QueryClientProvider + RouterProvider</small>"]
+    R["🗺️ router.tsx<br/><small>3 routes + root layout</small>"]
 
     M --> A --> R
 ```
@@ -281,9 +281,9 @@ graph LR
 
 ---
 
-## TypeScript Configuration
+## ⚙️ TypeScript Configuration
 
-| Option | Value | Impact |
+| Option | Value | 💡 Impact |
 |---|---|---|
 | `noUncheckedIndexedAccess` | `true` | `array[0]` returns `T \| undefined` — requires `!` or `?.` |
 | `strict` | `true` | All strict checks enabled |
@@ -292,19 +292,19 @@ graph LR
 
 ---
 
-## Tests
+## 🧪 Tests
 
 ```bash
-npm run test          # Single run
-npm run test:watch    # Watch mode
+npm run test          # ▶️ Single run
+npm run test:watch    # 👁️ Watch mode
 ```
 
 - **Framework**: Vitest 4
 - **Environment**: jsdom (browser simulation)
 - **Setup**: `test/setup.ts` (imports `@testing-library/jest-dom`)
 - **Utilities**: `test/test-utils.tsx` (`renderWithProviders` wraps with QueryClientProvider + I18nextProvider)
-- **Test count**: 383 tests across 40 test files
+- **Test count**: ✅ 383 tests across 40 test files
 
 ---
 
-> Dive deeper: [Features](features/README.md) | [Shared](shared/README.md) | [Pages](pages/README.md) | [Widgets](widgets/README.md)
+> 👀 Dive deeper: [🧩 Features](features/README.md) | [📦 Shared](shared/README.md) | [📄 Pages](pages/README.md) | [🔲 Widgets](widgets/README.md)
