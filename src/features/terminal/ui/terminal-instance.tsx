@@ -81,14 +81,42 @@ export function TerminalInstance({ sessionId, isActive }: TerminalInstanceProps)
     if (!container) return;
 
     let cancelled = false;
+    // Buffer PTY output arriving before xterm is ready
+    let pendingData: Uint8Array[] = [];
+
+    // Register event listeners IMMEDIATELY to avoid missing initial output
+    // (shell prompt, MOTD) that the PTY sends before xterm is created.
+    const outputUnlisten = listen<{ session_id: string; data: number[] }>(
+      "terminal-output",
+      (event) => {
+        if (event.payload.session_id === sessionId) {
+          const bytes = new Uint8Array(event.payload.data);
+          if (terminalRef.current) {
+            terminalRef.current.write(bytes);
+          } else {
+            pendingData.push(bytes);
+          }
+        }
+      },
+    );
+
+    const exitUnlisten = listen<{ session_id: string }>("terminal-exit", (event) => {
+      if (event.payload.session_id === sessionId) {
+        terminalRef.current?.write("\r\n\x1b[90m[Session ended]\x1b[0m\r\n");
+        removeSession(sessionId);
+      }
+    });
 
     const setup = async () => {
-      // Check if the backend session is still alive before creating xterm
-      const alive = await isTerminalAlive(sessionId).catch(() => false);
-      if (!alive || cancelled) {
-        if (!alive) removeSession(sessionId);
+      // Check if the backend session is still alive before creating xterm.
+      // On error (e.g. HMR reload losing callback), assume alive and proceed
+      // rather than incorrectly removing a valid session.
+      const alive = await isTerminalAlive(sessionId).catch(() => true);
+      if (!alive) {
+        removeSession(sessionId);
         return;
       }
+      if (cancelled) return;
 
       const fitAddon = new FitAddon();
       const webLinksAddon = new WebLinksAddon();
@@ -108,6 +136,15 @@ export function TerminalInstance({ sessionId, isActive }: TerminalInstanceProps)
       terminal.loadAddon(webLinksAddon);
       terminal.open(container);
 
+      terminalRef.current = terminal;
+      fitAddonRef.current = fitAddon;
+
+      // Flush any buffered output that arrived before xterm was ready
+      for (const data of pendingData) {
+        terminal.write(data);
+      }
+      pendingData = [];
+
       // Initial fit
       requestAnimationFrame(() => {
         fitAddon.fit();
@@ -118,25 +155,6 @@ export function TerminalInstance({ sessionId, isActive }: TerminalInstanceProps)
       const inputDispose = terminal.onData((data) => {
         const encoder = new TextEncoder();
         writeTerminal(sessionId, encoder.encode(data)).catch(() => {});
-      });
-
-      // Listen for output from backend
-      const outputUnlisten = listen<{ session_id: string; data: number[] }>(
-        "terminal-output",
-        (event) => {
-          if (event.payload.session_id === sessionId) {
-            const bytes = new Uint8Array(event.payload.data);
-            terminal.write(bytes);
-          }
-        },
-      );
-
-      // Listen for session exit
-      const exitUnlisten = listen<{ session_id: string }>("terminal-exit", (event) => {
-        if (event.payload.session_id === sessionId) {
-          terminal.write("\r\n\x1b[90m[Session ended]\x1b[0m\r\n");
-          removeSession(sessionId);
-        }
       });
 
       // Resize observer for container changes
@@ -159,14 +177,9 @@ export function TerminalInstance({ sessionId, isActive }: TerminalInstanceProps)
       };
       document.addEventListener("visibilitychange", handleVisibilityChange);
 
-      terminalRef.current = terminal;
-      fitAddonRef.current = fitAddon;
-
-      // Store cleanup references
+      // Store cleanup for xterm-specific resources
       cleanupRef.current = () => {
         inputDispose.dispose();
-        outputUnlisten.then((fn) => fn());
-        exitUnlisten.then((fn) => fn());
         resizeObserver.disconnect();
         document.removeEventListener("visibilitychange", handleVisibilityChange);
         terminal.dispose();
@@ -177,6 +190,10 @@ export function TerminalInstance({ sessionId, isActive }: TerminalInstanceProps)
 
     return () => {
       cancelled = true;
+      // Clean up Tauri event listeners (registered immediately, not in setup)
+      outputUnlisten.then((fn) => fn());
+      exitUnlisten.then((fn) => fn());
+      // Clean up xterm and related resources
       cleanupRef.current?.();
       cleanupRef.current = null;
       terminalRef.current = null;

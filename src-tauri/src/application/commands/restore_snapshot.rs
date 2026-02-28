@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::application::path_utils::windows_to_linux_path;
 use crate::domain::entities::snapshot::RestoreMode;
 use crate::domain::errors::DomainError;
 use crate::domain::ports::audit_logger::AuditLoggerPort;
@@ -35,9 +36,38 @@ impl RestoreSnapshotHandler {
     pub async fn handle(&self, cmd: RestoreSnapshotCommand) -> Result<(), DomainError> {
         let snapshot = self.snapshot_repo.get_by_id(&cmd.snapshot_id).await?;
 
-        let file_meta = std::fs::metadata(&snapshot.file_path).map_err(|_| {
-            DomainError::SnapshotError(format!("Snapshot file not found: {}", snapshot.file_path))
-        })?;
+        tracing::info!(
+            snapshot_id = %cmd.snapshot_id,
+            file_path = %snapshot.file_path,
+            format = ?snapshot.format,
+            mode = ?cmd.mode,
+            install_location = %cmd.install_location,
+            "starting snapshot restore"
+        );
+
+        // Try the stored path first; if it fails (e.g. Windows path on Linux),
+        // try converting Windows→Linux (/mnt/x/...) as a fallback.
+        let file_meta = std::fs::metadata(&snapshot.file_path)
+            .or_else(|_| {
+                let linux_path = windows_to_linux_path(&snapshot.file_path);
+                if linux_path != snapshot.file_path {
+                    tracing::info!(
+                        original = %snapshot.file_path,
+                        converted = %linux_path,
+                        "retrying metadata with converted path"
+                    );
+                    std::fs::metadata(&linux_path)
+                } else {
+                    // Can't convert, re-trigger the original error
+                    std::fs::metadata(&snapshot.file_path)
+                }
+            })
+            .map_err(|e| {
+                DomainError::SnapshotError(format!(
+                    "Snapshot file not found: {} ({})",
+                    snapshot.file_path, e
+                ))
+            })?;
 
         if file_meta.len() == 0 {
             return Err(DomainError::SnapshotError(

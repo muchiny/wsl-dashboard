@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::application::path_utils::windows_to_linux_path;
 use crate::domain::entities::snapshot::{ExportFormat, Snapshot, SnapshotStatus, SnapshotType};
 use crate::domain::errors::DomainError;
 use crate::domain::ports::audit_logger::AuditLoggerPort;
@@ -67,8 +68,18 @@ impl CreateSnapshotHandler {
             .await
         {
             Ok(()) => {
-                // Read file size and reject empty exports
+                // Read file size and reject empty exports.
+                // Try the stored path first; fall back to Windows→Linux conversion
+                // (handles C:\... paths when running from WSL).
                 snapshot.file_size = std::fs::metadata(&file_path)
+                    .or_else(|_| {
+                        let linux = windows_to_linux_path(&file_path);
+                        if linux != file_path {
+                            std::fs::metadata(&linux)
+                        } else {
+                            std::fs::metadata(&file_path)
+                        }
+                    })
                     .map(|m| MemorySize::from_bytes(m.len()))
                     .unwrap_or_else(|_| MemorySize::zero());
 
