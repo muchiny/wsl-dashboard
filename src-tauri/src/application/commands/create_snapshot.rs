@@ -64,11 +64,26 @@ impl CreateSnapshotHandler {
 
         self.snapshot_repo.save(&snapshot).await?;
 
-        match self
+        // Terminate the distro before exporting to avoid:
+        // - VHDX: ERROR_SHARING_VIOLATION (ext4.vhdx locked by running VM)
+        // - TAR: HCS_E_CONNECTION_TIMEOUT (VM unresponsive during export)
+        let was_running = self
+            .wsl_manager
+            .terminate_distro(&cmd.distro_name)
+            .await
+            .is_ok();
+
+        let export_result = self
             .wsl_manager
             .export_distro(&cmd.distro_name, &file_path, cmd.format)
-            .await
-        {
+            .await;
+
+        // Restart the distro if it was running before the export
+        if was_running {
+            let _ = self.wsl_manager.start_distro(&cmd.distro_name).await;
+        }
+
+        match export_result {
             Ok(()) => {
                 // Read file size and reject empty exports.
                 // Try the stored path first; fall back to Windows→Linux conversion
@@ -134,8 +149,10 @@ mod tests {
     async fn test_create_snapshot_export_failure_saves_failed_status() {
         let wsl_mock = {
             let mut m = MockWslManagerPort::new();
+            m.expect_terminate_distro().returning(|_| Ok(()));
             m.expect_export_distro()
                 .returning(|_, _, _| Err(DomainError::WslCliError("export failed".into())));
+            m.expect_start_distro().returning(|_| Ok(()));
             m
         };
 
@@ -168,10 +185,12 @@ mod tests {
     async fn test_create_snapshot_file_path_format() {
         // We can verify the file path format by checking what's passed to export_distro
         let mut wsl_mock = MockWslManagerPort::new();
+        wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
         wsl_mock
             .expect_export_distro()
             .withf(|_, path, _| path.starts_with("/tmp/Ubuntu-") && path.ends_with(".tar"))
             .returning(|_, _, _| Err(DomainError::WslCliError("abort".into())));
+        wsl_mock.expect_start_distro().returning(|_| Ok(()));
 
         let mut repo_mock = MockSnapshotRepositoryPort::new();
         repo_mock.expect_save().returning(|_| Ok(()));
@@ -190,9 +209,11 @@ mod tests {
     #[tokio::test]
     async fn test_create_snapshot_saves_in_progress_first() {
         let mut wsl_mock = MockWslManagerPort::new();
+        wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
         wsl_mock
             .expect_export_distro()
             .returning(|_, _, _| Err(DomainError::WslCliError("abort".into())));
+        wsl_mock.expect_start_distro().returning(|_| Ok(()));
 
         let statuses = Arc::new(std::sync::Mutex::new(Vec::new()));
         let sc = statuses.clone();
