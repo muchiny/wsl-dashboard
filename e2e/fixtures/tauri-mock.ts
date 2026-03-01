@@ -281,6 +281,7 @@ export const test = base.extend<{ tauriPage: Page }>({
       `,
     });
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(page);
   },
 });

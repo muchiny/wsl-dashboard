@@ -45,7 +45,13 @@ describe("AuditLogViewer", () => {
 
   it("shows entry count when entries exist", () => {
     mockEntries = [
-      { id: 1, timestamp: new Date().toISOString(), action: "create", target: "Ubuntu", details: null },
+      {
+        id: 1,
+        timestamp: new Date().toISOString(),
+        action: "create",
+        target: "Ubuntu",
+        details: null,
+      },
     ];
     renderWithProviders(<AuditLogViewer />);
     expect(screen.getByText("(1 entries)")).toBeInTheDocument();
@@ -53,8 +59,20 @@ describe("AuditLogViewer", () => {
 
   it("renders table with entries", () => {
     mockEntries = [
-      { id: 1, timestamp: new Date().toISOString(), action: "create_snapshot", target: "Ubuntu", details: "Full backup" },
-      { id: 2, timestamp: new Date().toISOString(), action: "start_distro", target: "Debian", details: null },
+      {
+        id: 1,
+        timestamp: new Date().toISOString(),
+        action: "create_snapshot",
+        target: "Ubuntu",
+        details: "Full backup",
+      },
+      {
+        id: 2,
+        timestamp: new Date().toISOString(),
+        action: "start_distro",
+        target: "Debian",
+        details: null,
+      },
     ];
     renderWithProviders(<AuditLogViewer />);
     expect(screen.getByText("create_snapshot")).toBeInTheDocument();
@@ -78,7 +96,13 @@ describe("AuditLogViewer", () => {
 
   it("renders table headers when entries exist", () => {
     mockEntries = [
-      { id: 1, timestamp: new Date().toISOString(), action: "test", target: "test-target", details: null },
+      {
+        id: 1,
+        timestamp: new Date().toISOString(),
+        action: "test",
+        target: "test-target",
+        details: null,
+      },
     ];
     renderWithProviders(<AuditLogViewer />);
     expect(screen.getByText("Time")).toBeInTheDocument();
