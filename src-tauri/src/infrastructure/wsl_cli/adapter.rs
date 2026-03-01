@@ -16,7 +16,8 @@ use super::encoding::decode_wsl_output;
 use super::parser::parse_distro_list;
 
 /// Convert a Linux /mnt/X/... path to Windows X:\... for wsl.exe commands.
-/// Passes through paths that are already Windows-style or don't match /mnt/.
+/// Also normalizes mixed-separator paths (e.g. `C:\Users\snapshots/file.tar`)
+/// to use consistent backslashes on Windows.
 fn linux_to_windows_path(path: &str) -> String {
     // Match /mnt/c/Users/... -> C:\Users\...
     if let Some(rest) = path.strip_prefix("/mnt/")
@@ -28,6 +29,13 @@ fn linux_to_windows_path(path: &str) -> String {
             drive.to_uppercase(),
             remainder.replace('/', "\\")
         );
+    }
+    // Normalize mixed separators: if the path already has backslashes (Windows)
+    // but also contains forward slashes, unify to backslashes.
+    // e.g. "C:\Users\snapshots/Ubuntu-xxx.tar" → "C:\Users\snapshots\Ubuntu-xxx.tar"
+    #[cfg(windows)]
+    if path.contains('\\') && path.contains('/') {
+        return path.replace('/', "\\");
     }
     path.to_string()
 }
@@ -64,6 +72,39 @@ fn extract_wsl_user_home(path: &str) -> Option<String> {
         return None;
     }
     Some(format!("/mnt/{}/{}/{}", drive, users_dir, username))
+}
+
+/// Parse `reg.exe query HKCU\...\Lxss /s` output to find the BasePath
+/// for a given distribution name.
+///
+/// The output format is blocks separated by blank lines:
+/// ```text
+/// HKEY_CURRENT_USER\...\Lxss\{guid}
+///     DistributionName    REG_SZ    Ubuntu
+///     BasePath    REG_SZ    C:\Users\user\...\LocalState
+/// ```
+fn parse_reg_basepath(output: &str, distro_name: &str) -> Option<String> {
+    let mut in_matching_block = false;
+
+    for line in output.lines() {
+        let trimmed = line.trim();
+        // A line starting with HKEY_ marks a new registry key block
+        if trimmed.starts_with("HKEY_") {
+            in_matching_block = false;
+            continue;
+        }
+
+        // Parse value lines: "    Name    REG_SZ    Value"
+        let parts: Vec<&str> = trimmed.splitn(3, "    ").collect();
+        if parts.len() == 3 && parts[1] == "REG_SZ" {
+            if parts[0] == "DistributionName" && parts[2] == distro_name {
+                in_matching_block = true;
+            } else if in_matching_block && parts[0] == "BasePath" {
+                return Some(parts[2].to_string());
+            }
+        }
+    }
+    None
 }
 
 pub struct WslCliAdapter {
@@ -460,11 +501,11 @@ impl WslManagerPort for WslCliAdapter {
     ) -> Result<(), DomainError> {
         // Convert Linux /mnt/X/... paths to Windows X:\... for wsl.exe
         let win_path = linux_to_windows_path(path);
-        tracing::info!(distro = %name, path, win_path = %win_path, format = ?format, "exporting distro");
         let mut args = vec!["--export", name.as_str(), win_path.as_str()];
         if let Some(flag) = format.wsl_flag() {
             args.push(flag);
         }
+        tracing::info!(command = %format!("wsl.exe {}", args.join(" ")), "executing export");
         self.run_wsl_raw(&args).await?;
         Ok(())
     }
@@ -478,15 +519,6 @@ impl WslManagerPort for WslCliAdapter {
     ) -> Result<(), DomainError> {
         let win_loc = linux_to_windows_path(install_location);
         let win_file = linux_to_windows_path(file_path);
-        tracing::info!(
-            distro = %name,
-            install_location,
-            file_path,
-            win_loc = %win_loc,
-            win_file = %win_file,
-            format = ?format,
-            "importing distro"
-        );
         let mut args = vec![
             "--import",
             name.as_str(),
@@ -496,6 +528,7 @@ impl WslManagerPort for WslCliAdapter {
         if let Some(flag) = format.wsl_flag() {
             args.push(flag);
         }
+        tracing::info!(command = %format!("wsl.exe {}", args.join(" ")), "executing import");
         self.run_wsl_raw(&args).await?;
         Ok(())
     }
@@ -716,10 +749,30 @@ impl WslManagerPort for WslCliAdapter {
 
     #[cfg(not(windows))]
     async fn get_distro_install_path(&self, name: &DistroName) -> Result<String, DomainError> {
-        Err(DomainError::WslCliError(format!(
-            "Cannot read Windows registry for '{}' on this platform",
-            name
-        )))
+        // On non-Windows (WSL), use reg.exe via Windows interop to read the registry
+        let target = name.to_string();
+        let output = Command::new("reg.exe")
+            .args([
+                "query",
+                r"HKCU\Software\Microsoft\Windows\CurrentVersion\Lxss",
+                "/s",
+            ])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+            .await
+            .map_err(|e| DomainError::WslCliError(format!("Failed to run reg.exe: {e}")))?;
+
+        if !output.status.success() {
+            return Err(DomainError::WslCliError(
+                "reg.exe query failed — is Windows interop enabled?".into(),
+            ));
+        }
+
+        let text = String::from_utf8_lossy(&output.stdout);
+        parse_reg_basepath(&text, &target).ok_or_else(|| {
+            DomainError::DistroNotFound(format!("Could not find install path for '{}'", target))
+        })
     }
 
     async fn resize_vhd(&self, name: &DistroName, size: &str) -> Result<(), DomainError> {
@@ -990,5 +1043,42 @@ mod tests {
                 let _ = extract_wsl_user_home(&s);
             }
         }
+    }
+
+    #[test]
+    fn test_parse_reg_basepath_finds_distro() {
+        let output = "\
+HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Lxss\\{aaa-bbb}
+    DistributionName    REG_SZ    Ubuntu
+    BasePath    REG_SZ    C:\\Users\\user\\AppData\\Local\\Packages\\Ubuntu\\LocalState
+    Version    REG_DWORD    0x2
+
+HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Lxss\\{ccc-ddd}
+    DistributionName    REG_SZ    Debian
+    BasePath    REG_SZ    C:\\Users\\user\\AppData\\Local\\Packages\\Debian\\LocalState
+";
+        assert_eq!(
+            parse_reg_basepath(output, "Ubuntu"),
+            Some("C:\\Users\\user\\AppData\\Local\\Packages\\Ubuntu\\LocalState".into())
+        );
+        assert_eq!(
+            parse_reg_basepath(output, "Debian"),
+            Some("C:\\Users\\user\\AppData\\Local\\Packages\\Debian\\LocalState".into())
+        );
+    }
+
+    #[test]
+    fn test_parse_reg_basepath_not_found() {
+        let output = "\
+HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Lxss\\{aaa-bbb}
+    DistributionName    REG_SZ    Ubuntu
+    BasePath    REG_SZ    C:\\somewhere
+";
+        assert_eq!(parse_reg_basepath(output, "Fedora"), None);
+    }
+
+    #[test]
+    fn test_parse_reg_basepath_empty_output() {
+        assert_eq!(parse_reg_basepath("", "Ubuntu"), None);
     }
 }

@@ -143,6 +143,7 @@
       "browseInstallLocationTitle": "Select install location",
       "detectingPath": "Detecting install path...",
       "cannotDetectPath": "Could not detect the original install path. The distro will be restored to its default location.",
+      "manualPathRequired": "Could not auto-detect the install path. Please enter it manually.",
       "restoring": "Restoring...",
       "submit": "Restore"
     }

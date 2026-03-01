@@ -107,8 +107,40 @@ impl RestoreSnapshotHandler {
                         target_name, e
                     ))
                 })?;
-            // Wait for WSL to fully clean up the VHD before importing
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+
+            // Verify the VHDX is actually deleted before importing.
+            // After --unregister, the WSL2 VM may still hold a lock on the VHDX,
+            // preventing deletion. If we import before the old VHDX is gone,
+            // wsl --import may silently reuse the old filesystem instead of the tar.
+            let vhdx_path = std::path::Path::new(&cmd.install_location).join("ext4.vhdx");
+            let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(5);
+            while vhdx_path.exists() {
+                if tokio::time::Instant::now() >= deadline {
+                    // VHDX still locked — shutdown the WSL VM to release it
+                    tracing::warn!(
+                        path = %vhdx_path.display(),
+                        "VHDX still exists after 5s, shutting down WSL VM"
+                    );
+                    let _ = self.wsl_manager.shutdown_all().await;
+                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                    // Force-delete if still present
+                    if vhdx_path.exists() {
+                        std::fs::remove_file(&vhdx_path).map_err(|e| {
+                            DomainError::SnapshotError(format!(
+                                "Cannot delete old VHDX at {}: {}",
+                                vhdx_path.display(),
+                                e
+                            ))
+                        })?;
+                    }
+                    break;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            }
+            tracing::info!(
+                vhdx = %vhdx_path.display(),
+                "old VHDX confirmed deleted, proceeding with import"
+            );
         }
 
         self.wsl_manager

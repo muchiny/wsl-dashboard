@@ -30,6 +30,7 @@ export function RestoreSnapshotDialog({
   const [installLocation, setInstallLocation] = useState(defaultInstallLocation);
   const [overwritePath, setOverwritePath] = useState<string | null>(null);
   const [overwritePathLoading, setOverwritePathLoading] = useState(false);
+  const [manualOverwritePath, setManualOverwritePath] = useState("");
   const [fetchKey, setFetchKey] = useState<string | null>(null);
 
   // Set loading state during render when fetch conditions change
@@ -69,7 +70,8 @@ export function RestoreSnapshotDialog({
       ? t("snapshots.restore.nameError")
       : null;
 
-  const effectiveInstallLocation = mode === "overwrite" ? overwritePath : installLocation;
+  const effectiveInstallLocation =
+    mode === "overwrite" ? (overwritePath ?? (manualOverwritePath || null)) : installLocation;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -236,7 +238,35 @@ export function RestoreSnapshotDialog({
                 {overwritePath}
               </p>
             ) : (
-              <p className="text-overlay-0 text-xs">{t("snapshots.restore.cannotDetectPath")}</p>
+              <div>
+                <p className="text-yellow mb-1 text-xs">
+                  {t("snapshots.restore.manualPathRequired")}
+                </p>
+                <div className="flex gap-1">
+                  <input
+                    type="text"
+                    value={manualOverwritePath}
+                    onChange={(e) => setManualOverwritePath(e.target.value)}
+                    placeholder="C:\Users\...\LocalState"
+                    maxLength={260}
+                    className={`${inputClass} flex-1`}
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const dir = await openDialog({
+                        directory: true,
+                        title: t("snapshots.restore.browseInstallLocationTitle"),
+                      });
+                      if (dir) setManualOverwritePath(dir);
+                    }}
+                    className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
+                    aria-label={t("snapshots.restore.browseInstallLocation")}
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -255,7 +285,7 @@ export function RestoreSnapshotDialog({
               restoreSnapshot.isPending ||
               !!nameError ||
               overwritePathLoading ||
-              (mode === "overwrite" && !overwritePath)
+              (mode === "overwrite" && !effectiveInstallLocation)
             }
             className="bg-blue text-crust hover:bg-blue/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
             data-testid="restore-snapshot-submit"

@@ -143,6 +143,7 @@
       "browseInstallLocationTitle": "Sélectionner l'emplacement d'installation",
       "detectingPath": "Détection du chemin d'installation...",
       "cannotDetectPath": "Impossible de détecter le chemin d'installation d'origine. La distro sera restaurée à son emplacement par défaut.",
+      "manualPathRequired": "Impossible de détecter le chemin d'installation. Veuillez le saisir manuellement.",
       "restoring": "Restauration...",
       "submit": "Restaurer"
     }

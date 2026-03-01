@@ -143,6 +143,7 @@
       "browseInstallLocationTitle": "选择安装位置",
       "detectingPath": "正在检测安装路径...",
       "cannotDetectPath": "无法检测到原始安装路径。发行版将恢复到默认位置。",
+      "manualPathRequired": "无法自动检测安装路径，请手动输入。",
       "restoring": "恢复中...",
       "submit": "恢复"
     }

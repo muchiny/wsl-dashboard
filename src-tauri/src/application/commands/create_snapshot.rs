@@ -38,13 +38,15 @@ impl CreateSnapshotHandler {
 
     pub async fn handle(&self, cmd: CreateSnapshotCommand) -> Result<Snapshot, DomainError> {
         let id = SnapshotId::new();
-        let file_path = format!(
-            "{}/{}-{}.{}",
-            cmd.output_dir,
-            cmd.distro_name,
-            id,
-            cmd.format.extension()
-        );
+        let file_path = std::path::PathBuf::from(&cmd.output_dir)
+            .join(format!(
+                "{}-{}.{}",
+                cmd.distro_name,
+                id,
+                cmd.format.extension()
+            ))
+            .to_string_lossy()
+            .to_string();
 
         let mut snapshot = Snapshot {
             id: id.clone(),

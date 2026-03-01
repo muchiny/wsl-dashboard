@@ -143,6 +143,7 @@
       "browseInstallLocationTitle": "Seleccionar ubicación de instalación",
       "detectingPath": "Detectando ruta de instalación...",
       "cannotDetectPath": "No se pudo detectar la ruta de instalación original. La distro se restaurará en su ubicación predeterminada.",
+      "manualPathRequired": "No se pudo detectar la ruta de instalación. Ingrésela manualmente.",
       "restoring": "Restaurando...",
       "submit": "Restaurar"
     }
