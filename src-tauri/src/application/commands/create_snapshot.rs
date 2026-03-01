@@ -64,19 +64,35 @@ impl CreateSnapshotHandler {
 
         self.snapshot_repo.save(&snapshot).await?;
 
-        // Terminate the distro before exporting to avoid:
+        // Shut down the entire WSL VM before exporting to avoid:
         // - VHDX: ERROR_SHARING_VIOLATION (ext4.vhdx locked by running VM)
-        // - TAR: HCS_E_CONNECTION_TIMEOUT (VM unresponsive during export)
+        // - TAR: HCS_E_CONNECTION_TIMEOUT (HCS can't reach the VM)
+        // wsl --terminate alone is insufficient: the lightweight utility VM
+        // may still hold locks. A full --shutdown ensures a clean state.
         let was_running = self
             .wsl_manager
             .terminate_distro(&cmd.distro_name)
             .await
             .is_ok();
+        let _ = self.wsl_manager.shutdown_all().await;
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 
-        let export_result = self
+        // Try export, retry once after another shutdown if HCS times out
+        let export_result = match self
             .wsl_manager
-            .export_distro(&cmd.distro_name, &file_path, cmd.format)
-            .await;
+            .export_distro(&cmd.distro_name, &file_path, cmd.format.clone())
+            .await
+        {
+            Err(e) if e.to_string().contains("TIMEOUT") || e.to_string().contains("SHARING") => {
+                tracing::warn!(error = %e, "export failed, retrying after full shutdown");
+                let _ = self.wsl_manager.shutdown_all().await;
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                self.wsl_manager
+                    .export_distro(&cmd.distro_name, &file_path, cmd.format)
+                    .await
+            }
+            other => other,
+        };
 
         // Restart the distro if it was running before the export
         if was_running {
@@ -150,6 +166,7 @@ mod tests {
         let wsl_mock = {
             let mut m = MockWslManagerPort::new();
             m.expect_terminate_distro().returning(|_| Ok(()));
+            m.expect_shutdown_all().returning(|| Ok(()));
             m.expect_export_distro()
                 .returning(|_, _, _| Err(DomainError::WslCliError("export failed".into())));
             m.expect_start_distro().returning(|_| Ok(()));
@@ -186,6 +203,7 @@ mod tests {
         // We can verify the file path format by checking what's passed to export_distro
         let mut wsl_mock = MockWslManagerPort::new();
         wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
+        wsl_mock.expect_shutdown_all().returning(|| Ok(()));
         wsl_mock
             .expect_export_distro()
             .withf(|_, path, _| path.starts_with("/tmp/Ubuntu-") && path.ends_with(".tar"))
@@ -210,6 +228,7 @@ mod tests {
     async fn test_create_snapshot_saves_in_progress_first() {
         let mut wsl_mock = MockWslManagerPort::new();
         wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
+        wsl_mock.expect_shutdown_all().returning(|| Ok(()));
         wsl_mock
             .expect_export_distro()
             .returning(|_, _, _| Err(DomainError::WslCliError("abort".into())));
