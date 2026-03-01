@@ -144,8 +144,7 @@ jobs:
         run: cargo install tauri-driver --locked
 
       - name: Build Tauri app (debug)
-        run: cargo build
-        working-directory: src-tauri
+        run: npx tauri build --debug
 
       - name: Run WebdriverIO tests
         run: npm run e2e:wdio
