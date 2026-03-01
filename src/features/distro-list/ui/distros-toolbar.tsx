@@ -180,6 +180,7 @@ export function DistrosToolbar({
               key={opt.value}
               onClick={() => onStatusFilterChange(opt.value)}
               className={cn(pill, statusFilter === opt.value ? pillActive : pillInactive)}
+              data-testid={`filter-status-${opt.value}`}
             >
               {t(opt.key)}
             </button>
@@ -193,6 +194,7 @@ export function DistrosToolbar({
               key={opt.value}
               onClick={() => onWslVersionFilterChange(opt.value)}
               className={cn(pill, wslVersionFilter === opt.value ? pillActive : pillInactive)}
+              data-testid={`filter-wsl-${opt.value}`}
             >
               {t(opt.key)}
             </button>
@@ -204,6 +206,7 @@ export function DistrosToolbar({
           <button
             onClick={() => setSortOpen((v) => !v)}
             className="bg-surface-0/50 text-subtext-1 hover:text-text flex max-w-[180px] items-center gap-1.5 rounded-full py-1 pr-2.5 pl-2.5 text-xs font-medium transition-colors"
+            data-testid="sort-dropdown"
           >
             <ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">
@@ -222,6 +225,7 @@ export function DistrosToolbar({
                     setSortKey(opt.value);
                     setSortOpen(false);
                   }}
+                  data-testid={`sort-option-${opt.value}`}
                   className={cn(
                     "flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors",
                     sortKey === opt.value
@@ -250,6 +254,7 @@ export function DistrosToolbar({
             onClick={() => startAll.mutate(stoppedNames)}
             disabled={startAll.isPending || stoppedNames.length === 0}
             className="bg-green/20 text-green hover:bg-green/30 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+            data-testid="start-all"
           >
             {startAll.isPending ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -262,6 +267,7 @@ export function DistrosToolbar({
           <button
             onClick={onNewSnapshot}
             className="bg-mauve/20 text-mauve hover:bg-mauve/30 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+            data-testid="new-snapshot"
           >
             <Plus className="h-3.5 w-3.5" />
             {t("distros.snapshot")}
@@ -271,6 +277,7 @@ export function DistrosToolbar({
             onClick={onShutdownAll}
             disabled={shutdownAllPending || running === 0}
             className="bg-red/20 text-red hover:bg-red/30 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+            data-testid="stop-all"
           >
             {shutdownAllPending ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />

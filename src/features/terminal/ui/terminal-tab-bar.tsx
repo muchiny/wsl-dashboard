@@ -30,6 +30,7 @@ export function TerminalTabBar({ onNewTerminal }: TerminalTabBarProps) {
         onClick={onNewTerminal}
         className="text-subtext-0 hover:bg-surface-0 hover:text-text ml-1 flex items-center gap-1 rounded px-2 py-1.5 text-xs transition-colors"
         aria-label={t("terminal.newTerminal")}
+        data-testid="terminal-new-tab"
       >
         <Plus className="h-3.5 w-3.5" />
       </button>
@@ -53,6 +54,7 @@ function TerminalTab({
     <div
       role="tab"
       aria-selected={isActive}
+      data-testid={`terminal-tab-${session.id}`}
       className={cn(
         "group flex max-w-[200px] items-center gap-1.5 rounded-t px-3 py-1.5 text-xs transition-colors",
         isActive ? "bg-mantle text-text" : "text-subtext-0 hover:bg-surface-0 hover:text-text",
@@ -68,6 +70,7 @@ function TerminalTab({
         }}
         className="text-overlay-0 hover:text-red shrink-0 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100"
         aria-label={t("terminal.closeTab", { title: session.title })}
+        data-testid={`terminal-tab-close-${session.id}`}
       >
         <X className="h-3 w-3" />
       </button>

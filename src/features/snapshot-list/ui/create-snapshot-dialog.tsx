@@ -76,6 +76,8 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
         <button
           onClick={onClose}
           className="focus-ring text-subtext-0 hover:bg-surface-0 rounded-lg p-1"
+          aria-label={t("common.close")}
+          data-testid="create-snapshot-close"
         >
           <X className="h-5 w-5" />
         </button>
@@ -166,6 +168,8 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
                 }}
                 className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
                 title={t("common.browse")}
+                aria-label={t("common.browse")}
+                data-testid="create-snapshot-browse"
               >
                 <FolderOpen className="h-4 w-4" />
               </button>
@@ -185,6 +189,7 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
             type="submit"
             disabled={createSnapshot.isPending}
             className="bg-mauve text-crust hover:bg-mauve/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+            data-testid="create-snapshot-submit"
           >
             {createSnapshot.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />

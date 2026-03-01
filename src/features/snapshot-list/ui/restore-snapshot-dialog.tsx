@@ -110,7 +110,12 @@ export function RestoreSnapshotDialog({
             {t("snapshots.restore.title")}
           </h3>
         </div>
-        <button onClick={onClose} className="text-subtext-0 hover:bg-surface-0 rounded-lg p-1">
+        <button
+          onClick={onClose}
+          className="text-subtext-0 hover:bg-surface-0 rounded-lg p-1"
+          aria-label={t("common.close")}
+          data-testid="restore-snapshot-close"
+        >
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -129,6 +134,7 @@ export function RestoreSnapshotDialog({
                 checked={mode === "clone"}
                 onChange={() => setMode("clone")}
                 className="accent-blue"
+                data-testid="restore-mode-clone"
               />
               <div>
                 <p className="text-text text-sm font-medium">{t("snapshots.restore.clone")}</p>
@@ -143,6 +149,7 @@ export function RestoreSnapshotDialog({
                 checked={mode === "overwrite"}
                 onChange={() => setMode("overwrite")}
                 className="accent-blue"
+                data-testid="restore-mode-overwrite"
               />
               <div>
                 <p className="text-text text-sm font-medium">{t("snapshots.restore.overwrite")}</p>
@@ -251,6 +258,7 @@ export function RestoreSnapshotDialog({
               (mode === "overwrite" && !overwritePath)
             }
             className="bg-blue text-crust hover:bg-blue/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+            data-testid="restore-snapshot-submit"
           >
             {restoreSnapshot.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />

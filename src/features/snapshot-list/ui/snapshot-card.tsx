@@ -80,6 +80,8 @@ export const SnapshotCard = memo(function SnapshotCard({
             }}
             className="text-subtext-0 hover:bg-blue/20 hover:text-blue rounded-lg p-1.5 transition-colors"
             title={t("snapshots.restoreSnapshot")}
+            aria-label={t("snapshots.restoreSnapshot")}
+            data-testid="snapshot-restore"
           >
             <RotateCw className="h-4 w-4" />
           </button>
@@ -91,6 +93,8 @@ export const SnapshotCard = memo(function SnapshotCard({
           }}
           className="text-subtext-0 hover:bg-red/20 hover:text-red rounded-lg p-1.5 transition-colors"
           title={t("snapshots.deleteSnapshot")}
+          aria-label={t("snapshots.deleteSnapshot")}
+          data-testid="snapshot-delete"
         >
           <Trash2 className="h-4 w-4" />
         </button>

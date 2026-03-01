@@ -76,7 +76,7 @@ describe("SnapshotCard", () => {
         onRestore={noop}
       />,
     );
-    expect(screen.getByTitle("Restore snapshot")).toBeInTheDocument();
+    expect(screen.getByLabelText("Restore snapshot")).toBeInTheDocument();
   });
 
   it("hides Restore button when not completed", () => {
@@ -87,7 +87,7 @@ describe("SnapshotCard", () => {
         onRestore={noop}
       />,
     );
-    expect(screen.queryByTitle("Restore snapshot")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Restore snapshot")).not.toBeInTheDocument();
   });
 
   it("always shows Delete button", () => {
@@ -98,7 +98,7 @@ describe("SnapshotCard", () => {
         onRestore={noop}
       />,
     );
-    expect(screen.getByTitle("Delete snapshot")).toBeInTheDocument();
+    expect(screen.getByLabelText("Delete snapshot")).toBeInTheDocument();
   });
 
   it("displays description when provided", () => {
@@ -166,7 +166,7 @@ describe("SnapshotCard", () => {
         onRestore={onRestore}
       />,
     );
-    fireEvent.click(screen.getByTitle("Restore snapshot"));
+    fireEvent.click(screen.getByLabelText("Restore snapshot"));
     expect(onRestore).toHaveBeenCalledOnce();
   });
 
@@ -175,7 +175,7 @@ describe("SnapshotCard", () => {
     renderWithProviders(
       <SnapshotCard snapshot={makeSnapshot()} onDelete={onDelete} onRestore={noop} />,
     );
-    fireEvent.click(screen.getByTitle("Delete snapshot"));
+    fireEvent.click(screen.getByLabelText("Delete snapshot"));
     expect(onDelete).toHaveBeenCalledOnce();
   });
 

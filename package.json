@@ -13,7 +13,11 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\" \"*.{json,html}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\" \"*.{json,html}\""
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\" \"*.{json,html}\"",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:headed": "playwright test --headed",
+    "e2e:wdio": "wdio run wdio.conf.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.1",
@@ -42,6 +46,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.3",
+    "@playwright/test": "^1.58.2",
     "@tanstack/router-plugin": "^1.163.3",
     "@tauri-apps/cli": "^2.10.0",
     "@testing-library/jest-dom": "^6.9.1",
@@ -50,6 +55,10 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
+    "@wdio/cli": "^9.24.0",
+    "@wdio/local-runner": "^9.24.0",
+    "@wdio/mocha-framework": "^9.24.0",
+    "@wdio/spec-reporter": "^9.24.0",
     "eslint": "^9.39.3",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",

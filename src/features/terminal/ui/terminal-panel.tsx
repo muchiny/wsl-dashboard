@@ -80,6 +80,7 @@ export function TerminalPanel() {
             onClick={() => (isOpen ? closePanel() : useTerminalStore.getState().openPanel())}
             className="text-subtext-0 hover:text-text rounded p-1 transition-colors"
             aria-label={isOpen ? t("terminal.minimize") : t("terminal.expand")}
+            data-testid="terminal-toggle"
           >
             {isOpen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
           </button>
@@ -87,6 +88,7 @@ export function TerminalPanel() {
             onClick={closePanel}
             className="text-subtext-0 hover:text-text rounded p-1 transition-colors"
             aria-label={t("terminal.hide")}
+            data-testid="terminal-hide"
           >
             <ChevronDown className="h-3.5 w-3.5" />
           </button>

@@ -79,6 +79,7 @@ export function WslConfigEditor() {
           onClick={handleSave}
           disabled={updateConfig.isPending || invalid}
           className="bg-blue text-crust hover:bg-blue/90 flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
+          data-testid="wslconfig-save"
         >
           {updateConfig.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -227,6 +228,7 @@ export function WslConfigEditor() {
           type="button"
           onClick={() => setShowAdvanced(!showAdvanced)}
           className="text-subtext-0 hover:text-text flex items-center gap-1.5 text-sm font-medium transition-colors"
+          data-testid="wslconfig-advanced-toggle"
         >
           <ChevronRight
             className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-90")}

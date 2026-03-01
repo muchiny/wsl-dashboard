@@ -44,6 +44,9 @@ src-tauri/proptest-regressions/
 
 # Test / Fuzzing
 coverage/
+e2e/test-results/
+e2e-wdio/results/
+playwright-report/
 src-tauri/fuzz/corpus/
 src-tauri/fuzz/artifacts/
 

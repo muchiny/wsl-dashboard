@@ -96,6 +96,7 @@ export function Header() {
               <Link
                 key={tab.to}
                 to={tab.to}
+                data-testid={`nav-${tab.to === "/" ? "distributions" : tab.to.slice(1)}`}
                 className={cn(
                   "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 sm:px-5 sm:py-2.5",
                   isActive
