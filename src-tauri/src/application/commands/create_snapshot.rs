@@ -36,6 +36,21 @@ impl CreateSnapshotHandler {
         }
     }
 
+    /// Check if a file starts with valid tar data by looking for the "ustar" magic
+    /// at byte offset 257 (per POSIX tar format specification).
+    fn validate_tar_magic(path: &std::path::Path) -> bool {
+        use std::io::Read;
+        let Ok(mut f) = std::fs::File::open(path) else {
+            return false;
+        };
+        let mut buf = [0u8; 263];
+        if f.read_exact(&mut buf).is_err() {
+            return false;
+        }
+        // "ustar" magic at offset 257
+        &buf[257..262] == b"ustar"
+    }
+
     pub async fn handle(&self, cmd: CreateSnapshotCommand) -> Result<Snapshot, DomainError> {
         let id = SnapshotId::new();
         let file_path = std::path::PathBuf::from(&cmd.output_dir)
@@ -75,7 +90,17 @@ impl CreateSnapshotHandler {
             .await
             .is_ok();
         let _ = self.wsl_manager.shutdown_all().await;
-        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+
+        // Wait for WSL VM to fully release all file handles.
+        // 2s is often insufficient on slower machines; 5s provides a safer margin.
+        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+
+        tracing::info!(
+            distro = %cmd.distro_name,
+            file_path = %file_path,
+            format = ?cmd.format,
+            "executing wsl --export"
+        );
 
         // Try export, retry once after another shutdown if HCS times out
         let export_result = match self
@@ -86,7 +111,7 @@ impl CreateSnapshotHandler {
             Err(e) if e.to_string().contains("TIMEOUT") || e.to_string().contains("SHARING") => {
                 tracing::warn!(error = %e, "export failed, retrying after full shutdown");
                 let _ = self.wsl_manager.shutdown_all().await;
-                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                 self.wsl_manager
                     .export_distro(&cmd.distro_name, &file_path, cmd.format)
                     .await
@@ -123,6 +148,31 @@ impl CreateSnapshotHandler {
                     return Err(DomainError::SnapshotError(
                         "Export produced an empty file (0 bytes)".into(),
                     ));
+                }
+
+                // For tar exports, verify the file starts with valid tar data.
+                // The "ustar" magic string appears at offset 257 in valid tar archives.
+                // This catches cases where wsl --export returned code 0 but wrote
+                // garbage or an incomplete file.
+                if matches!(snapshot.format, ExportFormat::Tar) {
+                    let tar_path = std::path::Path::new(&file_path);
+                    let linux = windows_to_linux_path(&file_path);
+                    let tar_valid = Self::validate_tar_magic(tar_path)
+                        || (linux != file_path && Self::validate_tar_magic(std::path::Path::new(&linux)));
+                    if !tar_valid && snapshot.file_size.bytes() > 262 {
+                        tracing::warn!(
+                            file_path = %file_path,
+                            file_size = snapshot.file_size.bytes(),
+                            "exported tar file does not contain valid tar magic bytes"
+                        );
+                        snapshot.status = SnapshotStatus::Failed(
+                            "Export produced an invalid tar file".into(),
+                        );
+                        self.snapshot_repo.save(&snapshot).await?;
+                        return Err(DomainError::SnapshotError(
+                            "Export produced an invalid tar file (missing ustar magic)".into(),
+                        ));
+                    }
                 }
 
                 snapshot.status = SnapshotStatus::Completed;
