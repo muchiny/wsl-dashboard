@@ -83,6 +83,7 @@ fn extract_wsl_user_home(path: &str) -> Option<String> {
 ///     DistributionName    REG_SZ    Ubuntu
 ///     BasePath    REG_SZ    C:\Users\user\...\LocalState
 /// ```
+#[cfg(not(windows))]
 fn parse_reg_basepath(output: &str, distro_name: &str) -> Option<String> {
     let mut in_matching_block = false;
 
@@ -446,10 +447,11 @@ impl WslManagerPort for WslCliAdapter {
             .spawn()
             .map_err(|e| DomainError::WslCliError(format!("Failed to start distro: {}", e)))?;
 
-        // Poll until the distro reports Running (max 5s, 250ms intervals)
-        let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(5);
+        // Poll until the distro reports Running (max 15s, 500ms intervals).
+        // Heavy distros (AlmaLinux, Fedora, etc.) with systemd can take 10+ seconds.
+        let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(15);
         loop {
-            tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
             if let Ok(distro) = self.get_distro(name).await
                 && distro.state == crate::domain::value_objects::DistroState::Running
             {
@@ -1061,6 +1063,7 @@ mod tests {
         }
     }
 
+    #[cfg(not(windows))]
     #[test]
     fn test_parse_reg_basepath_finds_distro() {
         let output = "\
@@ -1083,6 +1086,7 @@ HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Lxss\\{ccc-ddd}
         );
     }
 
+    #[cfg(not(windows))]
     #[test]
     fn test_parse_reg_basepath_not_found() {
         let output = "\
@@ -1093,6 +1097,7 @@ HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Lxss\\{aaa-bbb}
         assert_eq!(parse_reg_basepath(output, "Fedora"), None);
     }
 
+    #[cfg(not(windows))]
     #[test]
     fn test_parse_reg_basepath_empty_output() {
         assert_eq!(parse_reg_basepath("", "Ubuntu"), None);

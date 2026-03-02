@@ -186,10 +186,8 @@ impl RestoreSnapshotHandler {
                     tokio::time::sleep(std::time::Duration::from_secs(3)).await;
                     // Force-delete if still present (try both paths)
                     for p in [&vhdx_path, &vhdx_path_linux] {
-                        if p.exists() {
-                            if let Err(e) = std::fs::remove_file(p) {
-                                tracing::warn!(path = %p.display(), error = %e, "force-delete VHDX failed");
-                            }
+                        if p.exists() && let Err(e) = std::fs::remove_file(p) {
+                            tracing::warn!(path = %p.display(), error = %e, "force-delete VHDX failed");
                         }
                     }
                     // Final check: if VHDX is STILL there, abort to avoid silent data reuse
@@ -229,43 +227,42 @@ impl RestoreSnapshotHandler {
             .await;
 
         // If import failed in overwrite mode, try to restore from safety backup
-        if let Err(ref import_err) = import_result {
-            if matches!(cmd.mode, RestoreMode::Overwrite) {
-                if let Some(ref backup_path) = safety_backup_path {
-                    tracing::error!(
-                        error = %import_err,
-                        "import failed, attempting to restore from safety backup"
-                    );
-                    if let Err(restore_err) = self
-                        .wsl_manager
-                        .import_distro(
-                            &target_name,
-                            &cmd.install_location,
-                            backup_path,
-                            snapshot.format.clone(),
-                        )
-                        .await
-                    {
-                        tracing::error!(
-                            error = %restore_err,
-                            "safety backup restore also failed"
-                        );
-                        return Err(DomainError::SnapshotError(format!(
-                            "Import failed: {}. Safety backup restore also failed: {}. \
-                             The backup file is preserved at: {}",
-                            import_err, restore_err, backup_path
-                        )));
-                    }
-                    tracing::info!("restored from safety backup after import failure");
-                    // Clean up backup file
-                    let _ = std::fs::remove_file(backup_path)
-                        .or_else(|_| std::fs::remove_file(windows_to_linux_path(backup_path)));
-                    return Err(DomainError::SnapshotError(format!(
-                        "Import failed: {}. Original distro has been restored from safety backup.",
-                        import_err
-                    )));
-                }
+        if let Err(ref import_err) = import_result
+            && matches!(cmd.mode, RestoreMode::Overwrite)
+            && let Some(ref backup_path) = safety_backup_path
+        {
+            tracing::error!(
+                error = %import_err,
+                "import failed, attempting to restore from safety backup"
+            );
+            if let Err(restore_err) = self
+                .wsl_manager
+                .import_distro(
+                    &target_name,
+                    &cmd.install_location,
+                    backup_path,
+                    snapshot.format.clone(),
+                )
+                .await
+            {
+                tracing::error!(
+                    error = %restore_err,
+                    "safety backup restore also failed"
+                );
+                return Err(DomainError::SnapshotError(format!(
+                    "Import failed: {}. Safety backup restore also failed: {}. \
+                     The backup file is preserved at: {}",
+                    import_err, restore_err, backup_path
+                )));
             }
+            tracing::info!("restored from safety backup after import failure");
+            // Clean up backup file
+            let _ = std::fs::remove_file(backup_path)
+                .or_else(|_| std::fs::remove_file(windows_to_linux_path(backup_path)));
+            return Err(DomainError::SnapshotError(format!(
+                "Import failed: {}. Original distro has been restored from safety backup.",
+                import_err
+            )));
         }
         import_result?;
 
@@ -489,7 +486,11 @@ mod tests {
             .returning(move |_| Ok(snap.clone()));
 
         let mut wsl_mock = MockWslManagerPort::new();
+        wsl_mock
+            .expect_export_distro()
+            .returning(|_, _, _| Err(DomainError::WslCliError("backup skipped".into())));
         wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
+        wsl_mock.expect_shutdown_all().returning(|| Ok(()));
         wsl_mock
             .expect_unregister_distro()
             .returning(|_| Err(DomainError::WslCliError("access denied".into())));
