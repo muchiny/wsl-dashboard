@@ -501,6 +501,13 @@ impl WslManagerPort for WslCliAdapter {
     ) -> Result<(), DomainError> {
         // Convert Linux /mnt/X/... paths to Windows X:\... for wsl.exe
         let win_path = linux_to_windows_path(path);
+        if win_path != path {
+            tracing::info!(
+                original_path = %path,
+                converted_path = %win_path,
+                "export: converted Linux path to Windows path"
+            );
+        }
         let mut args = vec!["--export", name.as_str(), win_path.as_str()];
         if let Some(flag) = format.wsl_flag() {
             args.push(flag);
@@ -519,6 +526,15 @@ impl WslManagerPort for WslCliAdapter {
     ) -> Result<(), DomainError> {
         let win_loc = linux_to_windows_path(install_location);
         let win_file = linux_to_windows_path(file_path);
+        if win_loc != install_location || win_file != file_path {
+            tracing::info!(
+                original_location = %install_location,
+                converted_location = %win_loc,
+                original_file = %file_path,
+                converted_file = %win_file,
+                "import: path conversions applied"
+            );
+        }
         let mut args = vec![
             "--import",
             name.as_str(),
