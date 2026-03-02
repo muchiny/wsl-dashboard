@@ -98,10 +98,7 @@ impl RestoreSnapshotHandler {
             let backup_dir = std::path::Path::new(&cmd.install_location)
                 .parent()
                 .unwrap_or(std::path::Path::new(&cmd.install_location));
-            let backup_file = backup_dir.join(format!(
-                "{}_pre_restore_backup.tar",
-                target_name,
-            ));
+            let backup_file = backup_dir.join(format!("{}_pre_restore_backup.tar", target_name,));
             let backup_str = backup_file.to_string_lossy().to_string();
             tracing::info!(
                 distro = %target_name,
@@ -170,8 +167,10 @@ impl RestoreSnapshotHandler {
             let vhdx_path = std::path::Path::new(&cmd.install_location).join("ext4.vhdx");
             let linux_install = windows_to_linux_path(&cmd.install_location);
             let vhdx_path_linux = std::path::Path::new(&linux_install).join("ext4.vhdx");
-            let vhdx_exists =
-                || -> bool { vhdx_path.exists() || (vhdx_path_linux != vhdx_path && vhdx_path_linux.exists()) };
+            let vhdx_exists = || -> bool {
+                vhdx_path.exists()
+                    || (vhdx_path_linux != vhdx_path && vhdx_path_linux.exists())
+            };
 
             let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(10);
             while vhdx_exists() {
@@ -304,7 +303,9 @@ impl RestoreSnapshotHandler {
                 "post-import VHDX size check"
             );
         } else {
-            tracing::warn!("post-import VHDX not found at expected location — import may have used a different path");
+            tracing::warn!(
+                "post-import VHDX not found at expected location — import may have used a different path"
+            );
         }
 
         // After wsl --import, the default user is reset to root.
@@ -334,7 +335,10 @@ impl RestoreSnapshotHandler {
 
         // Clean up safety backup on success
         if let Some(ref backup_path) = safety_backup_path {
-            tracing::info!(backup_path, "cleaning up safety backup after successful restore");
+            tracing::info!(
+                backup_path,
+                "cleaning up safety backup after successful restore"
+            );
             let _ = std::fs::remove_file(backup_path)
                 .or_else(|_| std::fs::remove_file(windows_to_linux_path(backup_path)));
         }

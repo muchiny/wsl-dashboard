@@ -158,16 +158,16 @@ impl CreateSnapshotHandler {
                     let tar_path = std::path::Path::new(&file_path);
                     let linux = windows_to_linux_path(&file_path);
                     let tar_valid = Self::validate_tar_magic(tar_path)
-                        || (linux != file_path && Self::validate_tar_magic(std::path::Path::new(&linux)));
+                        || (linux != file_path
+                            && Self::validate_tar_magic(std::path::Path::new(&linux)));
                     if !tar_valid && snapshot.file_size.bytes() > 262 {
                         tracing::warn!(
                             file_path = %file_path,
                             file_size = snapshot.file_size.bytes(),
                             "exported tar file does not contain valid tar magic bytes"
                         );
-                        snapshot.status = SnapshotStatus::Failed(
-                            "Export produced an invalid tar file".into(),
-                        );
+                        snapshot.status =
+                            SnapshotStatus::Failed("Export produced an invalid tar file".into());
                         self.snapshot_repo.save(&snapshot).await?;
                         return Err(DomainError::SnapshotError(
                             "Export produced an invalid tar file (missing ustar magic)".into(),
