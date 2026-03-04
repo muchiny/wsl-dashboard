@@ -1,0 +1,23 @@
+[package]
+name = "dating-cli"
+edition.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "dating-ia"
+path = "src/main.rs"
+
+[dependencies]
+core-domain = { path = "../core-domain" }
+app-usecases = { path = "../app-usecases" }
+infra-mcp = { path = "../infra-mcp" }
+infra-insee = { path = "../infra-insee" }
+infra-db = { path = "../infra-db" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { workspace = true }
+dotenvy = { workspace = true }
+anyhow = { workspace = true }

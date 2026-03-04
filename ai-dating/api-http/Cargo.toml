@@ -1,0 +1,24 @@
+[package]
+name = "api-http"
+edition.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "dating-api"
+path = "src/main.rs"
+
+[dependencies]
+core-domain = { path = "../core-domain" }
+app-usecases = { path = "../app-usecases" }
+infra-mcp = { path = "../infra-mcp" }
+infra-insee = { path = "../infra-insee" }
+infra-db = { path = "../infra-db" }
+axum = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+dotenvy = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
