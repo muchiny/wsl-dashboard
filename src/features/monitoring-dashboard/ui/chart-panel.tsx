@@ -110,10 +110,7 @@ export function ChartPanel({
                 width={yWidth}
                 tickFormatter={yFormatter}
               />
-              <Tooltip
-                contentStyle={TOOLTIP_STYLE}
-                formatter={tooltipFormatter as never}
-              />
+              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={tooltipFormatter as never} />
               {showLegend && legendFormatter && <Legend formatter={legendFormatter} />}
               {areas.map((area) => (
                 <Area
