@@ -14,6 +14,7 @@ describe("DistroSnapshotPanel", () => {
     distroName: "Ubuntu",
     onRestore: vi.fn(),
     onCreateSnapshot: vi.fn(),
+    onClose: vi.fn(),
   };
 
   it("displays the distro name in the title", () => {

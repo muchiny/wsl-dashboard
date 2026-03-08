@@ -57,7 +57,7 @@ describe("MonitoringPage", () => {
       data: [],
       isLoading: false,
       error: null,
-    } as ReturnType<typeof useDistros>);
+    } as unknown as ReturnType<typeof useDistros>);
 
     renderWithProviders(<MonitoringPage />);
 
@@ -79,7 +79,7 @@ describe("MonitoringPage", () => {
       ],
       isLoading: false,
       error: null,
-    } as ReturnType<typeof useDistros>);
+    } as unknown as ReturnType<typeof useDistros>);
 
     renderWithProviders(<MonitoringPage />);
 
@@ -102,7 +102,7 @@ describe("MonitoringPage", () => {
       ],
       isLoading: false,
       error: null,
-    } as ReturnType<typeof useDistros>);
+    } as unknown as ReturnType<typeof useDistros>);
 
     renderWithProviders(<MonitoringPage />);
 
@@ -117,7 +117,7 @@ describe("MonitoringPage", () => {
       data: [],
       isLoading: false,
       error: null,
-    } as ReturnType<typeof useDistros>);
+    } as unknown as ReturnType<typeof useDistros>);
 
     renderWithProviders(<MonitoringPage />);
 
@@ -129,7 +129,7 @@ describe("MonitoringPage", () => {
       data: [],
       isLoading: false,
       error: null,
-    } as ReturnType<typeof useDistros>);
+    } as unknown as ReturnType<typeof useDistros>);
 
     renderWithProviders(<MonitoringPage />);
 
@@ -141,7 +141,7 @@ describe("MonitoringPage", () => {
       data: [],
       isLoading: false,
       error: null,
-    } as ReturnType<typeof useDistros>);
+    } as unknown as ReturnType<typeof useDistros>);
 
     renderWithProviders(<MonitoringPage />);
 
@@ -163,7 +163,7 @@ describe("MonitoringPage", () => {
       ],
       isLoading: false,
       error: null,
-    } as ReturnType<typeof useDistros>);
+    } as unknown as ReturnType<typeof useDistros>);
     vi.mocked(useProcesses).mockReturnValue({
       data: [
         {
@@ -175,7 +175,7 @@ describe("MonitoringPage", () => {
           command: "test",
         },
       ],
-    } as ReturnType<typeof useProcesses>);
+    } as unknown as ReturnType<typeof useProcesses>);
 
     renderWithProviders(<MonitoringPage />);
 

@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, fireEvent } from "@testing-library/react";
 import { renderWithProviders } from "@/test/test-utils";
-import { useToastStore } from "./toast-store";
+import { type Toast, useToastStore } from "./toast-store";
 import { ToastContainer } from "./toast";
 
 vi.mock("./toast-store", () => ({
   useToastStore: vi.fn(),
 }));
 
-const mockToast = { id: "1", message: "Test message", variant: "success" as const, duration: 3000 };
+const mockToast: Toast = { id: "1", message: "Test message", variant: "success", duration: 3000 };
 
 const mockDismiss = vi.fn();
 
-function setupMock(toasts: (typeof mockToast)[] = []) {
+function setupMock(toasts: Toast[] = []) {
   vi.mocked(useToastStore).mockImplementation((selector: unknown) => {
     const state = { toasts, dismiss: mockDismiss };
     return (selector as (s: typeof state) => unknown)(state);

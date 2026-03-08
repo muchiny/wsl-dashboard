@@ -92,7 +92,7 @@ function setup() {
   vi.mocked(useShutdownAll).mockReturnValue({
     isPending: false,
     mutate: vi.fn(),
-  } as ReturnType<typeof useShutdownAll>);
+  } as unknown as ReturnType<typeof useShutdownAll>);
 }
 
 describe("DistrosPage", () => {
@@ -182,7 +182,7 @@ describe("DistrosPage", () => {
     vi.mocked(useShutdownAll).mockReturnValue({
       isPending: false,
       mutate: vi.fn(),
-    } as ReturnType<typeof useShutdownAll>);
+    } as unknown as ReturnType<typeof useShutdownAll>);
     vi.mocked(usePreferencesStore).mockReturnValue({
       sortKey: "name-asc",
       viewMode: "grid",
