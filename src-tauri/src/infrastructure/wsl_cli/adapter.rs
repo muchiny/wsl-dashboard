@@ -830,6 +830,68 @@ impl WslManagerPort for WslCliAdapter {
         self.run_wsl_raw(&["--set-default", name.as_str()]).await?;
         Ok(())
     }
+
+    async fn get_default_user(&self, name: &DistroName) -> Result<Option<String>, DomainError> {
+        // Phase 1: read [user] default= from /etc/wsl.conf
+        if let Ok(config) = self.get_distro_config(name).await
+            && let Some(user) = config.user_default
+            && !user.is_empty()
+        {
+            return Ok(Some(user));
+        }
+
+        // Phase 2: scan /etc/passwd for first regular user (UID >= 1000)
+        let output = self
+            .exec_in_distro_raw(
+                name.as_str(),
+                "awk -F: '$3>=1000 && $3<60000 && $7 !~ /nologin|false/ {print $1; exit}' /etc/passwd",
+            )
+            .await?;
+        let user = output.trim().to_string();
+        if !user.is_empty() {
+            return Ok(Some(user));
+        }
+
+        // Phase 3: fallback UID >= 500 (SUSE/RHEL)
+        let output = self
+            .exec_in_distro_raw(
+                name.as_str(),
+                "awk -F: '$3>=500 && $3<60000 && $7 !~ /nologin|false/ {print $1; exit}' /etc/passwd",
+            )
+            .await?;
+        let user = output.trim().to_string();
+        if !user.is_empty() {
+            return Ok(Some(user));
+        }
+
+        Ok(None)
+    }
+
+    async fn set_default_user(&self, name: &DistroName, user: &str) -> Result<(), DomainError> {
+        // Validate username to prevent shell injection
+        if user.is_empty()
+            || !user
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.' || c == '$')
+        {
+            return Err(DomainError::WslCliError(format!(
+                "Invalid username: '{}'",
+                user
+            )));
+        }
+
+        let cmd = format!(
+            concat!(
+                "if grep -q '^\\[user\\]' /etc/wsl.conf 2>/dev/null; then ",
+                "sed -i '/^\\[user\\]/,/^\\[/{{ /^default=/d }}' /etc/wsl.conf && ",
+                "sed -i '/^\\[user\\]/a default={}' /etc/wsl.conf; ",
+                "else printf '\\n[user]\\ndefault={}\\n' >> /etc/wsl.conf; fi"
+            ),
+            user, user
+        );
+        self.exec_in_distro_raw(name.as_str(), &cmd).await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

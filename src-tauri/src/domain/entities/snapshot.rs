@@ -15,6 +15,7 @@ pub struct Snapshot {
     pub parent_id: Option<SnapshotId>,
     pub created_at: DateTime<Utc>,
     pub status: SnapshotStatus,
+    pub default_user: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -10,6 +10,7 @@ export interface Snapshot {
   parent_id: string | null;
   created_at: string;
   status: string;
+  default_user: string | null;
 }
 
 export interface CreateSnapshotArgs {

@@ -17,6 +17,7 @@ function makeSnapshot(overrides: Partial<Snapshot> = {}): Snapshot {
     parent_id: null,
     created_at: new Date().toISOString(),
     status: "completed",
+    default_user: null,
     ...overrides,
   };
 }

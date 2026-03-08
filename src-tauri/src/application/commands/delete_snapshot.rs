@@ -76,6 +76,7 @@ mod tests {
             parent_id: None,
             created_at: Utc::now(),
             status: SnapshotStatus::Completed,
+            default_user: None,
         }
     }
 

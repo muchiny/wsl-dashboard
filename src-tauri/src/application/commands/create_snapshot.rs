@@ -86,6 +86,20 @@ impl CreateSnapshotHandler {
             parent_id: None,
             created_at: Utc::now(),
             status: SnapshotStatus::InProgress,
+            default_user: None,
+        };
+
+        // Capture the default user while the distro is still bootable.
+        // exec_in_distro auto-starts stopped distros, so this works in all cases.
+        snapshot.default_user = match self.wsl_manager.get_default_user(&cmd.distro_name).await {
+            Ok(user) => {
+                tracing::info!("captured default user for snapshot: {:?}", user);
+                user
+            }
+            Err(e) => {
+                tracing::warn!("failed to detect default user: {}", e);
+                None
+            }
         };
 
         tracing::info!(snapshot_id = %id, "saving snapshot with status InProgress");
@@ -335,6 +349,8 @@ mod tests {
     async fn test_create_snapshot_export_failure_saves_failed_status() {
         let wsl_mock = {
             let mut m = MockWslManagerPort::new();
+            m.expect_get_default_user()
+                .returning(|_| Ok(Some("testuser".into())));
             m.expect_terminate_distro().returning(|_| Ok(()));
             m.expect_shutdown_all().returning(|| Ok(()));
             m.expect_export_distro()
@@ -372,6 +388,7 @@ mod tests {
     async fn test_create_snapshot_file_path_format() {
         // We can verify the file path format by checking what's passed to export_distro
         let mut wsl_mock = MockWslManagerPort::new();
+        wsl_mock.expect_get_default_user().returning(|_| Ok(None));
         wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
         wsl_mock.expect_shutdown_all().returning(|| Ok(()));
         wsl_mock
@@ -397,6 +414,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_snapshot_saves_in_progress_first() {
         let mut wsl_mock = MockWslManagerPort::new();
+        wsl_mock.expect_get_default_user().returning(|_| Ok(None));
         wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
         wsl_mock.expect_shutdown_all().returning(|| Ok(()));
         wsl_mock

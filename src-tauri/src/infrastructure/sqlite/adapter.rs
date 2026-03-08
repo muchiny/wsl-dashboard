@@ -50,6 +50,11 @@ impl SqliteDb {
             .await
             .db_err()?;
 
+        // Migration 004: best-effort ADD COLUMN (no-op if already applied)
+        let _ = sqlx::query(include_str!("migrations/004_snapshot_default_user.sql"))
+            .execute(&pool)
+            .await;
+
         Ok(Self { pool })
     }
 }
@@ -107,6 +112,7 @@ impl SqliteSnapshotRepository {
                 .map(|dt| dt.with_timezone(&chrono::Utc))
                 .unwrap_or_else(|_| chrono::Utc::now()),
             status,
+            default_user: row.get("default_user"),
         })
     }
 }
@@ -126,8 +132,8 @@ impl SnapshotRepositoryPort for SqliteSnapshotRepository {
         };
 
         sqlx::query(
-            "INSERT OR REPLACE INTO snapshots (id, distro_name, name, description, snapshot_type, format, file_path, file_size, parent_id, created_at, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            "INSERT OR REPLACE INTO snapshots (id, distro_name, name, description, snapshot_type, format, file_path, file_size, parent_id, created_at, status, default_user)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         )
         .bind(snapshot.id.as_str())
         .bind(snapshot.distro_name.as_str())
@@ -140,6 +146,7 @@ impl SnapshotRepositoryPort for SqliteSnapshotRepository {
         .bind(snapshot.parent_id.as_ref().map(|id| id.as_str().to_string()))
         .bind(snapshot.created_at.to_rfc3339())
         .bind(&status_str)
+        .bind(&snapshot.default_user)
         .execute(&self.db.pool)
         .await
         .db_err()?;
@@ -320,6 +327,7 @@ mod tests {
             parent_id: None,
             created_at,
             status: SnapshotStatus::Completed,
+            default_user: None,
         }
     }
 
@@ -517,6 +525,7 @@ mod tests {
             parent_id: None,
             created_at: now,
             status: SnapshotStatus::InProgress,
+            default_user: None,
         };
         repo.save(&snapshot).await.unwrap();
 
@@ -629,6 +638,7 @@ mod tests {
                 parent_id: None,
                 created_at: now,
                 status: SnapshotStatus::Completed,
+                default_user: None,
             };
             repo.save(&snap).await.unwrap();
         }

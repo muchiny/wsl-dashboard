@@ -52,6 +52,7 @@ pub struct SnapshotResponse {
     pub parent_id: Option<String>,
     pub created_at: String,
     pub status: String,
+    pub default_user: Option<String>,
 }
 
 impl From<Snapshot> for SnapshotResponse {
@@ -83,6 +84,7 @@ impl From<Snapshot> for SnapshotResponse {
             parent_id: s.parent_id.map(|id| id.to_string()),
             created_at: s.created_at.to_rfc3339(),
             status,
+            default_user: s.default_user,
         }
     }
 }
@@ -122,6 +124,7 @@ mod tests {
             parent_id: Some(SnapshotId::from_string("parent-001".into())),
             created_at: Utc::now(),
             status,
+            default_user: None,
         }
     }
 

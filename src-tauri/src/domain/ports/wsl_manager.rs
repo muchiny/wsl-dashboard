@@ -72,4 +72,11 @@ pub trait WslManagerPort: Send + Sync {
 
     /// Set a distribution as the default for wsl.exe
     async fn set_default_distro(&self, name: &DistroName) -> Result<(), DomainError>;
+
+    /// Detect the default user for a distribution.
+    /// Reads /etc/wsl.conf first; falls back to scanning /etc/passwd.
+    async fn get_default_user(&self, name: &DistroName) -> Result<Option<String>, DomainError>;
+
+    /// Write or update the [user] default= setting in /etc/wsl.conf.
+    async fn set_default_user(&self, name: &DistroName, user: &str) -> Result<(), DomainError>;
 }

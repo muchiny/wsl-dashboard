@@ -344,45 +344,35 @@ impl RestoreSnapshotHandler {
         }
 
         // After wsl --import, the default user is reset to root.
-        // If the snapshot's /etc/wsl.conf doesn't have a [user] section,
-        // detect the first regular user from /etc/passwd and add it.
-        // The distro filesystem may not be ready immediately after import,
-        // so retry up to 3 times with a delay.
-        tracing::info!("waiting 3s for distro filesystem to initialize after import");
-        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-
-        let mut user_restored = false;
-        for attempt in 1..=3 {
-            match self
-                .wsl_manager
-                .exec_in_distro(
-                    &target_name,
-                    r#"if ! grep -q '^\[user\]' /etc/wsl.conf 2>/dev/null; then U=$(awk -F: '$3>=1000 && $7 !~ /nologin|false/ {print $1; exit}' /etc/passwd); [ -n "$U" ] && printf '\n[user]\ndefault=%s\n' "$U" >> /etc/wsl.conf; fi"#,
-                )
-                .await
-            {
-                Ok(_) => {
-                    tracing::info!(
-                        "default user restored in wsl.conf (attempt {})",
-                        attempt
-                    );
-                    user_restored = true;
-                    break;
-                }
-                Err(e) => {
-                    tracing::warn!(
-                        "failed to restore default user in wsl.conf (attempt {}/3): {}",
-                        attempt,
-                        e
-                    );
-                    if attempt < 3 {
-                        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        // Restore from snapshot metadata (deterministic), or fall back to
+        // heuristic detection for legacy snapshots without stored user.
+        let user_to_restore = match &snapshot.default_user {
+            Some(user) => {
+                tracing::info!("restoring default user from snapshot metadata: {}", user);
+                Some(user.clone())
+            }
+            None => {
+                tracing::info!("no default_user in snapshot, falling back to detection");
+                match self.wsl_manager.get_default_user(&target_name).await {
+                    Ok(user) => {
+                        tracing::info!("fallback user detection result: {:?}", user);
+                        user
+                    }
+                    Err(e) => {
+                        tracing::warn!("fallback user detection failed: {}", e);
+                        None
                     }
                 }
             }
-        }
-        if !user_restored {
-            tracing::error!("all 3 attempts to restore default user in wsl.conf failed");
+        };
+
+        if let Some(ref user) = user_to_restore {
+            match self.wsl_manager.set_default_user(&target_name, user).await {
+                Ok(()) => tracing::info!("default user set in wsl.conf: {}", user),
+                Err(e) => tracing::warn!("failed to set default user in wsl.conf: {}", e),
+            }
+        } else {
+            tracing::info!("no default user to restore, distro will use root");
         }
 
         // Restart the distro so the [user] default takes effect
@@ -441,6 +431,7 @@ mod tests {
             parent_id: None,
             created_at: Utc::now(),
             status: SnapshotStatus::Completed,
+            default_user: None,
         }
     }
 

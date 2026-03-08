@@ -27,6 +27,7 @@ const mockSnapshots: Snapshot[] = [
     parent_id: null,
     created_at: "2024-01-01T00:00:00Z",
     status: "completed",
+    default_user: null,
   },
   {
     id: "2",
@@ -40,6 +41,7 @@ const mockSnapshots: Snapshot[] = [
     parent_id: null,
     created_at: "2024-01-02T00:00:00Z",
     status: "completed",
+    default_user: null,
   },
 ];
 

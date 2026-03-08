@@ -22,6 +22,7 @@ describe("useCreateSnapshot", () => {
       parent_id: null,
       created_at: "2026-02-25T00:00:00Z",
       status: "completed",
+      default_user: null,
     });
 
     const { result } = renderHook(() => useCreateSnapshot(), {
