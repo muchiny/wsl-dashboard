@@ -65,13 +65,13 @@ impl CreateSnapshotHandler {
             .to_string();
 
         tracing::info!(
-            snapshot_id = %id,
-            distro = %cmd.distro_name,
-            name = %cmd.name,
-            format = ?cmd.format,
-            output_dir = %cmd.output_dir,
-            file_path = %file_path,
-            "creating snapshot"
+            "creating snapshot id={} distro={} name={} format={:?} output_dir={} file_path={}",
+            id,
+            cmd.distro_name,
+            cmd.name,
+            cmd.format,
+            cmd.output_dir,
+            file_path
         );
 
         let mut snapshot = Snapshot {
@@ -156,16 +156,16 @@ impl CreateSnapshotHandler {
             }
             Ok(()) => {
                 tracing::info!(
-                    elapsed_ms = export_start.elapsed().as_millis() as u64,
-                    "wsl --export completed successfully"
+                    "wsl --export completed successfully in {}ms",
+                    export_start.elapsed().as_millis()
                 );
                 Ok(())
             }
             Err(e) => {
                 tracing::error!(
-                    error = %e,
-                    elapsed_ms = export_start.elapsed().as_millis() as u64,
-                    "wsl --export failed"
+                    "wsl --export failed after {}ms: {}",
+                    export_start.elapsed().as_millis(),
+                    e
                 );
                 Err(e)
             }
@@ -182,35 +182,58 @@ impl CreateSnapshotHandler {
                 // Read file size and reject empty exports.
                 // Try the stored path first; fall back to Windows→Linux conversion
                 // (handles C:\... paths when running from WSL).
-                snapshot.file_size = std::fs::metadata(&file_path)
-                    .or_else(|_| {
-                        let linux = windows_to_linux_path(&file_path);
-                        if linux != file_path {
-                            std::fs::metadata(&linux)
-                        } else {
-                            std::fs::metadata(&file_path)
-                        }
-                    })
+                let meta_result = std::fs::metadata(&file_path);
+                tracing::info!(
+                    "metadata check for '{}': {}",
+                    file_path,
+                    match &meta_result {
+                        Ok(m) => format!("OK, {} bytes", m.len()),
+                        Err(e) => format!("FAILED: {}", e),
+                    }
+                );
+                let meta_result = meta_result.or_else(|_| {
+                    let linux = windows_to_linux_path(&file_path);
+                    tracing::info!(
+                        "trying linux path fallback: '{}' (same={})",
+                        linux,
+                        linux == file_path
+                    );
+                    if linux != file_path {
+                        let r = std::fs::metadata(&linux);
+                        tracing::info!(
+                            "linux path metadata: {}",
+                            match &r {
+                                Ok(m) => format!("OK, {} bytes", m.len()),
+                                Err(e) => format!("FAILED: {}", e),
+                            }
+                        );
+                        r
+                    } else {
+                        std::fs::metadata(&file_path)
+                    }
+                });
+
+                snapshot.file_size = meta_result
                     .map(|m| MemorySize::from_bytes(m.len()))
                     .unwrap_or_else(|e| {
                         tracing::error!(
-                            file_path = %file_path,
-                            error = %e,
-                            "failed to read export file metadata"
+                            "failed to read export file metadata: path='{}' error={}",
+                            file_path,
+                            e
                         );
                         MemorySize::zero()
                     });
 
                 tracing::info!(
-                    file_path = %file_path,
-                    file_size_bytes = snapshot.file_size.bytes(),
-                    "export file size"
+                    "export file size: {} bytes (path={})",
+                    snapshot.file_size.bytes(),
+                    file_path
                 );
 
                 if snapshot.file_size.bytes() == 0 {
                     tracing::error!(
-                        file_path = %file_path,
-                        "export produced an empty file (0 bytes)"
+                        "export produced an empty file (0 bytes): path='{}'",
+                        file_path
                     );
                     snapshot.status =
                         SnapshotStatus::Failed("Export produced an empty file".into());
@@ -227,14 +250,23 @@ impl CreateSnapshotHandler {
                 if matches!(snapshot.format, ExportFormat::Tar) {
                     let tar_path = std::path::Path::new(&file_path);
                     let linux = windows_to_linux_path(&file_path);
-                    let tar_valid = Self::validate_tar_magic(tar_path)
-                        || (linux != file_path
-                            && Self::validate_tar_magic(std::path::Path::new(&linux)));
+                    let tar_valid_win = Self::validate_tar_magic(tar_path);
+                    let tar_valid_linux = linux != file_path
+                        && Self::validate_tar_magic(std::path::Path::new(&linux));
+                    let tar_valid = tar_valid_win || tar_valid_linux;
+                    tracing::info!(
+                        "tar magic check: win_path={} linux_path={} valid_win={} valid_linux={} file_size={}",
+                        file_path,
+                        linux,
+                        tar_valid_win,
+                        tar_valid_linux,
+                        snapshot.file_size.bytes()
+                    );
                     if !tar_valid && snapshot.file_size.bytes() > 262 {
                         tracing::warn!(
-                            file_path = %file_path,
-                            file_size = snapshot.file_size.bytes(),
-                            "exported tar file does not contain valid tar magic bytes"
+                            "exported tar file does not contain valid tar magic: path='{}' size={}",
+                            file_path,
+                            snapshot.file_size.bytes()
                         );
                         snapshot.status =
                             SnapshotStatus::Failed("Export produced an invalid tar file".into());
@@ -257,15 +289,25 @@ impl CreateSnapshotHandler {
         }
 
         tracing::info!(
-            snapshot_id = %id,
-            file_size_bytes = snapshot.file_size.bytes(),
-            elapsed_ms = overall_start.elapsed().as_millis() as u64,
-            "snapshot completed successfully, saving final status"
+            "snapshot completed, saving final status: id={} size={} elapsed={}ms",
+            id,
+            snapshot.file_size.bytes(),
+            overall_start.elapsed().as_millis()
         );
-        self.snapshot_repo.save(&snapshot).await?;
-        self.audit_logger
+        if let Err(e) = self.snapshot_repo.save(&snapshot).await {
+            tracing::error!("FAILED to save completed snapshot to DB: {}", e);
+            return Err(e);
+        }
+        tracing::info!("snapshot saved to DB successfully");
+        if let Err(e) = self
+            .audit_logger
             .log("snapshot.create", &id.to_string())
-            .await?;
+            .await
+        {
+            tracing::error!("FAILED to write audit log: {}", e);
+            return Err(e);
+        }
+        tracing::info!("snapshot creation fully complete: id={}", id);
 
         Ok(snapshot)
     }

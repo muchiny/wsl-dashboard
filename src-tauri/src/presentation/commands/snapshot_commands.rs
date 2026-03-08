@@ -49,12 +49,12 @@ pub async fn create_snapshot(
     };
 
     tracing::info!(
-        distro = %args.distro_name,
-        name = %args.name,
-        format = ?format,
-        output_dir = %args.output_dir,
-        description = ?args.description,
-        "create_snapshot command received"
+        "create_snapshot command received: distro={} name={} format={:?} output_dir={} desc={:?}",
+        args.distro_name,
+        args.name,
+        format,
+        args.output_dir,
+        args.description
     );
 
     let handler = CreateSnapshotHandler::new(
@@ -74,16 +74,15 @@ pub async fn create_snapshot(
     match handler.handle(cmd).await {
         Ok(snapshot) => {
             tracing::info!(
-                snapshot_id = %snapshot.id,
-                "create_snapshot command completed successfully"
+                "create_snapshot command completed: id={} size={} path={}",
+                snapshot.id,
+                snapshot.file_size.bytes(),
+                snapshot.file_path
             );
             Ok(SnapshotResponse::from(snapshot))
         }
         Err(e) => {
-            tracing::error!(
-                error = %e,
-                "create_snapshot command failed"
-            );
+            tracing::error!("create_snapshot command FAILED: {}", e);
             Err(e)
         }
     }

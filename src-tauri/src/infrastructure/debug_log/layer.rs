@@ -128,13 +128,17 @@ where
         };
         event.record(&mut visitor);
 
-        let level = event.metadata().level().to_string();
+        let level_ref = event.metadata().level();
+        let is_important =
+            *level_ref == tracing::Level::ERROR || *level_ref == tracing::Level::WARN;
+        let level = level_ref.to_string();
         let target = event.metadata().target().to_string();
 
         let entry = self.buffer.push(level, visitor.message, target);
 
-        // Emit real-time event to frontend (throttled, best-effort)
-        if self.should_emit()
+        // Never throttle ERROR/WARN — they must always reach the frontend.
+        // Other levels are throttled to avoid flooding.
+        if (is_important || self.should_emit())
             && let Some(handle) = self.app_handle.get()
         {
             let _ = handle.emit("debug-log-entry", &entry);
