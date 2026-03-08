@@ -1,4 +1,3 @@
-import { useCallback } from "react";
 import { useTranslation, Trans } from "react-i18next";
 import { Server, Search } from "lucide-react";
 import { useStartDistro, useStopDistro, useRestartDistro } from "../api/mutations";
@@ -34,13 +33,6 @@ export function DistroList({
   const stopDistro = useStopDistro();
   const restartDistro = useRestartDistro();
   const snapshotCounts = useSnapshotCounts();
-
-  const handleStart = useCallback((name: string) => startDistro.mutate(name), [startDistro.mutate]);
-  const handleStop = useCallback((name: string) => stopDistro.mutate(name), [stopDistro.mutate]);
-  const handleRestart = useCallback(
-    (name: string) => restartDistro.mutate(name),
-    [restartDistro.mutate],
-  );
 
   if (isLoading) {
     return (
@@ -112,9 +104,9 @@ export function DistroList({
           <DistroRow
             key={distro.name}
             distro={distro}
-            onStart={handleStart}
-            onStop={handleStop}
-            onRestart={handleRestart}
+            onStart={startDistro.mutate}
+            onStop={stopDistro.mutate}
+            onRestart={restartDistro.mutate}
             onSnapshot={onSnapshot}
             pendingAction={pendingAction?.distro === distro.name ? pendingAction.action : undefined}
             snapshotCount={snapshotCounts[distro.name] ?? 0}
@@ -132,9 +124,9 @@ export function DistroList({
         <DistroCard
           key={distro.name}
           distro={distro}
-          onStart={handleStart}
-          onStop={handleStop}
-          onRestart={handleRestart}
+          onStart={startDistro.mutate}
+          onStop={stopDistro.mutate}
+          onRestart={restartDistro.mutate}
           onSnapshot={onSnapshot}
           pendingAction={pendingAction?.distro === distro.name ? pendingAction.action : undefined}
           onSelect={onSelectDistro}
