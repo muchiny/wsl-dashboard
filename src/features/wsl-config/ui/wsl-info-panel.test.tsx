@@ -6,12 +6,14 @@ import { WslInfoPanel } from "./wsl-info-panel";
 let mockIsLoading = false;
 let mockIsError = false;
 let mockError: Error | null = null;
-let mockData: {
-  wsl_version: string | null;
-  kernel_version: string | null;
-  wslg_version: string | null;
-  windows_version: string | null;
-} | undefined;
+let mockData:
+  | {
+      wsl_version: string | null;
+      kernel_version: string | null;
+      wslg_version: string | null;
+      windows_version: string | null;
+    }
+  | undefined;
 
 vi.mock("../api/queries", () => ({
   useWslVersion: () => ({

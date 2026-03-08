@@ -12,7 +12,7 @@ const mockToast = { id: "1", message: "Test message", variant: "success" as cons
 
 const mockDismiss = vi.fn();
 
-function setupMock(toasts: typeof mockToast[] = []) {
+function setupMock(toasts: (typeof mockToast)[] = []) {
   vi.mocked(useToastStore).mockImplementation((selector: unknown) => {
     const state = { toasts, dismiss: mockDismiss };
     return (selector as (s: typeof state) => unknown)(state);

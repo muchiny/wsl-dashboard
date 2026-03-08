@@ -43,10 +43,9 @@ describe("useDistroActions", () => {
     const distro = makeDistro();
     const callbacks = makeCallbacks();
 
-    const { result } = renderHook(
-      () => useDistroActions({ distro, ...callbacks }),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useDistroActions({ distro, ...callbacks }), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current).toHaveProperty("handleStart");
     expect(result.current).toHaveProperty("handleStop");
@@ -61,10 +60,9 @@ describe("useDistroActions", () => {
     const distro = makeDistro({ state: "Running" });
     const callbacks = makeCallbacks();
 
-    const { result } = renderHook(
-      () => useDistroActions({ distro, ...callbacks }),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useDistroActions({ distro, ...callbacks }), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.isRunning).toBe(true);
     expect(result.current.isPending).toBe(false);
@@ -74,10 +72,9 @@ describe("useDistroActions", () => {
     const distro = makeDistro({ state: "Stopped" });
     const callbacks = makeCallbacks();
 
-    const { result } = renderHook(
-      () => useDistroActions({ distro, ...callbacks }),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useDistroActions({ distro, ...callbacks }), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.isRunning).toBe(false);
   });
@@ -98,10 +95,9 @@ describe("useDistroActions", () => {
     const distro = makeDistro({ name: "Debian", state: "Stopped" });
     const callbacks = makeCallbacks();
 
-    const { result } = renderHook(
-      () => useDistroActions({ distro, ...callbacks }),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useDistroActions({ distro, ...callbacks }), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.ariaLabel).toBeDefined();
     expect(typeof result.current.ariaLabel).toBe("string");
@@ -111,10 +107,9 @@ describe("useDistroActions", () => {
     const distro = makeDistro();
     const callbacks = makeCallbacks();
 
-    const { result } = renderHook(
-      () => useDistroActions({ distro, ...callbacks }),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useDistroActions({ distro, ...callbacks }), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.createTerminalSession).toBeDefined();
     expect(result.current.createTerminalSession.mutate).toEqual(expect.any(Function));

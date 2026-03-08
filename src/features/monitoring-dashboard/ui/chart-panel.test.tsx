@@ -61,16 +61,12 @@ describe("ChartPanel", () => {
   });
 
   it("renders headerValue when provided", () => {
-    renderWithProviders(
-      <ChartPanel {...defaultProps} headerValue={<span>42%</span>} />,
-    );
+    renderWithProviders(<ChartPanel {...defaultProps} headerValue={<span>42%</span>} />);
     expect(screen.getByText("42%")).toBeInTheDocument();
   });
 
   it("renders subtitle when provided", () => {
-    renderWithProviders(
-      <ChartPanel {...defaultProps} subtitle={<span>Extra info</span>} />,
-    );
+    renderWithProviders(<ChartPanel {...defaultProps} subtitle={<span>Extra info</span>} />);
     expect(screen.getByText("Extra info")).toBeInTheDocument();
   });
 });

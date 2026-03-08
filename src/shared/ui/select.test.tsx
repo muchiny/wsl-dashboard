@@ -190,9 +190,7 @@ describe("Select", () => {
     render(<Select {...defaultProps} value="banana" />);
     fireEvent.click(screen.getByRole("button"));
     const allOptions = screen.getAllByRole("option");
-    const selectedOption = allOptions.find(
-      (el) => el.getAttribute("aria-selected") === "true",
-    );
+    const selectedOption = allOptions.find((el) => el.getAttribute("aria-selected") === "true");
     expect(selectedOption).toBeTruthy();
     expect(selectedOption!.textContent).toContain("Banana");
     // Other options should not be selected

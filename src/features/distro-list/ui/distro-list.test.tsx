@@ -176,9 +176,7 @@ describe("DistroList", () => {
       makeDistro({ name: "Debian", state: "Stopped" }),
     ];
 
-    renderWithProviders(
-      <DistroList {...defaultProps} distros={distros} selectedDistro="Ubuntu" />,
-    );
+    renderWithProviders(<DistroList {...defaultProps} distros={distros} selectedDistro="Ubuntu" />);
 
     const ubuntuCard = screen.getByText("Ubuntu").closest('[role="button"]')!;
     expect(ubuntuCard.getAttribute("aria-pressed")).toBe("true");

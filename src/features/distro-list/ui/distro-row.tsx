@@ -43,7 +43,15 @@ export const DistroRow = memo(function DistroRow({
     handleTerminal,
     handleMonitorClick,
     ariaLabel,
-  } = useDistroActions({ distro, pendingAction, onStart, onStop, onRestart, onSnapshot, onExpand: onSelect });
+  } = useDistroActions({
+    distro,
+    pendingAction,
+    onStart,
+    onStop,
+    onRestart,
+    onSnapshot,
+    onExpand: onSelect,
+  });
 
   return (
     <div
@@ -122,7 +130,6 @@ export const DistroRow = memo(function DistroRow({
         distroName={distro.name}
         pendingAction={pendingAction}
       />
-
     </div>
   );
 });

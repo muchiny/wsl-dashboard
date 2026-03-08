@@ -19,10 +19,9 @@ describe("useTauriMutation", () => {
   it("calls the provided mutationFn when mutate is invoked", async () => {
     const mutationFn = vi.fn().mockResolvedValue("ok");
 
-    const { result } = renderHook(
-      () => useTauriMutation({ mutationFn }),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useTauriMutation({ mutationFn }), {
+      wrapper: createWrapper(),
+    });
 
     await act(async () => {
       result.current.mutate(undefined);
@@ -54,10 +53,9 @@ describe("useTauriMutation", () => {
   it("shows error toast on failure", async () => {
     const mutationFn = vi.fn().mockRejectedValue(new Error("boom"));
 
-    const { result } = renderHook(
-      () => useTauriMutation({ mutationFn, errorMessage: "Failed!" }),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useTauriMutation({ mutationFn, errorMessage: "Failed!" }), {
+      wrapper: createWrapper(),
+    });
 
     await act(async () => {
       result.current.mutate(undefined);
@@ -69,10 +67,9 @@ describe("useTauriMutation", () => {
   it("uses error.message as toast when no errorMessage is provided", async () => {
     const mutationFn = vi.fn().mockRejectedValue(new Error("unexpected"));
 
-    const { result } = renderHook(
-      () => useTauriMutation({ mutationFn }),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useTauriMutation({ mutationFn }), {
+      wrapper: createWrapper(),
+    });
 
     await act(async () => {
       result.current.mutate(undefined);
@@ -104,10 +101,9 @@ describe("useTauriMutation", () => {
     const mutationFn = vi.fn().mockResolvedValue("result");
     const onSuccess = vi.fn();
 
-    const { result } = renderHook(
-      () => useTauriMutation({ mutationFn, onSuccess }),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useTauriMutation({ mutationFn, onSuccess }), {
+      wrapper: createWrapper(),
+    });
 
     await act(async () => {
       result.current.mutate(undefined);

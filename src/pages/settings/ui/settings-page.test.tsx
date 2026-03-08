@@ -72,10 +72,7 @@ describe("SettingsPage", () => {
     renderWithProviders(<SettingsPage />);
     fireEvent.click(screen.getByRole("tab", { name: /Network/i }));
 
-    expect(screen.getByRole("tab", { name: /Network/i })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    expect(screen.getByRole("tab", { name: /Network/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByTestId("port-forwarding-panel")).toBeInTheDocument();
     expect(screen.queryByTestId("wsl-config-editor")).not.toBeInTheDocument();
   });

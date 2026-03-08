@@ -45,12 +45,14 @@ const mockSnapshots: Snapshot[] = [
 
 const mockDeleteMutate = vi.fn();
 
-function setupMocks(overrides: {
-  data?: Snapshot[];
-  isLoading?: boolean;
-  error?: Error | null;
-  isPending?: boolean;
-} = {}) {
+function setupMocks(
+  overrides: {
+    data?: Snapshot[];
+    isLoading?: boolean;
+    error?: Error | null;
+    isPending?: boolean;
+  } = {},
+) {
   (useSnapshots as Mock).mockReturnValue({
     data: overrides.data ?? undefined,
     isLoading: overrides.isLoading ?? false,

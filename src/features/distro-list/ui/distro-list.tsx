@@ -108,9 +108,7 @@ export function DistroList({
             onStop={() => stopDistro.mutate(distro.name)}
             onRestart={() => restartDistro.mutate(distro.name)}
             onSnapshot={() => onSnapshot(distro.name)}
-            pendingAction={
-              pendingAction?.distro === distro.name ? pendingAction.action : undefined
-            }
+            pendingAction={pendingAction?.distro === distro.name ? pendingAction.action : undefined}
             snapshotCount={snapshotCounts[distro.name] ?? 0}
             onSelect={() => onSelectDistro(distro.name)}
             isSelected={selectedDistro === distro.name}

@@ -8,11 +8,41 @@ const mockSetFilter = vi.fn();
 const mockClear = vi.fn();
 
 const sampleLogs: LogEntry[] = [
-  { id: 1, timestamp: "10:00:00.000", level: "ERROR", message: "Something failed", target: "backend::module" },
-  { id: 2, timestamp: "10:00:01.000", level: "ERROR", message: "Another error", target: "backend::module" },
-  { id: 3, timestamp: "10:00:02.000", level: "WARN", message: "Deprecation notice", target: "frontend" },
-  { id: 4, timestamp: "10:00:03.000", level: "INFO", message: "Started successfully", target: "ipc" },
-  { id: 5, timestamp: "10:00:04.000", level: "DEBUG", message: "Loaded config", target: "frontend" },
+  {
+    id: 1,
+    timestamp: "10:00:00.000",
+    level: "ERROR",
+    message: "Something failed",
+    target: "backend::module",
+  },
+  {
+    id: 2,
+    timestamp: "10:00:01.000",
+    level: "ERROR",
+    message: "Another error",
+    target: "backend::module",
+  },
+  {
+    id: 3,
+    timestamp: "10:00:02.000",
+    level: "WARN",
+    message: "Deprecation notice",
+    target: "frontend",
+  },
+  {
+    id: 4,
+    timestamp: "10:00:03.000",
+    level: "INFO",
+    message: "Started successfully",
+    target: "ipc",
+  },
+  {
+    id: 5,
+    timestamp: "10:00:04.000",
+    level: "DEBUG",
+    message: "Loaded config",
+    target: "frontend",
+  },
 ];
 
 let mockState: {
