@@ -134,10 +134,10 @@ where
         let entry = self.buffer.push(level, visitor.message, target);
 
         // Emit real-time event to frontend (throttled, best-effort)
-        if self.should_emit() {
-            if let Some(handle) = self.app_handle.get() {
-                let _ = handle.emit("debug-log-entry", &entry);
-            }
+        if self.should_emit()
+            && let Some(handle) = self.app_handle.get()
+        {
+            let _ = handle.emit("debug-log-entry", &entry);
         }
     }
 }
