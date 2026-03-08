@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-WSL Nexus is a Tauri v2 desktop app for managing WSL2 distributions. Rust backend + React frontend.
+WSL Nexus is a Tauri v2 desktop app for managing WSL2 distributions. Rust backend + React frontend. **Windows-only** — WSL (Windows Subsystem for Linux) is exclusive to Windows, so this app targets Windows exclusively.
 
 ## Common Commands
 

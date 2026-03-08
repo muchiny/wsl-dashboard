@@ -319,19 +319,52 @@ impl RestoreSnapshotHandler {
             );
         }
 
+        // Diagnostic: check snapshot marker to prove the imported filesystem
+        // is actually from the snapshot tar/vhdx
+        match self
+            .wsl_manager
+            .exec_in_distro(&target_name, "cat /tmp/.snapshot-marker 2>/dev/null")
+            .await
+        {
+            Ok(marker) if !marker.trim().is_empty() => {
+                tracing::warn!("snapshot marker found: {}", marker.trim());
+            }
+            Ok(_) => {
+                tracing::warn!("snapshot marker file exists but is empty");
+            }
+            Err(_) => {
+                tracing::warn!(
+                    "snapshot marker NOT found — filesystem may not be from the snapshot"
+                );
+            }
+        }
+
+        // Diagnostic: list /home/ contents and filesystem type after import
+        match self
+            .wsl_manager
+            .exec_in_distro(
+                &target_name,
+                "echo '---HOME-AFTER-IMPORT---' && ls -la /home/ 2>/dev/null && echo '---FSINFO---' && df -T / 2>/dev/null && echo '---MOUNT---' && mount | grep ext4 2>/dev/null",
+            )
+            .await
+        {
+            Ok(output) => tracing::warn!("post-import filesystem diagnostic:\n{}", output),
+            Err(e) => tracing::warn!("post-import diagnostic failed: {}", e),
+        }
+
         // After wsl --import, the default user is reset to root.
         // Restore from snapshot metadata (deterministic), or fall back to
         // heuristic detection for legacy snapshots without stored user.
         let user_to_restore = match &snapshot.default_user {
             Some(user) => {
-                tracing::info!("restoring default user from snapshot metadata: {}", user);
+                tracing::warn!("restoring default user from snapshot metadata: {}", user);
                 Some(user.clone())
             }
             None => {
-                tracing::info!("no default_user in snapshot, falling back to detection");
+                tracing::warn!("no default_user in snapshot, falling back to detection");
                 match self.wsl_manager.get_default_user(&target_name).await {
                     Ok(user) => {
-                        tracing::info!("fallback user detection result: {:?}", user);
+                        tracing::warn!("fallback user detection result: {:?}", user);
                         user
                     }
                     Err(e) => {
@@ -344,11 +377,11 @@ impl RestoreSnapshotHandler {
 
         if let Some(ref user) = user_to_restore {
             match self.wsl_manager.set_default_user(&target_name, user).await {
-                Ok(()) => tracing::info!("default user set in wsl.conf: {}", user),
+                Ok(()) => tracing::warn!("default user set in wsl.conf: {}", user),
                 Err(e) => tracing::warn!("failed to set default user in wsl.conf: {}", e),
             }
         } else {
-            tracing::info!("no default user to restore, distro will use root");
+            tracing::warn!("no default user to restore, distro will use root");
         }
 
         // Full VM shutdown to ensure WSL mounts the fresh VHDX, not a cached one.

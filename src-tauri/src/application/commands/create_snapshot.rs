@@ -93,7 +93,7 @@ impl CreateSnapshotHandler {
         // exec_in_distro auto-starts stopped distros, so this works in all cases.
         snapshot.default_user = match self.wsl_manager.get_default_user(&cmd.distro_name).await {
             Ok(user) => {
-                tracing::info!("captured default user for snapshot: {:?}", user);
+                tracing::warn!("captured default user for snapshot: {:?}", user);
                 user
             }
             Err(e) => {
@@ -101,6 +101,34 @@ impl CreateSnapshotHandler {
                 None
             }
         };
+
+        // Write a marker file to verify restore integrity later.
+        // If the marker is found after import, the tar/vhdx contains this filesystem.
+        let marker = format!("snapshot-marker-{}", id);
+        match self
+            .wsl_manager
+            .exec_in_distro(
+                &cmd.distro_name,
+                &format!("echo '{}' > /tmp/.snapshot-marker", marker),
+            )
+            .await
+        {
+            Ok(_) => tracing::warn!("wrote snapshot marker: {}", marker),
+            Err(e) => tracing::warn!("failed to write snapshot marker: {}", e),
+        }
+
+        // Diagnostic: log /home/ contents BEFORE export so we know what the snapshot will contain
+        match self
+            .wsl_manager
+            .exec_in_distro(
+                &cmd.distro_name,
+                "echo '---HOME-BEFORE-EXPORT---' && ls -la /home/ 2>/dev/null",
+            )
+            .await
+        {
+            Ok(output) => tracing::warn!("pre-export /home/ contents:\n{}", output),
+            Err(e) => tracing::warn!("pre-export /home/ diagnostic failed: {}", e),
+        }
 
         tracing::info!(snapshot_id = %id, "saving snapshot with status InProgress");
         self.snapshot_repo.save(&snapshot).await?;
@@ -351,6 +379,8 @@ mod tests {
             let mut m = MockWslManagerPort::new();
             m.expect_get_default_user()
                 .returning(|_| Ok(Some("testuser".into())));
+            m.expect_exec_in_distro()
+                .returning(|_, _| Ok(String::new()));
             m.expect_terminate_distro().returning(|_| Ok(()));
             m.expect_shutdown_all().returning(|| Ok(()));
             m.expect_export_distro()
@@ -389,6 +419,9 @@ mod tests {
         // We can verify the file path format by checking what's passed to export_distro
         let mut wsl_mock = MockWslManagerPort::new();
         wsl_mock.expect_get_default_user().returning(|_| Ok(None));
+        wsl_mock
+            .expect_exec_in_distro()
+            .returning(|_, _| Ok(String::new()));
         wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
         wsl_mock.expect_shutdown_all().returning(|| Ok(()));
         wsl_mock
@@ -415,6 +448,9 @@ mod tests {
     async fn test_create_snapshot_saves_in_progress_first() {
         let mut wsl_mock = MockWslManagerPort::new();
         wsl_mock.expect_get_default_user().returning(|_| Ok(None));
+        wsl_mock
+            .expect_exec_in_distro()
+            .returning(|_, _| Ok(String::new()));
         wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
         wsl_mock.expect_shutdown_all().returning(|| Ok(()));
         wsl_mock
