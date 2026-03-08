@@ -102,7 +102,10 @@ impl CreateSnapshotHandler {
             .terminate_distro(&cmd.distro_name)
             .await
             .is_ok();
-        tracing::info!(was_running = was_running, "terminate result, shutting down WSL");
+        tracing::info!(
+            was_running = was_running,
+            "terminate result, shutting down WSL"
+        );
         let _ = self.wsl_manager.shutdown_all().await;
 
         // Wait for WSL VM to fully release all file handles.
