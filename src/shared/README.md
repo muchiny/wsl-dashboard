@@ -32,31 +32,31 @@ graph LR
 
 ```
 shared/
-├── api/               # 🔗 Tauri backend communication
+├── [api/](api/README.md)               # 🔗 Tauri backend communication
 │   ├── tauri-client.ts      # tauriInvoke<T>() — typed wrapper
 │   ├── distro-queries.ts    # Distro query keys and hooks
 │   ├── events.ts            # EVENTS constants
 │   └── use-tauri-mutation.ts # Generic mutation wrapper with toast + invalidation
-├── config/            # ⚙️ Global configuration
+├── [config/](config/README.md)            # ⚙️ Global configuration
 │   ├── query-client.ts      # QueryClient (TanStack Query)
 │   ├── i18n.ts              # i18next initialization
 │   └── i18n.d.ts            # i18n type definitions
-├── hooks/             # 🪝 Reusable React hooks
+├── [hooks/](hooks/README.md)             # 🪝 Reusable React hooks
 │   ├── use-debug-console.ts  # 🐛 Zustand store for debug console panel
 │   ├── use-tauri-event.ts    # ⚡ Tauri event listener
 │   ├── use-theme.ts          # 🎨 Zustand theme store
 │   └── use-debounce.ts       # ⏳ Debounce hook
-├── stores/            # 🗃️ Zustand stores
+├── [stores/](stores/README.md)            # 🗃️ Zustand stores
 │   ├── use-locale-store.ts       # 🌍 Language persistence
 │   └── use-preferences-store.ts  # ⚙️ User preferences (monitoring intervals, etc.)
-├── lib/               # 🔧 Utilities
+├── [lib/](lib/README.md)               # 🔧 Utilities
 │   ├── utils.ts          # cn() — Tailwind class merging
 │   └── formatters.ts     # Bytes, percent, relative time formatting
-├── types/             # 📝 TypeScript interfaces
+├── [types/](types/README.md)             # 📝 TypeScript interfaces
 │   ├── distro.ts         # Distro, DistroState
 │   ├── snapshot.ts       # Snapshot, CreateSnapshotArgs, RestoreSnapshotArgs
 │   └── monitoring.ts     # SystemMetrics, CpuMetrics, MemoryMetrics, DiskMetrics, NetworkMetrics, AlertThreshold
-├── ui/                # 🎨 Shared UI components
+├── [ui/](ui/README.md)                # 🎨 Shared UI components
 │   ├── action-icon-button.tsx  # 🔘 Icon-only button with spinner support
 │   ├── confirm-dialog.tsx      # ✅ Confirmation dialog with pending state
 │   ├── dialog-shell.tsx        # 🪟 Base dialog shell
@@ -66,7 +66,7 @@ shared/
 │   ├── toast.tsx               # 🍞 Toast notification component
 │   ├── toast-store.ts          # 🗃️ Toast state management
 │   └── toggle-switch.tsx       # 🔀 Toggle switch component
-└── assets/            # 🏳️ Static assets
+└── [assets/](assets/README.md)            # 🏳️ Static assets
     └── flags/             # Locale flag SVGs (gb, es, fr, cn)
 ```
 

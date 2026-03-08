@@ -26,7 +26,7 @@ export const DiskGauge = memo(function DiskGauge({ disk, historicalData }: DiskG
   const isCritical = percent > 90;
 
   return (
-    <div className="border-surface-1 bg-mantle min-w-0 overflow-hidden rounded-xl border p-4">
+    <div className="glass-card min-w-0 overflow-hidden rounded-xl p-4">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="text-sm font-semibold">{t("monitoring.diskUsage")}</h4>
         {hasData && (
@@ -42,7 +42,7 @@ export const DiskGauge = memo(function DiskGauge({ disk, historicalData }: DiskG
       </div>
       {disk && (
         <>
-          <div className="bg-surface-0 mb-2 h-3 overflow-hidden rounded-full">
+          <div className="mb-2 h-3 overflow-hidden rounded-full bg-white/5">
             <div
               className={cn(
                 "h-full rounded-full transition-all",
@@ -66,7 +66,7 @@ export const DiskGauge = memo(function DiskGauge({ disk, historicalData }: DiskG
       )}
       {!disk && histLatest && (
         <>
-          <div className="bg-surface-0 mb-2 h-3 overflow-hidden rounded-full">
+          <div className="mb-2 h-3 overflow-hidden rounded-full bg-white/5">
             <div
               className={cn(
                 "h-full rounded-full transition-all",
@@ -80,7 +80,7 @@ export const DiskGauge = memo(function DiskGauge({ disk, historicalData }: DiskG
       )}
       {!hasData && (
         <div className="space-y-3 pt-1">
-          <div className="bg-surface-0 h-3 overflow-hidden rounded-full">
+          <div className="h-3 overflow-hidden rounded-full bg-white/5">
             <div className="bg-surface-1 h-full w-2/3 animate-pulse rounded-full" />
           </div>
           <div className="flex justify-between">

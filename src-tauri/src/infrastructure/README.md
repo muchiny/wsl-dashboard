@@ -68,11 +68,11 @@ graph LR
 ```
 infrastructure/
 ├── mod.rs
-├── wsl_cli/              # 🖥️ WSL Adapter
+├── [wsl_cli/](wsl_cli/README.md)              # 🖥️ WSL Adapter
 │   ├── adapter.rs           # WslCliAdapter (14+ methods)
 │   ├── encoding.rs          # 🔤 UTF-16LE decoder with BOM
 │   └── parser.rs            # 📋 `wsl --list --verbose` parser
-├── sqlite/               # 🗄️ SQLite Adapters
+├── [sqlite/](sqlite/README.md)               # 🗄️ SQLite Adapters
 │   ├── adapter.rs           # SqliteDb + SqliteSnapshotRepository + SqliteAuditLogger
 │   ├── metrics_repository.rs    # 📈 SqliteMetricsRepository (raw + aggregated)
 │   ├── alert_repository.rs      # 🔔 SqliteAlertRepository
@@ -81,15 +81,15 @@ infrastructure/
 │       ├── 001_initial.sql      # 📸 snapshots + audit_log tables
 │       ├── 002_metrics.sql      # 📊 metrics_raw + metrics_aggregated + alert_log
 │       └── 003_port_forwarding.sql  # 🔀 port_forwarding_rules table
-├── monitoring/           # 📊 /proc Adapter
+├── [monitoring/](monitoring/README.md)           # 📊 /proc Adapter
 │   └── adapter.rs           # ProcFsMonitoringAdapter
-├── audit/                # 📋 Audit Adapter
+├── [audit/](audit/README.md)                # 📋 Audit Adapter
 │   └── adapter.rs           # Delegates to SqliteAuditLogger
-├── port_forwarding/      # 🔀 Port Forwarding Adapter
+├── [port_forwarding/](port_forwarding/README.md)      # 🔀 Port Forwarding Adapter
 │   └── adapter.rs           # NetshAdapter (netsh portproxy commands)
-├── terminal/             # 💻 Terminal PTY Adapter
+├── [terminal/](terminal/README.md)             # 💻 Terminal PTY Adapter
 │   └── adapter.rs           # TerminalSessionManager (portable-pty sessions)
-└── debug_log/            # 🐛 In-memory debug log capture
+└── [debug_log/](debug_log/README.md)            # 🐛 In-memory debug log capture
     ├── buffer.rs            # DebugLogBuffer (ring buffer, 1000 max entries)
     └── layer.rs             # DebugLogLayer (tracing subscriber layer)
 ```

@@ -13,7 +13,7 @@ export function TerminalTabBar({ onNewTerminal }: TerminalTabBarProps) {
   const { sessions, activeSessionId, setActiveSession, removeSession } = useTerminalStore();
 
   return (
-    <div className="bg-crust flex items-center gap-0.5 overflow-x-auto px-2">
+    <div className="glass-surface flex items-center gap-0.5 overflow-x-auto px-2">
       {sessions.map((session) => (
         <TerminalTab
           key={session.id}
@@ -28,7 +28,7 @@ export function TerminalTabBar({ onNewTerminal }: TerminalTabBarProps) {
       ))}
       <button
         onClick={onNewTerminal}
-        className="text-subtext-0 hover:bg-surface-0 hover:text-text ml-1 flex items-center gap-1 rounded px-2 py-1.5 text-xs transition-colors"
+        className="text-subtext-0 hover:text-text ml-1 flex items-center gap-1 rounded px-2 py-1.5 text-xs transition-colors hover:bg-white/8"
         aria-label={t("terminal.newTerminal")}
         data-testid="terminal-new-tab"
       >
@@ -57,7 +57,7 @@ function TerminalTab({
       data-testid={`terminal-tab-${session.id}`}
       className={cn(
         "group flex max-w-[200px] items-center gap-1.5 rounded-t px-3 py-1.5 text-xs transition-colors",
-        isActive ? "bg-mantle text-text" : "text-subtext-0 hover:bg-surface-0 hover:text-text",
+        isActive ? "text-text bg-white/10" : "text-subtext-0 hover:text-text hover:bg-white/8",
       )}
     >
       <button onClick={onSelect} className="min-w-0 flex-1 truncate text-left">

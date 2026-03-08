@@ -51,7 +51,7 @@ src/
 ├── app.css               # 🎨 Catppuccin Mocha/Latte theme (Tailwind CSS v4)
 ├── vite-env.d.ts         # 📝 Vite types
 │
-├── locales/              # 🌍 i18n translations
+├── [locales/](locales/README.md)              # 🌍 i18n translations
 │   ├── en/                  # 🇬🇧 English
 │   ├── es/                  # 🇪🇸 Spanish
 │   ├── fr/                  # 🇫🇷 French
@@ -87,7 +87,7 @@ src/
 │   ├── header/              # 📌 Top bar with pill tabs + theme toggle
 │   └── debug-console/       # 🐛 Collapsible in-app log viewer
 │
-└── test/                 # 🧪 Vitest setup + mocks
+└── [test/](test/README.md)                 # 🧪 Vitest setup + mocks
     ├── setup.ts
     ├── test-utils.tsx
     └── mocks/

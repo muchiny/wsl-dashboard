@@ -24,7 +24,7 @@ export function PortForwardingPanel() {
   return (
     <div className="space-y-5">
       {/* Distro selector */}
-      <div className="border-surface-1 bg-mantle rounded-xl border p-5">
+      <div className="glass-card-lite rounded-xl p-5">
         <div className="mb-4 flex items-center gap-2">
           <Network className="text-blue h-5 w-5" />
           <h4 className="text-text font-semibold">{t("portForwarding.title")}</h4>
@@ -52,12 +52,12 @@ export function PortForwardingPanel() {
       </div>
 
       {/* Active rules */}
-      <div className="border-surface-1 bg-mantle rounded-xl border p-5">
+      <div className="glass-card-lite rounded-xl p-5">
         <div className="mb-4 flex items-center justify-between">
           <h4 className="text-text font-semibold">{t("portForwarding.activeRules")}</h4>
           <button
             onClick={() => setShowAddDialog(true)}
-            className="bg-blue text-crust hover:bg-blue/90 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+            className="bg-blue text-crust hover:bg-blue/90 hover:neon-glow-blue flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
             {t("portForwarding.addRule")}
@@ -76,14 +76,14 @@ export function PortForwardingPanel() {
             {rules.map((rule) => (
               <div
                 key={rule.id}
-                className="border-surface-0 bg-base flex items-center justify-between rounded-lg border px-4 py-3"
+                className="flex items-center justify-between rounded-lg border border-white/5 bg-white/3 px-4 py-3"
               >
                 <div className="flex items-center gap-3">
                   <span className="text-text text-sm font-medium">{rule.distro_name}</span>
                   <span className="text-subtext-0 font-mono text-xs">:{rule.wsl_port}</span>
                   <ArrowRight className="text-overlay-0 h-3.5 w-3.5" />
                   <span className="text-blue font-mono text-xs">localhost:{rule.host_port}</span>
-                  <span className="bg-surface-0 text-subtext-1 rounded px-1.5 py-0.5 text-[10px] uppercase">
+                  <span className="text-subtext-1 rounded bg-white/8 px-1.5 py-0.5 text-[10px] uppercase">
                     {rule.protocol}
                   </span>
                 </div>
@@ -101,7 +101,7 @@ export function PortForwardingPanel() {
           </div>
         )}
 
-        <div className="border-surface-0 bg-base/50 mt-4 flex items-start gap-2 rounded-lg border p-3">
+        <div className="border-surface-0 mt-4 flex items-start gap-2 rounded-lg border bg-white/3 p-3">
           <AlertTriangle className="text-yellow mt-0.5 h-3.5 w-3.5 shrink-0" />
           <p className="text-subtext-0 text-xs">{t("portForwarding.adminWarning")}</p>
         </div>
@@ -109,7 +109,7 @@ export function PortForwardingPanel() {
 
       {/* Listening ports */}
       {selectedDistro && (
-        <div className="border-surface-1 bg-mantle rounded-xl border p-5">
+        <div className="glass-card-lite rounded-xl p-5">
           <h4 className="text-text mb-4 font-semibold">
             {t("portForwarding.listeningPorts", { name: selectedDistro })}
           </h4>

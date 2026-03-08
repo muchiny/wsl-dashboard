@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { DistroList } from "@/features/distro-list/ui/distro-list";
 import { DistrosToolbar } from "@/features/distro-list/ui/distros-toolbar";
+import { DistroSnapshotPanel } from "@/features/distro-list/ui/distro-snapshot-panel";
 import { useDistros } from "@/shared/api/distro-queries";
 import { useShutdownAll } from "@/features/distro-list/api/mutations";
 import { CreateSnapshotDialog } from "@/features/snapshot-list/ui/create-snapshot-dialog";
@@ -49,6 +50,13 @@ export function DistrosPage() {
 
   // Persisted preferences
   const { sortKey, viewMode } = usePreferencesStore();
+
+  // Selection state
+  const [selectedDistro, setSelectedDistro] = useState<string | null>(null);
+
+  const handleSelectDistro = (distroName: string) => {
+    setSelectedDistro((prev) => (prev === distroName ? null : distroName));
+  };
 
   // Dialog state
   const [createOpen, setCreateOpen] = useState(false);
@@ -122,11 +130,22 @@ export function DistrosPage() {
         viewMode={viewMode}
         isFiltered={isFiltered}
         onSnapshot={handleSnapshot}
-        onRestore={(id, distroName) => {
-          setRestoreSnapshotId(id);
-          setRestoreDistroName(distroName);
-        }}
+        selectedDistro={selectedDistro}
+        onSelectDistro={handleSelectDistro}
       />
+
+      {/* Snapshot Panel (bottom) */}
+      {selectedDistro && (
+        <DistroSnapshotPanel
+          distroName={selectedDistro}
+          onRestore={(id, distroName) => {
+            setRestoreSnapshotId(id);
+            setRestoreDistroName(distroName);
+          }}
+          onCreateSnapshot={() => handleSnapshot(selectedDistro)}
+          onClose={() => setSelectedDistro(null)}
+        />
+      )}
 
       {/* Dialogs */}
       <CreateSnapshotDialog

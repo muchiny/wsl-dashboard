@@ -73,7 +73,7 @@ export function ConfirmDialog({
           ref={cancelRef}
           onClick={onCancel}
           disabled={isPending}
-          className="focus-ring border-surface-1 text-subtext-1 hover:bg-surface-0 rounded-lg border px-4 py-2 text-sm font-medium transition-colors"
+          className="focus-ring border-surface-1 text-subtext-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-white/5"
         >
           {resolvedCancelLabel}
         </button>
@@ -83,7 +83,7 @@ export function ConfirmDialog({
           className={cn(
             "focus-ring rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50",
             isDanger
-              ? "bg-red text-crust hover:bg-red/90"
+              ? "bg-red text-crust hover:bg-red/80 hover:neon-glow-purple"
               : "bg-yellow text-crust hover:bg-yellow/90",
           )}
         >

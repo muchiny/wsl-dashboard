@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::application::path_utils::windows_to_linux_path;
 use crate::domain::errors::DomainError;
 use crate::domain::ports::audit_logger::AuditLoggerPort;
 use crate::domain::ports::snapshot_repository::SnapshotRepositoryPort;
@@ -28,10 +29,20 @@ impl DeleteSnapshotHandler {
     pub async fn handle(&self, cmd: DeleteSnapshotCommand) -> Result<(), DomainError> {
         let snapshot = self.snapshot_repo.get_by_id(&cmd.snapshot_id).await?;
 
-        // Delete the snapshot file from disk
-        if std::path::Path::new(&snapshot.file_path).exists() {
-            std::fs::remove_file(&snapshot.file_path)
-                .map_err(|e| DomainError::SnapshotError(e.to_string()))?;
+        // Delete the snapshot file from disk.
+        // Try the stored path first; fall back to Windows→Linux conversion
+        // (handles C:\... paths when running from WSL).
+        let file_path = &snapshot.file_path;
+        let linux_path = windows_to_linux_path(file_path);
+        let resolved = if std::path::Path::new(file_path).exists() {
+            Some(file_path.as_str())
+        } else if linux_path != *file_path && std::path::Path::new(&linux_path).exists() {
+            Some(linux_path.as_str())
+        } else {
+            None
+        };
+        if let Some(path) = resolved {
+            std::fs::remove_file(path).map_err(|e| DomainError::SnapshotError(e.to_string()))?;
         }
 
         self.snapshot_repo.delete(&cmd.snapshot_id).await?;

@@ -100,7 +100,7 @@ export function MonitoringPage() {
           <TimeRangePicker value={timeRange} onChange={setTimeRange} />
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: monitoringKeys.all })}
-            className="text-subtext-0 hover:bg-surface-0 hover:text-text focus-ring rounded-lg p-2 transition-colors"
+            className="text-subtext-0 hover:text-text focus-ring rounded-lg p-2 transition-colors hover:bg-white/8"
             aria-label={t("monitoring.refreshData")}
           >
             <RefreshCw className="h-4 w-4" />
@@ -117,7 +117,7 @@ export function MonitoringPage() {
       </div>
 
       {!selectedDistro && (
-        <div className="border-surface-1 bg-mantle flex flex-col items-center rounded-xl border px-8 py-12 text-center">
+        <div className="glass-card flex flex-col items-center rounded-xl px-8 py-12 text-center">
           <BarChart3 className="text-surface-2 mb-3 h-10 w-10" />
           <p className="text-text font-medium">
             {runningDistros.length === 0 ? t("monitoring.noRunning") : t("monitoring.selectDistro")}

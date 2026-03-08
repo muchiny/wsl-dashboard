@@ -113,8 +113,8 @@ export function LanguageSwitcher() {
         aria-haspopup="listbox"
         aria-label={t("header.switchLanguage", { language: localeLabels[locale] })}
         className={cn(
-          "text-subtext-0 hover:bg-surface-0 hover:text-text flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors",
-          open && "bg-surface-0 text-text",
+          "text-subtext-0 hover:text-text flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/8",
+          open && "text-text bg-white/10",
         )}
       >
         <Flag locale={locale} className="h-4 w-6" />
@@ -126,7 +126,7 @@ export function LanguageSwitcher() {
         <div
           role="listbox"
           aria-label={t("header.switchLanguage", { language: localeLabels[locale] })}
-          className="bg-surface-0 border-surface-1 absolute top-full right-0 z-50 mt-1 min-w-[160px] overflow-hidden rounded-lg border py-1 shadow-lg"
+          className="glass-dropdown absolute top-full right-0 z-50 mt-1 min-w-[160px] overflow-hidden rounded-lg py-1 shadow-lg"
         >
           {supportedLocales.map((loc, index) => {
             const isActive = loc === locale;
@@ -145,8 +145,8 @@ export function LanguageSwitcher() {
                 className={cn(
                   "flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors",
                   isActive ? "text-blue font-medium" : "text-subtext-1",
-                  isHighlighted && "bg-surface-1 text-text",
-                  !isHighlighted && !isActive && "hover:bg-surface-1 hover:text-text",
+                  isHighlighted && "text-text bg-white/10",
+                  !isHighlighted && !isActive && "hover:text-text hover:bg-white/8",
                 )}
               >
                 <Flag locale={loc} className="h-4 w-6" />

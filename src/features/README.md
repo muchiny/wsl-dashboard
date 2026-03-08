@@ -51,14 +51,14 @@ feature-name/
 
 | | Feature | Description | Queries | Mutations | UI Components |
 |---|---|---|---|---|---|
-| 🖥️ | `distro-list` | WSL distribution management | `useDistros` | `useStartDistro`, `useStopDistro`, `useRestartDistro`, `useShutdownAll` | `distro-list`, `distro-card` |
-| 📸 | `snapshot-list` | Snapshot creation and restoration | `useSnapshots` | `useCreateSnapshot`, `useDeleteSnapshot`, `useRestoreSnapshot` | `snapshot-list`, `snapshot-card`, `create-snapshot-dialog`, `restore-snapshot-dialog` |
-| 📊 | `monitoring-dashboard` | Real-time system metrics + alerting | `useSystemMetrics`, `useProcesses`, `useAlertThresholds` | `useSetAlertThresholds` | `cpu-chart`, `memory-chart`, `network-chart`, `disk-gauge`, `process-table` |
-| ⚙️ | `wsl-config` | .wslconfig editor + VHDX | `useWslConfig` | `useUpdateWslConfig`, `useCompactVhdx` | `wslconfig-editor`, `vhdx-compact-panel` |
-| 📋 | `audit-log` | Searchable audit trail | `useAuditLog` | — | `audit-log-viewer` |
-| 💻 | `terminal` | Interactive WSL terminal (xterm) | — | `useCreateTerminalSession` | `terminal-panel`, `terminal-instance`, `terminal-tab-bar` |
-| 🔀 | `port-forwarding` | WSL-to-Windows port mapping | `useListeningPorts`, `usePortForwardingRules` | `useAddPortForwarding`, `useRemovePortForwarding` | `port-forwarding-panel`, `add-rule-dialog` |
-| 🎨 | `app-preferences` | Language, theme, monitoring preferences | — | — | `preferences-panel` |
+| 🖥️ | [`distro-list`](distro-list/README.md) | WSL distribution management | `useDistros` | `useStartDistro`, `useStopDistro`, `useRestartDistro`, `useShutdownAll` | `distro-list`, `distro-card` |
+| 📸 | [`snapshot-list`](snapshot-list/README.md) | Snapshot creation and restoration | `useSnapshots` | `useCreateSnapshot`, `useDeleteSnapshot`, `useRestoreSnapshot` | `snapshot-list`, `snapshot-card`, `create-snapshot-dialog`, `restore-snapshot-dialog` |
+| 📊 | [`monitoring-dashboard`](monitoring-dashboard/README.md) | Real-time system metrics + alerting | `useSystemMetrics`, `useProcesses`, `useAlertThresholds` | `useSetAlertThresholds` | `cpu-chart`, `memory-chart`, `network-chart`, `disk-gauge`, `process-table` |
+| ⚙️ | [`wsl-config`](wsl-config/README.md) | .wslconfig editor + VHDX | `useWslConfig` | `useUpdateWslConfig`, `useCompactVhdx` | `wslconfig-editor`, `vhdx-compact-panel` |
+| 📋 | [`audit-log`](audit-log/README.md) | Searchable audit trail | `useAuditLog` | — | `audit-log-viewer` |
+| 💻 | [`terminal`](terminal/README.md) | Interactive WSL terminal (xterm) | — | `useCreateTerminalSession` | `terminal-panel`, `terminal-instance`, `terminal-tab-bar` |
+| 🔀 | [`port-forwarding`](port-forwarding/README.md) | WSL-to-Windows port mapping | `useListeningPorts`, `usePortForwardingRules` | `useAddPortForwarding`, `useRemovePortForwarding` | `port-forwarding-panel`, `add-rule-dialog` |
+| 🎨 | [`app-preferences`](app-preferences/README.md) | Language, theme, monitoring preferences | — | — | `preferences-panel` |
 | ⚡ | `distro-events` | Tauri event listener | — | — | — (hook only) |
 
 ---

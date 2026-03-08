@@ -8,54 +8,54 @@ import { writeTerminal, resizeTerminal, isTerminalAlive } from "../api/mutations
 import { useThemeStore } from "@/shared/hooks/use-theme";
 import { useTerminalStore } from "../model/use-terminal-store";
 
-const CATPPUCCIN_MOCHA = {
-  background: "#1e1e2e",
-  foreground: "#cdd6f4",
-  cursor: "#f5e0dc",
-  cursorAccent: "#1e1e2e",
-  selectionBackground: "#585b70",
-  selectionForeground: "#cdd6f4",
-  black: "#45475a",
-  red: "#f38ba8",
-  green: "#a6e3a1",
-  yellow: "#f9e2af",
-  blue: "#89b4fa",
-  magenta: "#f5c2e7",
-  cyan: "#94e2d5",
-  white: "#bac2de",
-  brightBlack: "#585b70",
-  brightRed: "#f38ba8",
-  brightGreen: "#a6e3a1",
-  brightYellow: "#f9e2af",
-  brightBlue: "#89b4fa",
-  brightMagenta: "#f5c2e7",
-  brightCyan: "#94e2d5",
-  brightWhite: "#a6adc8",
+const NEON_DARK = {
+  background: "#0a0a1a",
+  foreground: "#e2e8f0",
+  cursor: "#00f0ff",
+  cursorAccent: "#0a0a1a",
+  selectionBackground: "rgba(0,240,255,0.2)",
+  selectionForeground: "#ffffff",
+  black: "#1e1e3d",
+  red: "#ff2d55",
+  green: "#30d158",
+  yellow: "#ffd60a",
+  blue: "#0a84ff",
+  magenta: "#bf5af2",
+  cyan: "#00f0ff",
+  white: "#b0b0d0",
+  brightBlack: "#2a2a50",
+  brightRed: "#ff375f",
+  brightGreen: "#32d74b",
+  brightYellow: "#ffd426",
+  brightBlue: "#409cff",
+  brightMagenta: "#da8fff",
+  brightCyan: "#70d7ff",
+  brightWhite: "#e2e8f0",
 };
 
-const CATPPUCCIN_LATTE = {
-  background: "#eff1f5",
-  foreground: "#4c4f69",
-  cursor: "#dc8a78",
-  cursorAccent: "#eff1f5",
-  selectionBackground: "#acb0be",
-  selectionForeground: "#4c4f69",
-  black: "#5c5f77",
-  red: "#d20f39",
-  green: "#40a02b",
-  yellow: "#df8e1d",
-  blue: "#1e66f5",
-  magenta: "#ea76cb",
-  cyan: "#179299",
-  white: "#acb0be",
-  brightBlack: "#6c6f85",
-  brightRed: "#d20f39",
-  brightGreen: "#40a02b",
-  brightYellow: "#df8e1d",
-  brightBlue: "#1e66f5",
-  brightMagenta: "#ea76cb",
-  brightCyan: "#179299",
-  brightWhite: "#bcc0cc",
+const FROSTED_LIGHT = {
+  background: "#f0f0f5",
+  foreground: "#1a1a2e",
+  cursor: "#0891b2",
+  cursorAccent: "#f0f0f5",
+  selectionBackground: "rgba(37,99,235,0.2)",
+  selectionForeground: "#1a1a2e",
+  black: "#d0d0dd",
+  red: "#dc2626",
+  green: "#16a34a",
+  yellow: "#ca8a04",
+  blue: "#2563eb",
+  magenta: "#7c3aed",
+  cyan: "#0891b2",
+  white: "#4a4a65",
+  brightBlack: "#b0b0c0",
+  brightRed: "#ef4444",
+  brightGreen: "#22c55e",
+  brightYellow: "#eab308",
+  brightBlue: "#3b82f6",
+  brightMagenta: "#8b5cf6",
+  brightCyan: "#06b6d4",
+  brightWhite: "#1a1a2e",
 };
 
 interface TerminalInstanceProps {
@@ -122,7 +122,7 @@ export function TerminalInstance({ sessionId, isActive }: TerminalInstanceProps)
       const webLinksAddon = new WebLinksAddon();
 
       const terminal = new Terminal({
-        theme: theme === "dark" ? CATPPUCCIN_MOCHA : CATPPUCCIN_LATTE,
+        theme: theme === "dark" ? NEON_DARK : FROSTED_LIGHT,
         fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace",
         fontSize: 13,
         lineHeight: 1.2,
@@ -204,7 +204,7 @@ export function TerminalInstance({ sessionId, isActive }: TerminalInstanceProps)
   // Update theme when it changes
   useEffect(() => {
     if (terminalRef.current) {
-      terminalRef.current.options.theme = theme === "dark" ? CATPPUCCIN_MOCHA : CATPPUCCIN_LATTE;
+      terminalRef.current.options.theme = theme === "dark" ? NEON_DARK : FROSTED_LIGHT;
     }
   }, [theme]);
 

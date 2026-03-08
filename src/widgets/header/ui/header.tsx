@@ -65,7 +65,7 @@ export function Header() {
 
   return (
     <header
-      className="border-surface-1 bg-mantle shrink-0 border-b"
+      className="glass-header relative z-30 shrink-0"
       onMouseDown={handleDrag}
       onDoubleClick={handleDoubleClick}
     >
@@ -83,7 +83,7 @@ export function Header() {
 
         {/* Navigation Tabs */}
         <nav
-          className="bg-crust flex items-center gap-1 rounded-xl p-1"
+          className="glass-surface flex items-center gap-1 rounded-xl p-1"
           onMouseDown={(e) => e.stopPropagation()}
         >
           {navTabs.map((tab) => {
@@ -100,8 +100,8 @@ export function Header() {
                 className={cn(
                   "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 sm:px-5 sm:py-2.5",
                   isActive
-                    ? "bg-blue text-crust shadow-md"
-                    : "text-subtext-1 hover:bg-surface-0 hover:text-text",
+                    ? "bg-blue text-crust hover:neon-glow-blue shadow-md"
+                    : "text-subtext-1 hover:text-text hover:bg-white/8",
                 )}
               >
                 <tab.icon className="h-4 w-4" />
@@ -115,7 +115,7 @@ export function Header() {
         <div className="flex items-center gap-1" onMouseDown={(e) => e.stopPropagation()}>
           <button
             onClick={useDebugConsoleStore.getState().toggle}
-            className="text-subtext-0 hover:bg-surface-0 hover:text-text flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
+            className="text-subtext-0 hover:text-text flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-white/8"
             aria-label={t("header.toggleDebugConsole")}
             title={t("header.debugConsoleTitle")}
           >
@@ -123,7 +123,7 @@ export function Header() {
           </button>
           <button
             onClick={toggleTheme}
-            className="text-subtext-0 hover:bg-surface-0 hover:text-text flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
+            className="text-subtext-0 hover:text-text flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-white/8"
             aria-label={t("header.toggleTheme")}
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -136,14 +136,14 @@ export function Header() {
           {/* Window Controls */}
           <button
             onClick={() => getCurrentWindow().minimize()}
-            className="text-subtext-0 hover:bg-surface-0 hover:text-text flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+            className="text-subtext-0 hover:text-text flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-white/8"
             aria-label={t("header.minimize")}
           >
             <Minus className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => getCurrentWindow().toggleMaximize()}
-            className="text-subtext-0 hover:bg-surface-0 hover:text-text flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+            className="text-subtext-0 hover:text-text flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-white/8"
             aria-label={isMaximized ? t("header.restore") : t("header.maximize")}
           >
             {isMaximized ? (

@@ -20,13 +20,15 @@ export function TimeRangePicker({ value, onChange }: TimeRangePickerProps) {
     [t],
   );
   return (
-    <div className="bg-surface-0 flex items-center gap-1 rounded-lg p-1">
+    <div className="flex items-center gap-1 rounded-lg bg-white/5 p-1">
       {options.map((opt) => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
           className={`focus-ring relative rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-            value === opt.value ? "bg-sapphire text-base" : "text-subtext-0 hover:text-text"
+            value === opt.value
+              ? "bg-sapphire hover:neon-glow-blue text-base"
+              : "text-subtext-0 hover:text-text"
           }`}
         >
           {opt.value === "live" && value === "live" && (

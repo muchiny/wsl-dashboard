@@ -45,7 +45,7 @@ export function ProcessTable({ processes }: ProcessTableProps) {
   );
 
   return (
-    <div className="border-surface-1 bg-mantle min-w-0 overflow-hidden rounded-xl border">
+    <div className="glass-card min-w-0 overflow-hidden rounded-xl">
       <div className="border-surface-0 flex flex-col gap-2 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
         <h4 className="text-sm font-semibold">
           {t("monitoring.processes", { count: processes.length })}
@@ -55,12 +55,12 @@ export function ProcessTable({ processes }: ProcessTableProps) {
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder={t("monitoring.filterProcesses")}
-          className="focus-ring border-surface-1 bg-base text-text w-full rounded-lg border px-2 py-1 text-xs sm:w-48"
+          className="focus-ring glass-input text-text w-full rounded-lg px-2 py-1 text-xs sm:w-48"
         />
       </div>
       <div className="max-h-80 overflow-auto">
         <table className="w-full text-xs">
-          <thead className="bg-mantle sticky top-0">
+          <thead className="bg-base/80 sticky top-0 backdrop-blur-sm">
             <tr className="border-surface-0 text-subtext-0 border-b text-left">
               <th className="px-4 py-2 text-right">
                 <button
@@ -101,7 +101,7 @@ export function ProcessTable({ processes }: ProcessTableProps) {
           </thead>
           <tbody>
             {sorted.slice(0, 100).map((p) => (
-              <tr key={p.pid} className="border-surface-0/50 hover:bg-surface-0/50 border-b">
+              <tr key={p.pid} className="border-surface-0/50 border-b hover:bg-white/5">
                 <td className="px-4 py-1.5 text-right font-mono tabular-nums">{p.pid}</td>
                 <td className="px-4 py-1.5">{p.user}</td>
                 <td className="px-4 py-1.5 text-right font-mono tabular-nums">

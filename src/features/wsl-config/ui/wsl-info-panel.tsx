@@ -7,7 +7,7 @@ export function WslInfoPanel() {
   const { data: version, isLoading, isError, error } = useWslVersion();
 
   if (isLoading) {
-    return <div className="border-surface-1 bg-mantle h-40 animate-pulse rounded-xl border" />;
+    return <div className="glass-card-lite h-40 animate-pulse rounded-xl" />;
   }
 
   const items = [
@@ -18,7 +18,7 @@ export function WslInfoPanel() {
   ];
 
   return (
-    <div className="border-surface-1 bg-mantle rounded-xl border p-5">
+    <div className="glass-card-lite rounded-xl p-5">
       <div className="mb-4 flex items-center gap-2">
         <Info className="text-sapphire h-5 w-5" />
         <h4 className="text-text font-semibold">{t("wslInfo.title")}</h4>
@@ -33,7 +33,7 @@ export function WslInfoPanel() {
       {!isError && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {items.map(({ key, value }) => (
-            <div key={key} className="bg-base border-surface-0 rounded-lg border p-3">
+            <div key={key} className="rounded-lg border border-white/5 bg-white/3 p-3">
               <p className="text-subtext-0 text-xs font-medium">{t(key)}</p>
               <p className="text-text mt-1 font-mono text-sm">{value ?? t("common.na")}</p>
             </div>

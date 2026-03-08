@@ -49,7 +49,7 @@ export function WslConfigEditor() {
   );
 
   if (isLoading) {
-    return <div className="border-surface-1 bg-mantle h-64 animate-pulse rounded-xl border" />;
+    return <div className="glass-card-lite h-64 animate-pulse rounded-xl" />;
   }
 
   const errors = validateWslConfig(form);
@@ -60,11 +60,9 @@ export function WslConfigEditor() {
     updateConfig.mutate(form);
   };
 
-  const inputBase = "focus-ring w-full rounded-lg border bg-base px-3 py-1.5 text-sm text-text";
+  const inputBase = "focus-ring glass-input w-full rounded-lg px-3 py-1.5 text-sm text-text";
   const getInputClass = (field: keyof typeof errors) =>
-    touched.has(field) && errors[field]
-      ? `${inputBase} border-red`
-      : `${inputBase} border-surface-1`;
+    touched.has(field) && errors[field] ? `${inputBase} border-red` : inputBase;
 
   const fieldError = (field: keyof typeof errors) =>
     touched.has(field) && errors[field] ? (
@@ -72,13 +70,13 @@ export function WslConfigEditor() {
     ) : null;
 
   return (
-    <div className="border-surface-1 bg-mantle rounded-xl border p-5">
+    <div className="glass-card-lite rounded-xl p-5">
       <div className="mb-4 flex items-center justify-between">
         <h4 className="text-text font-semibold">{t("wslConfig.title")}</h4>
         <button
           onClick={handleSave}
           disabled={updateConfig.isPending || invalid}
-          className="bg-blue text-crust hover:bg-blue/90 flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
+          className="bg-blue text-crust hover:bg-blue/90 hover:neon-glow-blue flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
           data-testid="wslconfig-save"
         >
           {updateConfig.isPending ? (
@@ -248,7 +246,7 @@ export function WslConfigEditor() {
                 onChange={(e) => setForm({ ...form, kernel: e.target.value || null })}
                 placeholder={t("wslConfig.customKernelPathPlaceholder")}
                 maxLength={260}
-                className={`${inputBase} border-surface-1`}
+                className={inputBase}
               />
               <p className="text-overlay-0 mt-1 text-xs">{t("wslConfig.customKernelPathHint")}</p>
             </div>
@@ -262,7 +260,7 @@ export function WslConfigEditor() {
                 onChange={(e) => setForm({ ...form, kernel_command_line: e.target.value || null })}
                 placeholder={t("wslConfig.kernelCommandLinePlaceholder")}
                 maxLength={260}
-                className={`${inputBase} border-surface-1`}
+                className={inputBase}
               />
             </div>
             <div>
@@ -275,7 +273,7 @@ export function WslConfigEditor() {
                 onChange={(e) => setForm({ ...form, swap_file: e.target.value || null })}
                 placeholder={t("wslConfig.swapFilePathPlaceholder")}
                 maxLength={260}
-                className={`${inputBase} border-surface-1`}
+                className={inputBase}
               />
             </div>
             <div>

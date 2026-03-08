@@ -28,10 +28,10 @@ graph TD
 
 ```
 widgets/
-├── header/
+├── [header/](header/README.md)
 │   └── ui/
 │       └── header.tsx          # 📌 Top bar: branding + nav tabs + actions
-└── debug-console/
+└── [debug-console/](debug-console/README.md)
     └── ui/
         └── debug-console.tsx   # 🐛 Collapsible real-time log viewer
 ```

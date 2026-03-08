@@ -21,7 +21,7 @@ export function AuditLogViewer() {
   });
 
   return (
-    <div className="border-surface-1 bg-mantle rounded-xl border">
+    <div className="glass-card-lite rounded-xl">
       <div className="border-surface-0 flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <ScrollText className="text-lavender h-5 w-5" />
@@ -33,7 +33,7 @@ export function AuditLogViewer() {
           )}
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: auditKeys.all })}
-            className="text-subtext-0 hover:bg-surface-0 hover:text-text focus-ring rounded-lg p-1.5 transition-colors"
+            className="text-subtext-0 hover:text-text focus-ring rounded-lg p-1.5 transition-colors hover:bg-white/8"
             aria-label={t("auditLog.refreshAuditLog")}
           >
             <RefreshCw className="h-4 w-4" />
@@ -51,7 +51,7 @@ export function AuditLogViewer() {
               onChange={(e) => setActionFilter(e.target.value)}
               placeholder={t("auditLog.filterAction")}
               aria-label={t("auditLog.filterByAction")}
-              className="focus-ring border-surface-1 bg-base text-text w-full rounded-lg border py-1 pr-2 pl-7 text-xs sm:w-36"
+              className="focus-ring glass-input text-text w-full rounded-lg py-1 pr-2 pl-7 text-xs sm:w-36"
             />
           </div>
           <div className="relative flex-1 sm:flex-none">
@@ -65,7 +65,7 @@ export function AuditLogViewer() {
               onChange={(e) => setTargetFilter(e.target.value)}
               placeholder={t("auditLog.filterTarget")}
               aria-label={t("auditLog.filterByTarget")}
-              className="focus-ring border-surface-1 bg-base text-text w-full rounded-lg border py-1 pr-2 pl-7 text-xs sm:w-36"
+              className="focus-ring glass-input text-text w-full rounded-lg py-1 pr-2 pl-7 text-xs sm:w-36"
             />
           </div>
         </div>
@@ -74,7 +74,7 @@ export function AuditLogViewer() {
       {isLoading && (
         <div className="space-y-2 p-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-surface-0 h-8 animate-pulse rounded-lg" />
+            <div key={i} className="h-8 animate-pulse rounded-lg bg-white/5" />
           ))}
         </div>
       )}
@@ -89,7 +89,7 @@ export function AuditLogViewer() {
       {entries && entries.length > 0 && (
         <div className="max-h-96 overflow-auto">
           <table className="w-full text-xs">
-            <thead className="bg-mantle sticky top-0">
+            <thead className="bg-base/80 sticky top-0 backdrop-blur-sm">
               <tr className="border-surface-0 text-subtext-0 border-b text-left">
                 <th className="px-4 py-2">{t("auditLog.time")}</th>
                 <th className="px-4 py-2">{t("auditLog.action")}</th>
@@ -99,7 +99,7 @@ export function AuditLogViewer() {
             </thead>
             <tbody>
               {entries.map((entry) => (
-                <tr key={entry.id} className="border-surface-0/50 hover:bg-surface-0/50 border-b">
+                <tr key={entry.id} className="border-surface-0/50 border-b hover:bg-white/5">
                   <td className="text-overlay-1 px-4 py-1.5 whitespace-nowrap">
                     {formatRelativeTime(entry.timestamp)}
                   </td>

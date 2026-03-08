@@ -27,7 +27,7 @@ presentation/
 ├── mod.rs
 ├── state.rs              # 🗃️ AppState — composition root
 ├── events.rs             # ⚡ Tauri event definitions
-└── commands/             # 🎮 Tauri commands
+└── [commands/](commands/README.md)             # 🎮 Tauri commands
     ├── distro_commands.rs       # 🖥️ Distribution management
     ├── snapshot_commands.rs     # 📸 Snapshot management
     ├── monitoring_commands.rs   # 📊 System metrics + alerts

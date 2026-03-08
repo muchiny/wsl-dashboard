@@ -61,7 +61,7 @@ export function TerminalPanel() {
 
   return (
     <div
-      className={cn("border-surface-1 bg-base flex flex-col border-t", !isOpen && "h-8")}
+      className={cn("glass-panel flex flex-col border-t", !isOpen && "h-8")}
       style={isOpen ? { height: panelHeight } : undefined}
     >
       {/* Resize handle */}

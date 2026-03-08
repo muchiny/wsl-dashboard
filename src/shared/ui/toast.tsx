@@ -41,7 +41,7 @@ function ToastItem({ toast: toastItem, onDismiss }: { toast: Toast; onDismiss: (
     <div
       role="alert"
       className={cn(
-        "border-surface-1 bg-mantle flex items-start gap-3 rounded-xl border px-4 py-3 shadow-lg",
+        "glass-card flex items-start gap-3 rounded-xl px-4 py-3 shadow-lg",
         "animate-in slide-in-from-right fade-in duration-200",
         config.border,
       )}

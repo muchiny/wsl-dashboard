@@ -27,7 +27,7 @@ export function ToggleSwitch({
         onClick={onChange}
         className={cn(
           "focus-ring relative h-6 w-11 shrink-0 rounded-full transition-colors",
-          checked ? "bg-blue" : "bg-surface-1",
+          checked ? "bg-teal shadow-[0_0_8px_rgba(0,240,255,0.4)]" : "bg-surface-1",
         )}
       >
         <span

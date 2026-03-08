@@ -38,15 +38,15 @@ graph LR
 ```
 application/
 ├── mod.rs
-├── commands/             # ✏️ Command handlers (write)
+├── [commands/](commands/README.md)             # ✏️ Command handlers (write)
 │   ├── create_snapshot.rs  # 📸 CreateSnapshotCommand + Handler
 │   ├── delete_snapshot.rs  # 🗑️ DeleteSnapshotCommand + Handler
 │   └── restore_snapshot.rs # 🔄 RestoreSnapshotCommand + Handler
-├── queries/              # 🔍 Query handlers (read)
+├── [queries/](queries/README.md)              # 🔍 Query handlers (read)
 │   ├── list_distros.rs     # 🖥️ ListDistrosHandler
 │   ├── get_distro_details.rs  # 📋 GetDistroDetailsHandler
 │   └── list_snapshots.rs   # 📸 ListSnapshotsHandler
-├── dto/                  # 📦 Data Transfer Objects
+├── [dto/](dto/README.md)                  # 📦 Data Transfer Objects
 │   └── responses.rs        # DistroResponse, SnapshotResponse...
 └── services/             # ⚙️ Application services
     └── (empty)             # No service modules currently

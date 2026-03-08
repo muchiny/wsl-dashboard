@@ -56,8 +56,7 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
     );
   };
 
-  const inputClass =
-    "focus-ring w-full rounded-lg border border-surface-1 bg-base px-3 py-2 text-sm text-text";
+  const inputClass = "focus-ring w-full rounded-lg glass-input px-3 py-2 text-sm text-text";
 
   return (
     <DialogShell
@@ -75,7 +74,7 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
         </div>
         <button
           onClick={onClose}
-          className="focus-ring text-subtext-0 hover:bg-surface-0 rounded-lg p-1"
+          className="focus-ring text-subtext-0 rounded-lg p-1 hover:bg-white/8"
           aria-label={t("common.close")}
           data-testid="create-snapshot-close"
         >
@@ -166,7 +165,7 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
                   });
                   if (dir) setOutputDir(dir);
                 }}
-                className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
+                className="border-surface-1 text-subtext-0 hover:text-text shrink-0 rounded-lg border px-2 hover:bg-white/8"
                 title={t("common.browse")}
                 aria-label={t("common.browse")}
                 data-testid="create-snapshot-browse"
@@ -181,14 +180,14 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
           <button
             type="button"
             onClick={onClose}
-            className="border-surface-1 text-subtext-1 hover:bg-surface-0 rounded-lg border px-4 py-2 text-sm transition-colors"
+            className="border-surface-1 text-subtext-1 rounded-lg border px-4 py-2 text-sm transition-colors hover:bg-white/5"
           >
             {t("common.cancel")}
           </button>
           <button
             type="submit"
             disabled={createSnapshot.isPending}
-            className="bg-mauve text-crust hover:bg-mauve/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+            className="bg-mauve text-crust hover:bg-mauve/90 hover:neon-glow-purple flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
             data-testid="create-snapshot-submit"
           >
             {createSnapshot.isPending ? (

@@ -24,8 +24,7 @@ const INTERVAL_OPTIONS = [
   { key: "preferences.interval30s", value: 30000 },
 ];
 
-const inputClass =
-  "focus-ring border-surface-1 bg-base text-text w-full rounded-lg border px-3 py-2 text-sm";
+const inputClass = "focus-ring glass-input text-text w-full rounded-lg px-3 py-2 text-sm";
 
 export function PreferencesPanel() {
   const { t } = useTranslation();
@@ -73,7 +72,7 @@ export function PreferencesPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="border-surface-1 bg-mantle rounded-xl border p-5">
+      <div className="glass-card-lite rounded-xl p-5">
         <h4 className="text-text mb-4 font-semibold">{t("preferences.appearance")}</h4>
         <div className="flex gap-3">
           <button
@@ -120,7 +119,7 @@ export function PreferencesPanel() {
         </div>
       </div>
 
-      <div className="border-surface-1 bg-mantle rounded-xl border p-5">
+      <div className="glass-card-lite rounded-xl p-5">
         <div className="mb-4 flex items-center gap-2">
           <Timer className="text-mauve h-5 w-5" />
           <h4 className="text-text font-semibold">{t("preferences.monitoring")}</h4>
@@ -152,7 +151,7 @@ export function PreferencesPanel() {
         </div>
       </div>
 
-      <div className="border-surface-1 bg-mantle rounded-xl border p-5">
+      <div className="glass-card-lite rounded-xl p-5">
         <div className="mb-4 flex items-center gap-2">
           <Archive className="text-mauve h-5 w-5" />
           <h4 className="text-text font-semibold">{t("preferences.snapshotsSection")}</h4>
@@ -181,7 +180,7 @@ export function PreferencesPanel() {
                   });
                   if (dir) setDefaultSnapshotDir(dir);
                 }}
-                className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
+                className="border-surface-1 text-subtext-0 hover:text-text shrink-0 rounded-lg border px-2 hover:bg-white/8"
                 aria-label={t("preferences.browseSnapshotDir")}
               >
                 <FolderOpen className="h-4 w-4" />
@@ -211,7 +210,7 @@ export function PreferencesPanel() {
                   });
                   if (dir) setDefaultInstallLocation(dir);
                 }}
-                className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
+                className="border-surface-1 text-subtext-0 hover:text-text shrink-0 rounded-lg border px-2 hover:bg-white/8"
                 aria-label={t("preferences.browseInstallLocation")}
               >
                 <FolderOpen className="h-4 w-4" />
@@ -224,7 +223,7 @@ export function PreferencesPanel() {
         </div>
       </div>
 
-      <div className="border-surface-1 bg-mantle rounded-xl border p-5">
+      <div className="glass-card-lite rounded-xl p-5">
         <div className="mb-4 flex items-center gap-2">
           <Bell className="text-mauve h-5 w-5" />
           <h4 className="text-text font-semibold">{t("preferences.alerts")}</h4>

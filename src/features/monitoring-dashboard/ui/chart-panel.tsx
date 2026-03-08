@@ -5,10 +5,13 @@ import type { MetricsPoint } from "../hooks/use-metrics-history";
 const SKELETON_HEIGHTS = [35, 50, 40, 65, 55, 70, 45, 60, 50, 75, 55, 40];
 
 const TOOLTIP_STYLE = {
-  background: "var(--color-card)",
-  border: "1px solid var(--color-border)",
+  background: "rgba(15,15,35,0.92)",
+  backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
+  border: "1px solid rgba(255,255,255,0.1)",
   borderRadius: "6px",
   fontSize: "12px",
+  color: "rgba(255,255,255,0.9)",
 } as const;
 
 const AXIS_TICK = { fontSize: 10, fill: "var(--color-muted-foreground)" };
@@ -52,7 +55,7 @@ export function ChartPanel({
   skeletonHeights = SKELETON_HEIGHTS,
 }: ChartPanelProps) {
   return (
-    <div className="border-surface-1 bg-mantle min-w-0 overflow-hidden rounded-xl border p-4">
+    <div className="glass-card min-w-0 overflow-hidden rounded-xl p-4">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="text-sm font-semibold">{title}</h4>
         {headerValue}

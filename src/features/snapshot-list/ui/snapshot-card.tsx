@@ -24,7 +24,7 @@ export const SnapshotCard = memo(function SnapshotCard({
   const isFailed = snapshot.status.startsWith("failed");
 
   return (
-    <div className="border-surface-1 bg-base hover:border-mauve/40 rounded-xl border p-4 transition-all">
+    <div className="glass-card-lite hover:border-mauve/40 rounded-xl p-4 transition-all">
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -67,8 +67,8 @@ export const SnapshotCard = memo(function SnapshotCard({
           {formatRelativeTime(snapshot.created_at)}
         </span>
         {snapshot.file_size_bytes > 0 && <span>{formatBytes(snapshot.file_size_bytes)}</span>}
-        <span className="bg-surface-0 rounded-md px-1.5 py-0.5">{snapshot.format}</span>
-        <span className="bg-surface-0 rounded-md px-1.5 py-0.5">{snapshot.snapshot_type}</span>
+        <span className="rounded-md bg-white/5 px-1.5 py-0.5">{snapshot.format}</span>
+        <span className="rounded-md bg-white/5 px-1.5 py-0.5">{snapshot.snapshot_type}</span>
       </div>
 
       <div className="mt-3 flex justify-end gap-1">

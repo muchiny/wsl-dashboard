@@ -14,7 +14,7 @@ export function VhdxCompactPanel() {
   const wsl2Distros = distros?.filter((d) => d.wsl_version === 2) ?? [];
 
   return (
-    <div className="border-surface-1 bg-mantle rounded-xl border p-5">
+    <div className="glass-card-lite rounded-xl p-5">
       <div className="mb-4 flex items-center gap-2">
         <HardDrive className="text-teal h-5 w-5" />
         <h4 className="text-text font-semibold">{t("vhdxOptimization.title")}</h4>
@@ -39,7 +39,7 @@ export function VhdxCompactPanel() {
             if (selectedDistro) compactVhdx.mutate(selectedDistro);
           }}
           disabled={!selectedDistro || compactVhdx.isPending}
-          className="bg-teal text-crust hover:bg-teal/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+          className="bg-teal text-crust hover:bg-teal/90 hover:neon-glow-cyan flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
         >
           {compactVhdx.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -52,7 +52,7 @@ export function VhdxCompactPanel() {
         </button>
       </div>
 
-      <div className="border-surface-0 bg-base/50 text-subtext-0 mt-4 rounded-lg border p-3 text-xs">
+      <div className="border-surface-0 text-subtext-0 mt-4 rounded-lg border bg-white/3 p-3 text-xs">
         <Trans i18nKey="vhdxOptimization.note" components={{ strong: <strong /> }} />
       </div>
     </div>

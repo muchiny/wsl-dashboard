@@ -101,7 +101,9 @@ fn parse_reg_basepath(output: &str, distro_name: &str) -> Option<String> {
             if parts[0] == "DistributionName" && parts[2] == distro_name {
                 in_matching_block = true;
             } else if in_matching_block && parts[0] == "BasePath" {
-                return Some(parts[2].to_string());
+                // Strip \\?\ extended-length path prefix if present
+                let base = parts[2].strip_prefix(r"\\?\").unwrap_or(parts[2]);
+                return Some(base.to_string());
             }
         }
     }
@@ -752,6 +754,12 @@ impl WslManagerPort for WslCliAdapter {
                             target
                         ))
                     })?;
+                    // Strip \\?\ extended-length path prefix — wsl.exe and
+                    // downstream path operations are more reliable without it.
+                    let base_path = base_path
+                        .strip_prefix(r"\\?\")
+                        .unwrap_or(&base_path)
+                        .to_string();
                     return Ok(base_path);
                 }
             }

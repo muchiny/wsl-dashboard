@@ -45,7 +45,7 @@ export function SettingsPage() {
       <div
         role="tablist"
         aria-label={t("settings.ariaLabel")}
-        className="border-surface-1 bg-mantle flex flex-wrap gap-1 rounded-xl border p-1"
+        className="glass-panel flex flex-wrap gap-1 rounded-xl p-1"
       >
         {tabs.map((item) => (
           <button
@@ -58,8 +58,8 @@ export function SettingsPage() {
             className={cn(
               "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 sm:gap-2 sm:px-4 sm:py-2.5",
               tab === item.id
-                ? "bg-blue text-crust shadow-md"
-                : "text-subtext-1 hover:bg-surface-0 hover:text-text",
+                ? "bg-blue text-crust hover:neon-glow-blue shadow-md"
+                : "text-subtext-1 hover:text-text hover:bg-white/8",
             )}
           >
             <item.icon className="h-4 w-4" aria-hidden="true" />

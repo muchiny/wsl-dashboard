@@ -1,11 +1,9 @@
-import { useState, type ReactNode } from "react";
 import { useTranslation, Trans } from "react-i18next";
 import { Server, Search } from "lucide-react";
 import { useStartDistro, useStopDistro, useRestartDistro } from "../api/mutations";
 import { useSnapshotCounts } from "@/features/snapshot-list/api/queries";
 import { DistroCard } from "./distro-card";
 import { DistroRow } from "./distro-row";
-import { DistroSnapshotPanel } from "./distro-snapshot-panel";
 import type { Distro } from "@/shared/types/distro";
 import type { ViewMode } from "@/shared/stores/use-preferences-store";
 
@@ -16,7 +14,8 @@ interface DistroListProps {
   viewMode: ViewMode;
   isFiltered: boolean;
   onSnapshot: (distroName: string) => void;
-  onRestore: (snapshotId: string, distroName: string) => void;
+  selectedDistro: string | null;
+  onSelectDistro: (distroName: string) => void;
 }
 
 export function DistroList({
@@ -26,7 +25,8 @@ export function DistroList({
   viewMode,
   isFiltered,
   onSnapshot,
-  onRestore,
+  selectedDistro,
+  onSelectDistro,
 }: DistroListProps) {
   const { t } = useTranslation();
   const startDistro = useStartDistro();
@@ -34,20 +34,11 @@ export function DistroList({
   const restartDistro = useRestartDistro();
   const snapshotCounts = useSnapshotCounts();
 
-  const [expandedDistro, setExpandedDistro] = useState<string | null>(null);
-
-  const handleExpand = (distroName: string) => {
-    setExpandedDistro((prev) => (prev === distroName ? null : distroName));
-  };
-
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="border-surface-1 bg-mantle h-36 animate-pulse rounded-xl border"
-          />
+          <div key={i} className="glass-card-lite h-36 animate-pulse rounded-xl" />
         ))}
       </div>
     );
@@ -63,7 +54,7 @@ export function DistroList({
 
   if (distros.length === 0 && isFiltered) {
     return (
-      <div className="border-surface-1 bg-mantle flex flex-col items-center rounded-xl border px-8 py-12 text-center">
+      <div className="glass-card flex flex-col items-center rounded-xl px-8 py-12 text-center">
         <Search className="text-surface-2 mb-3 h-10 w-10" />
         <p className="text-text font-medium">{t("distros.noMatchingFilters")}</p>
         <p className="text-subtext-0 mt-1 text-sm">{t("distros.noMatchingFiltersHint")}</p>
@@ -73,7 +64,7 @@ export function DistroList({
 
   if (distros.length === 0) {
     return (
-      <div className="border-surface-1 bg-mantle flex flex-col items-center rounded-xl border px-8 py-12 text-center">
+      <div className="glass-card flex flex-col items-center rounded-xl px-8 py-12 text-center">
         <Server className="text-surface-2 mb-3 h-10 w-10" />
         <p className="text-text font-medium">{t("distros.noDistrosFound")}</p>
         <p className="text-subtext-0 mt-1 text-sm">
@@ -110,65 +101,41 @@ export function DistroList({
     return (
       <div className="flex flex-col gap-2">
         {distros.map((distro) => (
-          <div key={distro.name} className="flex flex-col gap-2">
-            <DistroRow
-              distro={distro}
-              onStart={() => startDistro.mutate(distro.name)}
-              onStop={() => stopDistro.mutate(distro.name)}
-              onRestart={() => restartDistro.mutate(distro.name)}
-              onSnapshot={() => onSnapshot(distro.name)}
-              pendingAction={
-                pendingAction?.distro === distro.name ? pendingAction.action : undefined
-              }
-              snapshotCount={snapshotCounts[distro.name] ?? 0}
-              onExpand={() => handleExpand(distro.name)}
-              isExpanded={expandedDistro === distro.name}
-            />
-            {expandedDistro === distro.name && (
-              <DistroSnapshotPanel
-                distroName={distro.name}
-                onRestore={onRestore}
-                onCreateSnapshot={() => onSnapshot(distro.name)}
-              />
-            )}
-          </div>
+          <DistroRow
+            key={distro.name}
+            distro={distro}
+            onStart={() => startDistro.mutate(distro.name)}
+            onStop={() => stopDistro.mutate(distro.name)}
+            onRestart={() => restartDistro.mutate(distro.name)}
+            onSnapshot={() => onSnapshot(distro.name)}
+            pendingAction={
+              pendingAction?.distro === distro.name ? pendingAction.action : undefined
+            }
+            snapshotCount={snapshotCounts[distro.name] ?? 0}
+            onSelect={() => onSelectDistro(distro.name)}
+            isSelected={selectedDistro === distro.name}
+          />
         ))}
       </div>
     );
   }
 
-  const gridItems: ReactNode[] = [];
-  for (const distro of distros) {
-    gridItems.push(
-      <DistroCard
-        key={distro.name}
-        distro={distro}
-        onStart={() => startDistro.mutate(distro.name)}
-        onStop={() => stopDistro.mutate(distro.name)}
-        onRestart={() => restartDistro.mutate(distro.name)}
-        onSnapshot={() => onSnapshot(distro.name)}
-        pendingAction={pendingAction?.distro === distro.name ? pendingAction.action : undefined}
-        onExpand={() => handleExpand(distro.name)}
-        isExpanded={expandedDistro === distro.name}
-        snapshotCount={snapshotCounts[distro.name] ?? 0}
-      />,
-    );
-
-    if (expandedDistro === distro.name) {
-      gridItems.push(
-        <DistroSnapshotPanel
-          key={`panel-${distro.name}`}
-          distroName={distro.name}
-          onRestore={onRestore}
-          onCreateSnapshot={() => onSnapshot(distro.name)}
-        />,
-      );
-    }
-  }
-
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-      {gridItems}
+      {distros.map((distro) => (
+        <DistroCard
+          key={distro.name}
+          distro={distro}
+          onStart={() => startDistro.mutate(distro.name)}
+          onStop={() => stopDistro.mutate(distro.name)}
+          onRestart={() => restartDistro.mutate(distro.name)}
+          onSnapshot={() => onSnapshot(distro.name)}
+          pendingAction={pendingAction?.distro === distro.name ? pendingAction.action : undefined}
+          onSelect={() => onSelectDistro(distro.name)}
+          isSelected={selectedDistro === distro.name}
+          snapshotCount={snapshotCounts[distro.name] ?? 0}
+        />
+      ))}
     </div>
   );
 }

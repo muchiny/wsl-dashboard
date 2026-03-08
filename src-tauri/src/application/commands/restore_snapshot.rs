@@ -98,7 +98,11 @@ impl RestoreSnapshotHandler {
             let backup_dir = std::path::Path::new(&cmd.install_location)
                 .parent()
                 .unwrap_or(std::path::Path::new(&cmd.install_location));
-            let backup_file = backup_dir.join(format!("{}_pre_restore_backup.tar", target_name,));
+            let backup_file = backup_dir.join(format!(
+                "{}_pre_restore_backup.{}",
+                target_name,
+                snapshot.format.extension()
+            ));
             let backup_str = backup_file.to_string_lossy().to_string();
             tracing::info!(
                 distro = %target_name,
@@ -202,10 +206,25 @@ impl RestoreSnapshotHandler {
                 }
                 tokio::time::sleep(std::time::Duration::from_millis(500)).await;
             }
+            // Clean the install directory of any residual files to ensure
+            // wsl --import creates a fresh VHDX from the snapshot.
+            if let Ok(entries) = std::fs::read_dir(&cmd.install_location) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    tracing::info!(file = %path.display(), "removing residual file from install directory");
+                    let _ = std::fs::remove_file(&path);
+                }
+            }
+
             tracing::info!(
                 vhdx = %vhdx_path.display(),
-                "old VHDX confirmed deleted, proceeding with import"
+                "install directory cleaned, proceeding with import"
             );
+
+            // Final WSL shutdown to release any lingering file handles
+            // before the import creates a new VHDX.
+            let _ = self.wsl_manager.shutdown_all().await;
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
         }
 
         tracing::info!(
@@ -279,9 +298,8 @@ impl RestoreSnapshotHandler {
         tracing::info!(distro = %target_name, "import verified: distro exists");
 
         // Verify the new VHDX was actually created from the snapshot.
-        // If the VHDX existed before import (stale lock), wsl --import may
-        // have silently reused it instead of the tar, resulting in a "restore"
-        // that contains the old data.
+        // If the import silently reused stale data, the VHDX won't have
+        // a recent modification time.
         let new_vhdx = std::path::Path::new(&cmd.install_location).join("ext4.vhdx");
         let linux_loc = windows_to_linux_path(&cmd.install_location);
         let new_vhdx_linux = std::path::Path::new(&linux_loc).join("ext4.vhdx");
@@ -294,15 +312,30 @@ impl RestoreSnapshotHandler {
                 }
             })
             .ok();
-        if let Some(meta) = vhdx_meta {
+        if let Some(meta) = &vhdx_meta {
+            let modified_recently = meta
+                .modified()
+                .ok()
+                .and_then(|t| t.elapsed().ok())
+                .is_some_and(|age| age.as_secs() < 120);
             tracing::info!(
                 vhdx_size = meta.len(),
                 snapshot_size = snapshot.file_size.bytes(),
-                "post-import VHDX size check"
+                modified_recently,
+                "post-import VHDX verification"
             );
+            if !modified_recently {
+                return Err(DomainError::SnapshotError(
+                    "Import succeeded but the VHDX was not updated — the old \
+                     filesystem may still be in use. Please close all WSL \
+                     sessions and try again."
+                        .into(),
+                ));
+            }
         } else {
             tracing::warn!(
-                "post-import VHDX not found at expected location — import may have used a different path"
+                install_location = %cmd.install_location,
+                "post-import VHDX not found — import may have used a different path"
             );
         }
 

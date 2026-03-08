@@ -15,20 +15,20 @@ The Domain layer contains the **pure business logic** of the application. It dep
 ```
 domain/
 ├── mod.rs
-├── entities/            # 🏛️ Business objects with identity
+├── [entities/](entities/README.md)            # 🏛️ Business objects with identity
 │   ├── distro.rs          # 🖥️ WSL Distribution
 │   ├── snapshot.rs        # 📸 Distribution backup
 │   ├── monitoring.rs      # 📊 System metrics (CPU, RAM, disk, network, processes)
 │   ├── wsl_config.rs      # ⚙️ Global and per-distro WSL configuration
 │   ├── wsl_version.rs     # 🏷️ WSL version entity
 │   └── port_forward.rs    # 🔀 Port forwarding (ListeningPort, PortForwardRule)
-├── value_objects/       # 💠 Immutable objects validated at construction
+├── [value_objects/](value_objects/README.md)       # 💠 Immutable objects validated at construction
 │   ├── distro_name.rs     # 🏷️ Distribution name (non-empty)
 │   ├── distro_state.rs    # 🚦 State: Running, Stopped, Installing...
 │   ├── wsl_version.rs     # 🔢 Version: V1, V2
 │   ├── memory_size.rs     # 💾 Memory size (bytes -> KB/MB/GB)
 │   └── snapshot_id.rs     # 🆔 UUID identifier
-├── ports/               # 🔗 Interfaces (traits) to the outside world
+├── [ports/](ports/README.md)               # 🔗 Interfaces (traits) to the outside world
 │   ├── wsl_manager.rs         # 🖥️ WSL distribution management
 │   ├── snapshot_repository.rs # 📸 Snapshot persistence
 │   ├── monitoring_provider.rs # 📊 Metrics collection
@@ -36,7 +36,7 @@ domain/
 │   ├── audit_logger.rs        # 📋 Audit logging
 │   ├── alerting.rs            # 🔔 Alert thresholds + records (AlertType, AlertThreshold, AlertRecord)
 │   └── port_forwarding.rs     # 🔀 Port forwarding (PortForwardingPort + PortForwardRulesRepository)
-├── services/            # ⚙️ Orchestrated business logic
+├── [services/](services/README.md)            # ⚙️ Orchestrated business logic
 │   └── distro_service.rs  # 🖥️ Distribution management rules
 └── errors.rs            # ⚠️ DomainError enum
 ```

@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Star, Archive, Loader2, ChevronDown } from "lucide-react";
+import { Star, Archive, Loader2 } from "lucide-react";
 import type { Distro } from "@/shared/types/distro";
 import { cn } from "@/shared/lib/utils";
 import { formatBytes } from "@/shared/lib/formatters";
@@ -14,8 +14,8 @@ interface DistroRowProps {
   onSnapshot: () => void;
   pendingAction?: string;
   snapshotCount: number;
-  onExpand: () => void;
-  isExpanded: boolean;
+  onSelect: () => void;
+  isSelected: boolean;
 }
 
 export const DistroRow = memo(function DistroRow({
@@ -26,8 +26,8 @@ export const DistroRow = memo(function DistroRow({
   onSnapshot,
   pendingAction,
   snapshotCount,
-  onExpand,
-  isExpanded,
+  onSelect,
+  isSelected,
 }: DistroRowProps) {
   const {
     t,
@@ -43,19 +43,19 @@ export const DistroRow = memo(function DistroRow({
     handleTerminal,
     handleMonitorClick,
     ariaLabel,
-  } = useDistroActions({ distro, pendingAction, onStart, onStop, onRestart, onSnapshot, onExpand });
+  } = useDistroActions({ distro, pendingAction, onStart, onStop, onRestart, onSnapshot, onExpand: onSelect });
 
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={onExpand}
+      onClick={onSelect}
       onKeyDown={handleKeyDown}
-      aria-expanded={isExpanded}
+      aria-pressed={isSelected}
       aria-label={ariaLabel}
       className={cn(
-        "border-surface-1 bg-mantle focus-ring flex cursor-pointer items-center gap-4 rounded-xl border px-4 py-3 transition-colors",
-        isExpanded ? "border-mauve/50" : "hover:border-blue/40",
+        "glass-card-lite focus-ring flex cursor-pointer items-center gap-4 rounded-xl px-4 py-3 transition-colors",
+        isSelected ? "border-mauve/50" : "hover:border-blue/40",
       )}
     >
       {/* Name + status dot + default star */}
@@ -63,7 +63,7 @@ export const DistroRow = memo(function DistroRow({
         <div
           className={cn(
             "h-2.5 w-2.5 shrink-0 rounded-full",
-            isRunning ? "bg-green shadow-green/50 shadow-[0_0_8px]" : "bg-surface-2",
+            isRunning ? "bg-green shadow-[0_0_12px_rgba(48,209,88,0.6)]" : "bg-surface-2",
           )}
           aria-hidden="true"
         />
@@ -123,14 +123,6 @@ export const DistroRow = memo(function DistroRow({
         pendingAction={pendingAction}
       />
 
-      {/* Expand indicator */}
-      <ChevronDown
-        className={cn(
-          "text-subtext-0 h-4 w-4 shrink-0 transition-transform duration-200",
-          isExpanded && "rotate-180",
-        )}
-        aria-hidden="true"
-      />
     </div>
   );
 });

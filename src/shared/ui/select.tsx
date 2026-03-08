@@ -152,7 +152,7 @@ export function Select({
         aria-haspopup="listbox"
         aria-activedescendant={activeDescendant}
         className={cn(
-          "border-surface-1 bg-base text-text flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors",
+          "glass-input text-text flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors",
           "focus-ring hover:border-surface-2",
           open && "border-blue",
         )}
@@ -171,7 +171,7 @@ export function Select({
         <div
           ref={listboxRef}
           role="listbox"
-          className="bg-surface-0 border-surface-1 absolute top-full left-0 z-50 mt-1 max-h-60 w-full min-w-[160px] overflow-y-auto rounded-lg border py-1 shadow-lg"
+          className="glass-dropdown absolute top-full left-0 z-50 mt-1 max-h-60 w-full min-w-[160px] overflow-y-auto rounded-lg py-1 shadow-lg"
         >
           {allItems.map((item, index) => {
             const isSelected = item.value === value || (!item.value && !value);
@@ -190,8 +190,8 @@ export function Select({
                 className={cn(
                   "flex w-full items-center gap-2 px-3 py-1.5 text-sm transition-colors",
                   isSelected ? "text-blue" : isPlaceholder ? "text-overlay-0" : "text-subtext-1",
-                  isHighlighted && "bg-surface-1 text-text",
-                  !isHighlighted && !isSelected && "hover:bg-surface-1 hover:text-text",
+                  isHighlighted && "text-text bg-white/10",
+                  !isHighlighted && !isSelected && "hover:text-text hover:bg-white/8",
                 )}
               >
                 <Check

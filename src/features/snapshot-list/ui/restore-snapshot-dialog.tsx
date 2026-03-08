@@ -95,8 +95,7 @@ export function RestoreSnapshotDialog({
     );
   };
 
-  const inputClass =
-    "focus-ring w-full rounded-lg border border-surface-1 bg-base px-3 py-2 text-sm text-text";
+  const inputClass = "focus-ring w-full rounded-lg glass-input px-3 py-2 text-sm text-text";
 
   return (
     <DialogShell
@@ -114,7 +113,7 @@ export function RestoreSnapshotDialog({
         </div>
         <button
           onClick={onClose}
-          className="text-subtext-0 hover:bg-surface-0 rounded-lg p-1"
+          className="text-subtext-0 rounded-lg p-1 hover:bg-white/8"
           aria-label={t("common.close")}
           data-testid="restore-snapshot-close"
         >
@@ -211,7 +210,7 @@ export function RestoreSnapshotDialog({
                   });
                   if (dir) setInstallLocation(dir);
                 }}
-                className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
+                className="border-surface-1 text-subtext-0 hover:text-text shrink-0 rounded-lg border px-2 hover:bg-white/8"
                 aria-label={t("snapshots.restore.browseInstallLocation")}
               >
                 <FolderOpen className="h-4 w-4" />
@@ -234,7 +233,7 @@ export function RestoreSnapshotDialog({
                 {t("snapshots.restore.detectingPath")}
               </div>
             ) : overwritePath ? (
-              <p className="text-text bg-surface-0 rounded-lg px-3 py-2 font-mono text-xs">
+              <p className="text-text glass-input rounded-lg px-3 py-2 font-mono text-xs">
                 {overwritePath}
               </p>
             ) : (
@@ -260,7 +259,7 @@ export function RestoreSnapshotDialog({
                       });
                       if (dir) setManualOverwritePath(dir);
                     }}
-                    className="border-surface-1 text-subtext-0 hover:bg-surface-0 hover:text-text shrink-0 rounded-lg border px-2"
+                    className="border-surface-1 text-subtext-0 hover:text-text shrink-0 rounded-lg border px-2 hover:bg-white/8"
                     aria-label={t("snapshots.restore.browseInstallLocation")}
                   >
                     <FolderOpen className="h-4 w-4" />
@@ -275,7 +274,7 @@ export function RestoreSnapshotDialog({
           <button
             type="button"
             onClick={onClose}
-            className="border-surface-1 text-subtext-1 hover:bg-surface-0 rounded-lg border px-4 py-2 text-sm transition-colors"
+            className="border-surface-1 text-subtext-1 rounded-lg border px-4 py-2 text-sm transition-colors hover:bg-white/5"
           >
             {t("common.cancel")}
           </button>
@@ -287,7 +286,7 @@ export function RestoreSnapshotDialog({
               overwritePathLoading ||
               (mode === "overwrite" && !effectiveInstallLocation)
             }
-            className="bg-blue text-crust hover:bg-blue/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+            className="bg-blue text-crust hover:bg-blue/90 hover:neon-glow-blue flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
             data-testid="restore-snapshot-submit"
           >
             {restoreSnapshot.isPending ? (

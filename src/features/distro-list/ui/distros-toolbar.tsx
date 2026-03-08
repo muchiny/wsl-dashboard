@@ -61,7 +61,7 @@ const sortOptions: { value: SortKey; key: string }[] = [
 const pill =
   "rounded-full px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer select-none";
 const pillActive = "bg-blue text-crust";
-const pillInactive = "text-subtext-0 hover:bg-surface-0 hover:text-text";
+const pillInactive = "text-subtext-0 hover:bg-white/8 hover:text-text";
 
 export function DistrosToolbar({
   searchQuery,
@@ -105,7 +105,7 @@ export function DistrosToolbar({
   };
 
   return (
-    <div className="bg-mantle space-y-3 rounded-xl p-3">
+    <div className="glass-panel relative z-20 space-y-3 rounded-xl p-3">
       {/* Row 1: Stats + Search + Actions */}
       <div className="flex items-center gap-2">
         {/* Inline stats */}
@@ -126,7 +126,7 @@ export function DistrosToolbar({
             placeholder={t("distros.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="focus-ring bg-base text-text placeholder:text-overlay-0 w-full rounded-lg py-2 pr-8 pl-9 text-sm"
+            className="focus-ring glass-input text-text placeholder:text-overlay-0 w-full rounded-lg py-2 pr-8 pl-9 text-sm"
           />
           {searchQuery && (
             <button
@@ -141,18 +141,20 @@ export function DistrosToolbar({
         <button
           onClick={handleRefresh}
           disabled={isFetching}
-          className="text-subtext-0 hover:bg-surface-0 hover:text-text rounded-lg p-2 transition-colors disabled:opacity-40"
+          className="text-subtext-0 hover:text-text rounded-lg p-2 transition-colors hover:bg-white/8 disabled:opacity-40"
           aria-label={t("distros.refreshDistributions")}
         >
           <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
         </button>
 
-        <div className="bg-surface-0 flex gap-0.5 rounded-lg p-0.5">
+        <div className="flex gap-0.5 rounded-lg bg-white/5 p-0.5">
           <button
             onClick={() => setViewMode("grid")}
             className={cn(
               "rounded-md p-1.5 transition-colors",
-              viewMode === "grid" ? "bg-blue text-crust" : "text-subtext-0 hover:text-text",
+              viewMode === "grid"
+                ? "bg-blue text-crust hover:neon-glow-blue"
+                : "text-subtext-0 hover:text-text",
             )}
             aria-label={t("distros.gridView")}
           >
@@ -162,7 +164,9 @@ export function DistrosToolbar({
             onClick={() => setViewMode("list")}
             className={cn(
               "rounded-md p-1.5 transition-colors",
-              viewMode === "list" ? "bg-blue text-crust" : "text-subtext-0 hover:text-text",
+              viewMode === "list"
+                ? "bg-blue text-crust hover:neon-glow-blue"
+                : "text-subtext-0 hover:text-text",
             )}
             aria-label={t("distros.listView")}
           >
@@ -174,7 +178,7 @@ export function DistrosToolbar({
       {/* Row 2: Filters + Sort + Bulk Actions */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Status pills */}
-        <div className="bg-surface-0/50 flex gap-0.5 rounded-full p-0.5">
+        <div className="flex gap-0.5 rounded-full bg-white/5 p-0.5">
           {statusOptions.map((opt) => (
             <button
               key={opt.value}
@@ -188,7 +192,7 @@ export function DistrosToolbar({
         </div>
 
         {/* WSL version pills */}
-        <div className="bg-surface-0/50 flex gap-0.5 rounded-full p-0.5">
+        <div className="flex gap-0.5 rounded-full bg-white/5 p-0.5">
           {wslVersionOptions.map((opt) => (
             <button
               key={opt.value}
@@ -205,7 +209,7 @@ export function DistrosToolbar({
         <div className="relative" ref={sortRef}>
           <button
             onClick={() => setSortOpen((v) => !v)}
-            className="bg-surface-0/50 text-subtext-1 hover:text-text flex max-w-[180px] items-center gap-1.5 rounded-full py-1 pr-2.5 pl-2.5 text-xs font-medium transition-colors"
+            className="text-subtext-1 hover:text-text flex max-w-[180px] items-center gap-1.5 rounded-full bg-white/5 py-1 pr-2.5 pl-2.5 text-xs font-medium transition-colors"
             data-testid="sort-dropdown"
           >
             <ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
@@ -217,7 +221,7 @@ export function DistrosToolbar({
             />
           </button>
           {sortOpen && (
-            <div className="bg-surface-0 border-surface-1 absolute top-full left-0 z-50 mt-1 min-w-[160px] rounded-lg border py-1 shadow-lg">
+            <div className="glass-dropdown absolute top-full left-0 z-50 mt-1 min-w-[160px] rounded-lg py-1 shadow-lg">
               {sortOptions.map((opt) => (
                 <button
                   key={opt.value}
@@ -230,7 +234,7 @@ export function DistrosToolbar({
                     "flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors",
                     sortKey === opt.value
                       ? "text-blue"
-                      : "text-subtext-1 hover:bg-surface-1 hover:text-text",
+                      : "text-subtext-1 hover:text-text hover:bg-white/8",
                   )}
                 >
                   <Check
@@ -253,7 +257,7 @@ export function DistrosToolbar({
           <button
             onClick={() => startAll.mutate(stoppedNames)}
             disabled={startAll.isPending || stoppedNames.length === 0}
-            className="bg-green/20 text-green hover:bg-green/30 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+            className="bg-green/20 text-green hover:bg-green/30 hover:neon-glow-green flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
             data-testid="start-all"
           >
             {startAll.isPending ? (
@@ -266,7 +270,7 @@ export function DistrosToolbar({
 
           <button
             onClick={onNewSnapshot}
-            className="bg-mauve/20 text-mauve hover:bg-mauve/30 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+            className="bg-mauve/20 text-mauve hover:bg-mauve/30 hover:neon-glow-purple flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
             data-testid="new-snapshot"
           >
             <Plus className="h-3.5 w-3.5" />

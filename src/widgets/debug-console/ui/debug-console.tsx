@@ -46,7 +46,7 @@ export function DebugConsole() {
       {/* Toggle bar — always visible */}
       <button
         onClick={toggle}
-        className="bg-mantle hover:bg-surface-0 flex h-8 items-center justify-between px-4 text-xs transition-colors"
+        className="glass-surface flex h-8 items-center justify-between px-4 text-xs transition-colors hover:bg-white/5"
       >
         <div className="text-subtext-0 flex items-center gap-2">
           <Terminal className="h-3.5 w-3.5" />
@@ -72,7 +72,7 @@ export function DebugConsole() {
 
       {/* Expandable panel */}
       {isOpen && (
-        <div className="bg-crust flex h-[40vh] flex-col">
+        <div className="glass-panel flex h-[40vh] flex-col">
           {/* Toolbar */}
           <div className="border-surface-1 flex items-center justify-between border-b px-3 py-1.5">
             {/* Level filters */}
@@ -85,7 +85,7 @@ export function DebugConsole() {
                     "rounded px-2 py-0.5 text-xs font-medium transition-colors",
                     filter === f.value
                       ? "bg-blue/15 text-blue"
-                      : "text-subtext-0 hover:bg-surface-0 hover:text-text",
+                      : "text-subtext-0 hover:text-text hover:bg-white/8",
                   )}
                 >
                   {t(f.key)}
@@ -97,14 +97,14 @@ export function DebugConsole() {
             <div className="flex items-center gap-1">
               <button
                 onClick={clear}
-                className="text-subtext-0 hover:bg-surface-0 hover:text-text rounded p-1 transition-colors"
+                className="text-subtext-0 hover:text-text rounded p-1 transition-colors hover:bg-white/8"
                 title={t("debug.clearLogs")}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={toggle}
-                className="text-subtext-0 hover:bg-surface-0 hover:text-text rounded p-1 transition-colors"
+                className="text-subtext-0 hover:text-text rounded p-1 transition-colors hover:bg-white/8"
                 title={t("debug.close")}
               >
                 <X className="h-3.5 w-3.5" />
@@ -125,7 +125,7 @@ export function DebugConsole() {
                     <tr
                       key={entry.id}
                       className={cn(
-                        "border-surface-0/50 hover:bg-surface-0/30 border-b",
+                        "border-surface-0/50 border-b hover:bg-white/5",
                         entry.level === "ERROR" && "bg-red/5",
                       )}
                     >

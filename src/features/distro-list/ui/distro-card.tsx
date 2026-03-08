@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Star, Archive, Loader2, ChevronDown } from "lucide-react";
+import { Star, Archive, Loader2 } from "lucide-react";
 import type { Distro } from "@/shared/types/distro";
 import { cn } from "@/shared/lib/utils";
 import { useDistroActions } from "../hooks/use-distro-actions";
@@ -12,8 +12,8 @@ interface DistroCardProps {
   onRestart: () => void;
   onSnapshot: () => void;
   pendingAction?: string;
-  onExpand: () => void;
-  isExpanded: boolean;
+  onSelect: () => void;
+  isSelected: boolean;
   snapshotCount: number;
 }
 
@@ -24,8 +24,8 @@ export const DistroCard = memo(function DistroCard({
   onRestart,
   onSnapshot,
   pendingAction,
-  onExpand,
-  isExpanded,
+  onSelect,
+  isSelected,
   snapshotCount,
 }: DistroCardProps) {
   const {
@@ -42,21 +42,21 @@ export const DistroCard = memo(function DistroCard({
     handleTerminal,
     handleMonitorClick,
     ariaLabel,
-  } = useDistroActions({ distro, pendingAction, onStart, onStop, onRestart, onSnapshot, onExpand });
+  } = useDistroActions({ distro, pendingAction, onStart, onStop, onRestart, onSnapshot, onExpand: onSelect });
 
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={onExpand}
+      onClick={onSelect}
       onKeyDown={handleKeyDown}
-      aria-expanded={isExpanded}
+      aria-pressed={isSelected}
       aria-label={ariaLabel}
       className={cn(
-        "group border-surface-1 bg-mantle focus-ring cursor-pointer rounded-xl border p-5 transition-all duration-200",
-        isExpanded
-          ? "border-mauve/50 shadow-mauve/5 shadow-lg"
-          : "hover:border-blue/40 hover:shadow-blue/5 hover:shadow-lg",
+        "group glass-card-lite focus-ring cursor-pointer rounded-xl p-5 transition-all duration-200",
+        isSelected
+          ? "border-mauve/50 neon-glow-purple"
+          : "hover:border-blue/40 hover:shadow-[0_0_12px_rgba(10,132,255,0.1)]",
       )}
     >
       {/* Header */}
@@ -65,7 +65,7 @@ export const DistroCard = memo(function DistroCard({
           <div
             className={cn(
               "h-2.5 w-2.5 rounded-full",
-              isRunning ? "bg-green shadow-green/50 shadow-[0_0_8px]" : "bg-surface-2",
+              isRunning ? "bg-green shadow-[0_0_12px_rgba(48,209,88,0.6)]" : "bg-surface-2",
             )}
             aria-hidden="true"
           />
@@ -104,13 +104,6 @@ export const DistroCard = memo(function DistroCard({
           </span>
         )}
         <div className="flex-1" />
-        <ChevronDown
-          className={cn(
-            "text-subtext-0 h-4 w-4 transition-transform duration-200",
-            isExpanded && "rotate-180",
-          )}
-          aria-hidden="true"
-        />
       </div>
 
       {/* Actions */}

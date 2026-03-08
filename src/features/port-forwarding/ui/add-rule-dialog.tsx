@@ -81,7 +81,7 @@ export function AddRuleDialog({ open, onClose, defaultDistro }: AddRuleDialogPro
               value={wslPort}
               onChange={(e) => setWslPort(e.target.value)}
               placeholder={t("portForwarding.add.portPlaceholder")}
-              className="focus-ring border-surface-1 bg-mantle text-text placeholder:text-overlay-0 w-full rounded-lg border px-3 py-2 text-sm"
+              className="focus-ring glass-input text-text placeholder:text-overlay-0 w-full rounded-lg px-3 py-2 text-sm"
               required
             />
           </div>
@@ -96,13 +96,13 @@ export function AddRuleDialog({ open, onClose, defaultDistro }: AddRuleDialogPro
               value={hostPort}
               onChange={(e) => setHostPort(e.target.value)}
               placeholder={t("portForwarding.add.portPlaceholder")}
-              className="focus-ring border-surface-1 bg-mantle text-text placeholder:text-overlay-0 w-full rounded-lg border px-3 py-2 text-sm"
+              className="focus-ring glass-input text-text placeholder:text-overlay-0 w-full rounded-lg px-3 py-2 text-sm"
               required
             />
           </div>
         </div>
 
-        <div className="border-surface-0 bg-mantle/50 text-subtext-0 rounded-lg border p-3 text-xs">
+        <div className="text-subtext-0 rounded-lg border border-white/5 bg-white/3 p-3 text-xs">
           <Trans
             i18nKey="portForwarding.add.description"
             values={{
@@ -118,14 +118,14 @@ export function AddRuleDialog({ open, onClose, defaultDistro }: AddRuleDialogPro
           <button
             type="button"
             onClick={onClose}
-            className="focus-ring text-subtext-0 hover:text-text rounded-lg px-4 py-2 text-sm transition-colors"
+            className="focus-ring text-subtext-0 hover:text-text rounded-lg px-4 py-2 text-sm transition-colors hover:bg-white/5"
           >
             {t("common.cancel")}
           </button>
           <button
             type="submit"
             disabled={addRule.isPending}
-            className="focus-ring bg-blue text-crust hover:bg-blue/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+            className="focus-ring bg-blue text-crust hover:bg-blue/90 hover:neon-glow-blue flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
             data-testid="add-rule-submit"
           >
             {addRule.isPending ? (

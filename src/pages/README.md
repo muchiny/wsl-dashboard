@@ -44,9 +44,9 @@ Each page is registered as a route in `router.tsx`.
 
 | Route | Page | 🧩 Features Used | Description |
 |---|---|---|---|
-| `/` | 🖥️ `DistrosPage` | `distro-list`, `distro-events`, `snapshot-list`, `terminal` | Distribution management with snapshots and terminal |
-| `/monitoring` | 📊 `MonitoringPage` | `monitoring-dashboard`, `distro-list` | Real-time metrics (requires distro selection) |
-| `/settings` | ⚙️ `SettingsPage` | `wsl-config`, `audit-log`, `port-forwarding`, `app-preferences` | .wslconfig editor + port forwarding + preferences + audit trail |
+| `/` | 🖥️ [`DistrosPage`](distros/README.md) | `distro-list`, `distro-events`, `snapshot-list`, `terminal` | Distribution management with snapshots and terminal |
+| `/monitoring` | 📊 [`MonitoringPage`](monitoring/README.md) | `monitoring-dashboard`, `distro-list` | Real-time metrics (requires distro selection) |
+| `/settings` | ⚙️ [`SettingsPage`](settings/README.md) | `wsl-config`, `audit-log`, `port-forwarding`, `app-preferences` | .wslconfig editor + port forwarding + preferences + audit trail |
 
 ---
 
