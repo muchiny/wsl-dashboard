@@ -161,75 +161,51 @@ impl RestoreSnapshotHandler {
                     ))
                 })?;
 
-            // Verify the VHDX is actually deleted before importing.
-            // After --unregister, the WSL2 VM may still hold a lock on the VHDX,
-            // preventing deletion. If we import before the old VHDX is gone,
-            // wsl --import may silently reuse the old filesystem instead of the tar.
-            //
-            // Check both the original path and the Windows→Linux converted path,
-            // since the install_location may be in either format.
-            let vhdx_path = std::path::Path::new(&cmd.install_location).join("ext4.vhdx");
-            let linux_install = windows_to_linux_path(&cmd.install_location);
-            let vhdx_path_linux = std::path::Path::new(&linux_install).join("ext4.vhdx");
-            let vhdx_exists = || -> bool {
-                vhdx_path.exists() || (vhdx_path_linux != vhdx_path && vhdx_path_linux.exists())
-            };
-
-            let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(10);
-            while vhdx_exists() {
-                if tokio::time::Instant::now() >= deadline {
-                    // VHDX still locked — try another full shutdown
+            // Nuke the entire install directory to guarantee wsl --import
+            // creates a fresh VHDX from the snapshot tar. If the old ext4.vhdx
+            // persists (known WSL bug: wslservice.exe holds a file handle after
+            // unregister), wsl --import silently reuses it instead of the tar.
+            let install_path = std::path::Path::new(&cmd.install_location);
+            if install_path.exists() {
+                tracing::warn!(
+                    "removing install directory before import: {}",
+                    cmd.install_location
+                );
+                if let Err(e) = std::fs::remove_dir_all(install_path) {
+                    // VHDX still locked — try another full shutdown and retry
                     tracing::warn!(
-                        "VHDX still exists after 10s, forcing WSL shutdown: path={} linux={}",
-                        vhdx_path.display(),
-                        vhdx_path_linux.display()
+                        "remove_dir_all failed ({}), forcing WSL shutdown and retrying",
+                        e
                     );
                     let _ = self.wsl_manager.shutdown_all().await;
                     tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-                    // Force-delete if still present (try both paths)
-                    for p in [&vhdx_path, &vhdx_path_linux] {
-                        if p.exists()
-                            && let Err(e) = std::fs::remove_file(p)
-                        {
-                            tracing::warn!(
-                                "force-delete VHDX failed: path={} error={}",
-                                p.display(),
-                                e
-                            );
-                        }
-                    }
-                    // Final check: if VHDX is STILL there, abort to avoid silent data reuse
-                    if vhdx_exists() {
-                        return Err(DomainError::SnapshotError(format!(
-                            "Cannot delete old VHDX at {} — the file is still locked. \
-                             Please close any applications using WSL and try again.",
-                            vhdx_path.display()
-                        )));
-                    }
-                    break;
-                }
-                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-            }
-            // Clean the install directory of any residual files to ensure
-            // wsl --import creates a fresh VHDX from the snapshot.
-            if let Ok(entries) = std::fs::read_dir(&cmd.install_location) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    tracing::info!(
-                        "removing residual file from install directory: {}",
-                        path.display()
+                    std::fs::remove_dir_all(install_path).map_err(|e| {
+                        DomainError::SnapshotError(format!(
+                            "Cannot delete install directory '{}': {}. \
+                             Close all WSL sessions and try again.",
+                            cmd.install_location, e
+                        ))
+                    })?;
+                    tracing::warn!(
+                        "install directory removed after WSL shutdown: {}",
+                        cmd.install_location
                     );
-                    let _ = std::fs::remove_file(&path);
                 }
             }
 
-            tracing::info!(
-                "install directory cleaned, proceeding with import: vhdx={}",
-                vhdx_path.display()
+            // Recreate empty directory for wsl --import
+            std::fs::create_dir_all(install_path).map_err(|e| {
+                DomainError::SnapshotError(format!(
+                    "Cannot create install directory '{}': {}",
+                    cmd.install_location, e
+                ))
+            })?;
+            tracing::warn!(
+                "clean install directory ready for import: {}",
+                cmd.install_location
             );
 
-            // Final WSL shutdown to release any lingering file handles
-            // before the import creates a new VHDX.
+            // Final WSL shutdown to release any lingering VM caches
             let _ = self.wsl_manager.shutdown_all().await;
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
         }
@@ -299,7 +275,7 @@ impl RestoreSnapshotHandler {
                     target_name
                 ))
             })?;
-        tracing::info!("import verified: distro '{}' exists", target_name);
+        tracing::warn!("import verified: distro '{}' exists", target_name);
 
         // Verify the new VHDX was actually created from the snapshot.
         // If the import silently reused stale data, the VHDX won't have
@@ -322,7 +298,7 @@ impl RestoreSnapshotHandler {
                 .ok()
                 .and_then(|t| t.elapsed().ok())
                 .is_some_and(|age| age.as_secs() < 120);
-            tracing::info!(
+            tracing::warn!(
                 "post-import VHDX verification: vhdx_size={} snapshot_size={} modified_recently={}",
                 meta.len(),
                 snapshot.file_size.bytes(),
@@ -375,10 +351,12 @@ impl RestoreSnapshotHandler {
             tracing::info!("no default user to restore, distro will use root");
         }
 
-        // Restart the distro so the [user] default takes effect
-        if let Err(e) = self.wsl_manager.terminate_distro(&target_name).await {
-            tracing::warn!("failed to terminate distro after user restore: {}", e);
-        }
+        // Full VM shutdown to ensure WSL mounts the fresh VHDX, not a cached one.
+        // terminate_distro alone is insufficient — the lightweight VM may still
+        // serve the old filesystem from memory.
+        let _ = self.wsl_manager.shutdown_all().await;
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+
         // Auto-start in overwrite mode since the original distro was running
         if matches!(cmd.mode, RestoreMode::Overwrite)
             && let Err(e) = self.wsl_manager.start_distro(&target_name).await
