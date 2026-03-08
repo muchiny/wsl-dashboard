@@ -48,13 +48,6 @@ vi.mock("@/features/snapshot-list/api/queries", () => ({
   useSnapshotCounts: () => ({}),
 }));
 
-// Mock SnapshotList used by DistroSnapshotPanel
-vi.mock("@/features/snapshot-list/ui/snapshot-list", () => ({
-  SnapshotList: ({ distroName }: { distroName?: string }) => (
-    <div data-testid={`snapshot-list-${distroName}`}>Snapshots for {distroName}</div>
-  ),
-}));
-
 function makeDistro(overrides: Partial<Distro> = {}): Distro {
   return {
     name: "Ubuntu",
@@ -80,7 +73,8 @@ const defaultProps = {
   viewMode: "grid" as const,
   isFiltered: false,
   onSnapshot: noop,
-  onRestore: noop,
+  selectedDistro: null as string | null,
+  onSelectDistro: noop,
 };
 
 describe("DistroList", () => {
@@ -145,71 +139,51 @@ describe("DistroList", () => {
     expect(onSnapshot).toHaveBeenCalledWith("Ubuntu");
   });
 
-  it("shows snapshot panel when a distro card is clicked in grid mode", () => {
+  it("calls onSelectDistro when a distro card is clicked in grid mode", () => {
+    const onSelectDistro = vi.fn();
     const distros = [makeDistro({ name: "Ubuntu" })];
 
-    renderWithProviders(<DistroList {...defaultProps} distros={distros} />);
+    renderWithProviders(
+      <DistroList {...defaultProps} distros={distros} onSelectDistro={onSelectDistro} />,
+    );
 
-    // Panel should not be visible initially
-    expect(screen.queryByTestId("snapshot-list-Ubuntu")).not.toBeInTheDocument();
-
-    // Click the card to expand
     fireEvent.click(screen.getByRole("button", { name: CARD_LABEL }));
-    expect(screen.getByTestId("snapshot-list-Ubuntu")).toBeInTheDocument();
+    expect(onSelectDistro).toHaveBeenCalledOnce();
+    expect(onSelectDistro).toHaveBeenCalledWith("Ubuntu");
   });
 
-  it("collapses panel when the same card is clicked again", () => {
+  it("calls onSelectDistro when a distro row is clicked in list mode", () => {
+    const onSelectDistro = vi.fn();
     const distros = [makeDistro({ name: "Ubuntu" })];
 
-    renderWithProviders(<DistroList {...defaultProps} distros={distros} />);
+    renderWithProviders(
+      <DistroList
+        {...defaultProps}
+        distros={distros}
+        viewMode="list"
+        onSelectDistro={onSelectDistro}
+      />,
+    );
 
-    const card = screen.getByRole("button", { name: CARD_LABEL });
-
-    // Expand
-    fireEvent.click(card);
-    expect(screen.getByTestId("snapshot-list-Ubuntu")).toBeInTheDocument();
-
-    // Collapse
-    fireEvent.click(card);
-    expect(screen.queryByTestId("snapshot-list-Ubuntu")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: CARD_LABEL }));
+    expect(onSelectDistro).toHaveBeenCalledOnce();
+    expect(onSelectDistro).toHaveBeenCalledWith("Ubuntu");
   });
 
-  it("shows snapshot panel when a distro row is clicked in list mode", () => {
-    const distros = [makeDistro({ name: "Ubuntu" })];
-
-    renderWithProviders(<DistroList {...defaultProps} distros={distros} viewMode="list" />);
-
-    // Panel should not be visible initially
-    expect(screen.queryByTestId("snapshot-list-Ubuntu")).not.toBeInTheDocument();
-
-    // Click the row to expand
-    fireEvent.click(screen.getByRole("button", { name: CARD_LABEL }));
-    expect(screen.getByTestId("snapshot-list-Ubuntu")).toBeInTheDocument();
-
-    // Click again to collapse
-    fireEvent.click(screen.getByRole("button", { name: CARD_LABEL }));
-    expect(screen.queryByTestId("snapshot-list-Ubuntu")).not.toBeInTheDocument();
-  });
-
-  it("only shows one panel at a time (accordion)", () => {
+  it("highlights the selected distro card", () => {
     const distros = [
       makeDistro({ name: "Ubuntu" }),
       makeDistro({ name: "Debian", state: "Stopped" }),
     ];
 
-    renderWithProviders(<DistroList {...defaultProps} distros={distros} />);
+    renderWithProviders(
+      <DistroList {...defaultProps} distros={distros} selectedDistro="Ubuntu" />,
+    );
 
-    // Use text to find specific cards
     const ubuntuCard = screen.getByText("Ubuntu").closest('[role="button"]')!;
+    expect(ubuntuCard.getAttribute("aria-pressed")).toBe("true");
+
     const debianCard = screen.getByText("Debian").closest('[role="button"]')!;
-
-    // Expand Ubuntu
-    fireEvent.click(ubuntuCard);
-    expect(screen.getByTestId("snapshot-list-Ubuntu")).toBeInTheDocument();
-
-    // Expand Debian - Ubuntu should close
-    fireEvent.click(debianCard);
-    expect(screen.queryByTestId("snapshot-list-Ubuntu")).not.toBeInTheDocument();
-    expect(screen.getByTestId("snapshot-list-Debian")).toBeInTheDocument();
+    expect(debianCard.getAttribute("aria-pressed")).toBe("false");
   });
 });

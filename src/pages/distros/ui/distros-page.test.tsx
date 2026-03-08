@@ -1,0 +1,198 @@
+import { describe, it, expect, vi } from "vitest";
+import { screen } from "@testing-library/react";
+import { renderWithProviders } from "@/test/test-utils";
+import { useDistros } from "@/shared/api/distro-queries";
+import { useShutdownAll } from "@/features/distro-list/api/mutations";
+import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
+import { DistrosPage } from "./distros-page";
+
+vi.mock("@/shared/api/distro-queries", () => ({ useDistros: vi.fn() }));
+vi.mock("@/features/distro-list/api/mutations", () => ({
+  useShutdownAll: vi.fn(),
+  useStartDistro: vi.fn(),
+  useStopDistro: vi.fn(),
+  useRestartDistro: vi.fn(),
+  useSetDefaultDistro: vi.fn(),
+  useResizeVhd: vi.fn(),
+  useStartAllDistros: vi.fn(),
+}));
+vi.mock("@/features/distro-list/ui/distro-list", () => ({
+  DistroList: (props: any) => (
+    <div data-testid="distro-list" data-view={props.viewMode} />
+  ),
+}));
+vi.mock("@/features/distro-list/ui/distros-toolbar", () => ({
+  DistrosToolbar: (props: any) => (
+    <div
+      data-testid="distros-toolbar"
+      data-running={props.running}
+      data-stopped={props.stopped}
+      data-total={props.total}
+    />
+  ),
+}));
+vi.mock("@/features/distro-list/ui/distro-snapshot-panel", () => ({
+  DistroSnapshotPanel: () => <div data-testid="snapshot-panel" />,
+}));
+vi.mock("@/features/snapshot-list/ui/create-snapshot-dialog", () => ({
+  CreateSnapshotDialog: () => null,
+}));
+vi.mock("@/features/snapshot-list/ui/restore-snapshot-dialog", () => ({
+  RestoreSnapshotDialog: () => null,
+}));
+vi.mock("@/shared/ui/confirm-dialog", () => ({
+  ConfirmDialog: () => null,
+}));
+vi.mock("@/shared/hooks/use-debounce", () => ({
+  useDebounce: (v: any) => v,
+}));
+vi.mock("@/shared/stores/use-preferences-store", () => ({
+  usePreferencesStore: vi.fn(() => ({ sortKey: "name-asc", viewMode: "grid" })),
+}));
+vi.mock("@/shared/ui/toast-store", () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}));
+
+const mockDistros = [
+  {
+    name: "Ubuntu",
+    state: "Running" as const,
+    wsl_version: 2,
+    is_default: true,
+    base_path: null,
+    vhdx_size_bytes: null,
+    last_seen: "2026-01-01",
+  },
+  {
+    name: "Debian",
+    state: "Stopped" as const,
+    wsl_version: 2,
+    is_default: false,
+    base_path: null,
+    vhdx_size_bytes: null,
+    last_seen: "2026-01-01",
+  },
+  {
+    name: "Alpine",
+    state: "Running" as const,
+    wsl_version: 2,
+    is_default: false,
+    base_path: null,
+    vhdx_size_bytes: null,
+    last_seen: "2026-01-01",
+  },
+];
+
+function setup() {
+  vi.mocked(useDistros).mockReturnValue({
+    data: mockDistros,
+    isLoading: false,
+    error: null,
+  } as any);
+  vi.mocked(useShutdownAll).mockReturnValue({
+    isPending: false,
+    mutate: vi.fn(),
+  } as any);
+}
+
+describe("DistrosPage", () => {
+  it("renders toolbar with correct stats", () => {
+    setup();
+    renderWithProviders(<DistrosPage />);
+
+    const toolbar = screen.getByTestId("distros-toolbar");
+    expect(toolbar).toBeInTheDocument();
+    expect(toolbar.dataset.running).toBe("2");
+    expect(toolbar.dataset.stopped).toBe("1");
+    expect(toolbar.dataset.total).toBe("3");
+  });
+
+  it("renders distro list component", () => {
+    setup();
+    renderWithProviders(<DistrosPage />);
+
+    expect(screen.getByTestId("distro-list")).toBeInTheDocument();
+  });
+
+  it("passes viewMode from preferences store", () => {
+    setup();
+    vi.mocked(usePreferencesStore).mockReturnValue({
+      sortKey: "name-asc",
+      viewMode: "list",
+    } as any);
+
+    renderWithProviders(<DistrosPage />);
+
+    const list = screen.getByTestId("distro-list");
+    expect(list.dataset.view).toBe("list");
+  });
+
+  it("computes running/stopped counts correctly from distros data", () => {
+    vi.mocked(useDistros).mockReturnValue({
+      data: [
+        {
+          name: "A",
+          state: "Running",
+          wsl_version: 2,
+          is_default: false,
+          base_path: null,
+          vhdx_size_bytes: null,
+          last_seen: "",
+        },
+        {
+          name: "B",
+          state: "Running",
+          wsl_version: 2,
+          is_default: false,
+          base_path: null,
+          vhdx_size_bytes: null,
+          last_seen: "",
+        },
+        {
+          name: "C",
+          state: "Stopped",
+          wsl_version: 2,
+          is_default: false,
+          base_path: null,
+          vhdx_size_bytes: null,
+          last_seen: "",
+        },
+        {
+          name: "D",
+          state: "Stopped",
+          wsl_version: 2,
+          is_default: false,
+          base_path: null,
+          vhdx_size_bytes: null,
+          last_seen: "",
+        },
+        {
+          name: "E",
+          state: "Stopped",
+          wsl_version: 2,
+          is_default: false,
+          base_path: null,
+          vhdx_size_bytes: null,
+          last_seen: "",
+        },
+      ],
+      isLoading: false,
+      error: null,
+    } as any);
+    vi.mocked(useShutdownAll).mockReturnValue({
+      isPending: false,
+      mutate: vi.fn(),
+    } as any);
+    vi.mocked(usePreferencesStore).mockReturnValue({
+      sortKey: "name-asc",
+      viewMode: "grid",
+    } as any);
+
+    renderWithProviders(<DistrosPage />);
+
+    const toolbar = screen.getByTestId("distros-toolbar");
+    expect(toolbar.dataset.running).toBe("2");
+    expect(toolbar.dataset.stopped).toBe("3");
+    expect(toolbar.dataset.total).toBe("5");
+  });
+});

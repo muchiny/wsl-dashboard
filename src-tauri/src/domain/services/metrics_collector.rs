@@ -151,6 +151,56 @@ impl MetricsCollector {
         Ok(metrics)
     }
 
+    #[cfg(test)]
+    async fn check_alerts_headless(
+        alerting: &Arc<dyn AlertingPort>,
+        alert_thresholds: &Arc<tokio::sync::RwLock<Vec<AlertThreshold>>>,
+        metrics: &SystemMetrics,
+        cooldowns: &mut HashMap<(String, String), Instant>,
+    ) {
+        let thresholds = alert_thresholds.read().await;
+        let now = Instant::now();
+
+        for threshold in thresholds.iter().filter(|t| t.enabled) {
+            let actual_value = match threshold.alert_type {
+                AlertType::Cpu => metrics.cpu.usage_percent,
+                AlertType::Memory => {
+                    if metrics.memory.total_bytes == 0 {
+                        continue;
+                    }
+                    (metrics.memory.used_bytes as f64 / metrics.memory.total_bytes as f64) * 100.0
+                }
+                AlertType::Disk => metrics.disk.usage_percent,
+            };
+
+            if actual_value >= threshold.threshold_percent {
+                let key = (
+                    metrics.distro_name.clone(),
+                    threshold.alert_type.to_string(),
+                );
+
+                if let Some(last_fired) = cooldowns.get(&key)
+                    && now.duration_since(*last_fired).as_secs() < ALERT_COOLDOWN_SECS
+                {
+                    continue;
+                }
+
+                cooldowns.insert(key, now);
+
+                if let Ok(name) = DistroName::new(&metrics.distro_name) {
+                    let _ = alerting
+                        .record_alert(
+                            &name,
+                            threshold.alert_type,
+                            threshold.threshold_percent,
+                            actual_value,
+                        )
+                        .await;
+                }
+            }
+        }
+    }
+
     async fn check_alerts(
         &self,
         metrics: &SystemMetrics,
@@ -224,5 +274,344 @@ impl MetricsCollector {
                     .show();
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::entities::distro::Distro;
+    use crate::domain::entities::monitoring::{
+        CpuMetrics, DiskMetrics, MemoryMetrics, NetworkMetrics,
+    };
+    use crate::domain::ports::alerting::MockAlertingPort;
+    use crate::domain::ports::wsl_manager::MockWslManagerPort;
+    use crate::domain::value_objects::{DistroState, WslVersion};
+
+    fn make_distro(name: &str, state: DistroState) -> Distro {
+        Distro::new(DistroName::new(name).unwrap(), state, WslVersion::V2, false)
+    }
+
+    fn make_metrics(distro_name: &str, cpu: f64, mem_used: u64, mem_total: u64, disk: f64) -> SystemMetrics {
+        SystemMetrics {
+            distro_name: distro_name.to_string(),
+            timestamp: chrono::Utc::now(),
+            cpu: CpuMetrics {
+                usage_percent: cpu,
+                per_core: vec![cpu],
+                load_average: [0.0, 0.0, 0.0],
+            },
+            memory: MemoryMetrics {
+                total_bytes: mem_total,
+                used_bytes: mem_used,
+                available_bytes: mem_total - mem_used,
+                cached_bytes: 0,
+                swap_total_bytes: 0,
+                swap_used_bytes: 0,
+            },
+            disk: DiskMetrics {
+                total_bytes: 100_000_000,
+                used_bytes: 50_000_000,
+                available_bytes: 50_000_000,
+                usage_percent: disk,
+            },
+            network: NetworkMetrics { interfaces: vec![] },
+        }
+    }
+
+    // --- get_distros cache tests ---
+
+    #[tokio::test]
+    async fn get_distros_fetches_from_wsl_manager_on_empty_cache() {
+        let mut mock = MockWslManagerPort::new();
+        let distro = make_distro("Ubuntu", DistroState::Running);
+        let distro_clone = distro.clone();
+
+        mock.expect_list_distros()
+            .times(1)
+            .returning(move || Ok(vec![distro_clone.clone()]));
+
+        let wsl: Arc<dyn WslManagerPort> = Arc::new(mock);
+        let mut cache: Option<(Instant, Vec<Distro>)> = None;
+
+        let result = MetricsCollector::get_distros(&wsl, &mut cache).await;
+        assert!(result.is_some());
+        let distros = result.unwrap();
+        assert_eq!(distros.len(), 1);
+        assert_eq!(distros[0].name.as_str(), "Ubuntu");
+        // Cache should now be populated
+        assert!(cache.is_some());
+    }
+
+    #[tokio::test]
+    async fn get_distros_uses_cache_when_fresh() {
+        let mut mock = MockWslManagerPort::new();
+        // list_distros should NOT be called when cache is fresh
+        mock.expect_list_distros().times(0);
+
+        let wsl: Arc<dyn WslManagerPort> = Arc::new(mock);
+        let distro = make_distro("Debian", DistroState::Stopped);
+        let mut cache: Option<(Instant, Vec<Distro>)> = Some((Instant::now(), vec![distro]));
+
+        let result = MetricsCollector::get_distros(&wsl, &mut cache).await;
+        assert!(result.is_some());
+        let distros = result.unwrap();
+        assert_eq!(distros.len(), 1);
+        assert_eq!(distros[0].name.as_str(), "Debian");
+    }
+
+    #[tokio::test]
+    async fn get_distros_refreshes_cache_when_expired() {
+        let mut mock = MockWslManagerPort::new();
+        let fresh_distro = make_distro("Fedora", DistroState::Running);
+        let fresh_clone = fresh_distro.clone();
+
+        mock.expect_list_distros()
+            .times(1)
+            .returning(move || Ok(vec![fresh_clone.clone()]));
+
+        let wsl: Arc<dyn WslManagerPort> = Arc::new(mock);
+        let stale_distro = make_distro("OldDistro", DistroState::Stopped);
+        // Set cache timestamp to 11 seconds ago (TTL is 10s)
+        let stale_time = Instant::now() - Duration::from_secs(11);
+        let mut cache: Option<(Instant, Vec<Distro>)> = Some((stale_time, vec![stale_distro]));
+
+        let result = MetricsCollector::get_distros(&wsl, &mut cache).await;
+        assert!(result.is_some());
+        let distros = result.unwrap();
+        assert_eq!(distros.len(), 1);
+        assert_eq!(distros[0].name.as_str(), "Fedora");
+    }
+
+    #[tokio::test]
+    async fn get_distros_returns_none_when_wsl_manager_fails() {
+        let mut mock = MockWslManagerPort::new();
+        mock.expect_list_distros()
+            .returning(|| Err(DomainError::Internal("wsl.exe failed".into())));
+
+        let wsl: Arc<dyn WslManagerPort> = Arc::new(mock);
+        let mut cache: Option<(Instant, Vec<Distro>)> = None;
+
+        let result = MetricsCollector::get_distros(&wsl, &mut cache).await;
+        assert!(result.is_none());
+    }
+
+    // --- check_alerts_headless tests ---
+
+    #[tokio::test]
+    async fn alert_triggered_when_cpu_exceeds_threshold() {
+        let mut alerting = MockAlertingPort::new();
+        alerting
+            .expect_record_alert()
+            .times(1)
+            .returning(|_, _, _, _| Ok(()));
+
+        let alerting: Arc<dyn AlertingPort> = Arc::new(alerting);
+        let thresholds = Arc::new(tokio::sync::RwLock::new(vec![AlertThreshold {
+            alert_type: AlertType::Cpu,
+            threshold_percent: 80.0,
+            enabled: true,
+        }]));
+
+        let metrics = make_metrics("Ubuntu", 95.0, 0, 1, 0.0);
+        let mut cooldowns: HashMap<(String, String), Instant> = HashMap::new();
+
+        MetricsCollector::check_alerts_headless(
+            &alerting,
+            &thresholds,
+            &metrics,
+            &mut cooldowns,
+        )
+        .await;
+
+        // Cooldown entry should be recorded
+        assert!(cooldowns.contains_key(&("Ubuntu".to_string(), "cpu".to_string())));
+    }
+
+    #[tokio::test]
+    async fn alert_not_triggered_when_value_below_threshold() {
+        let mut alerting = MockAlertingPort::new();
+        // record_alert should NOT be called
+        alerting
+            .expect_record_alert()
+            .times(0);
+
+        let alerting: Arc<dyn AlertingPort> = Arc::new(alerting);
+        let thresholds = Arc::new(tokio::sync::RwLock::new(vec![AlertThreshold {
+            alert_type: AlertType::Cpu,
+            threshold_percent: 80.0,
+            enabled: true,
+        }]));
+
+        let metrics = make_metrics("Ubuntu", 50.0, 0, 1, 0.0);
+        let mut cooldowns: HashMap<(String, String), Instant> = HashMap::new();
+
+        MetricsCollector::check_alerts_headless(
+            &alerting,
+            &thresholds,
+            &metrics,
+            &mut cooldowns,
+        )
+        .await;
+
+        assert!(cooldowns.is_empty());
+    }
+
+    #[tokio::test]
+    async fn cooldown_prevents_duplicate_alerts() {
+        let mut alerting = MockAlertingPort::new();
+        // record_alert should only be called once (first invocation)
+        alerting
+            .expect_record_alert()
+            .times(1)
+            .returning(|_, _, _, _| Ok(()));
+
+        let alerting: Arc<dyn AlertingPort> = Arc::new(alerting);
+        let thresholds = Arc::new(tokio::sync::RwLock::new(vec![AlertThreshold {
+            alert_type: AlertType::Cpu,
+            threshold_percent: 80.0,
+            enabled: true,
+        }]));
+
+        let metrics = make_metrics("Ubuntu", 95.0, 0, 1, 0.0);
+        let mut cooldowns: HashMap<(String, String), Instant> = HashMap::new();
+
+        // First call: should trigger alert
+        MetricsCollector::check_alerts_headless(
+            &alerting,
+            &thresholds,
+            &metrics,
+            &mut cooldowns,
+        )
+        .await;
+
+        // Second call: should be suppressed by cooldown
+        MetricsCollector::check_alerts_headless(
+            &alerting,
+            &thresholds,
+            &metrics,
+            &mut cooldowns,
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn disabled_threshold_does_not_trigger_alert() {
+        let mut alerting = MockAlertingPort::new();
+        alerting.expect_record_alert().times(0);
+
+        let alerting: Arc<dyn AlertingPort> = Arc::new(alerting);
+        let thresholds = Arc::new(tokio::sync::RwLock::new(vec![AlertThreshold {
+            alert_type: AlertType::Cpu,
+            threshold_percent: 80.0,
+            enabled: false,
+        }]));
+
+        let metrics = make_metrics("Ubuntu", 95.0, 0, 1, 0.0);
+        let mut cooldowns: HashMap<(String, String), Instant> = HashMap::new();
+
+        MetricsCollector::check_alerts_headless(
+            &alerting,
+            &thresholds,
+            &metrics,
+            &mut cooldowns,
+        )
+        .await;
+
+        assert!(cooldowns.is_empty());
+    }
+
+    #[tokio::test]
+    async fn memory_alert_triggers_on_percentage() {
+        let mut alerting = MockAlertingPort::new();
+        alerting
+            .expect_record_alert()
+            .times(1)
+            .returning(|_, _, _, _| Ok(()));
+
+        let alerting: Arc<dyn AlertingPort> = Arc::new(alerting);
+        let thresholds = Arc::new(tokio::sync::RwLock::new(vec![AlertThreshold {
+            alert_type: AlertType::Memory,
+            threshold_percent: 90.0,
+            enabled: true,
+        }]));
+
+        // 95% memory usage (950 / 1000)
+        let metrics = make_metrics("Ubuntu", 0.0, 950, 1000, 0.0);
+        let mut cooldowns: HashMap<(String, String), Instant> = HashMap::new();
+
+        MetricsCollector::check_alerts_headless(
+            &alerting,
+            &thresholds,
+            &metrics,
+            &mut cooldowns,
+        )
+        .await;
+
+        assert!(cooldowns.contains_key(&("Ubuntu".to_string(), "memory".to_string())));
+    }
+
+    #[tokio::test]
+    async fn memory_alert_skips_when_total_is_zero() {
+        let mut alerting = MockAlertingPort::new();
+        alerting.expect_record_alert().times(0);
+
+        let alerting: Arc<dyn AlertingPort> = Arc::new(alerting);
+        let thresholds = Arc::new(tokio::sync::RwLock::new(vec![AlertThreshold {
+            alert_type: AlertType::Memory,
+            threshold_percent: 90.0,
+            enabled: true,
+        }]));
+
+        // total_bytes = 0 should cause a skip
+        let metrics = make_metrics("Ubuntu", 0.0, 0, 0, 0.0);
+        let mut cooldowns: HashMap<(String, String), Instant> = HashMap::new();
+
+        MetricsCollector::check_alerts_headless(
+            &alerting,
+            &thresholds,
+            &metrics,
+            &mut cooldowns,
+        )
+        .await;
+
+        assert!(cooldowns.is_empty());
+    }
+
+    #[tokio::test]
+    async fn multiple_thresholds_can_trigger_independently() {
+        let mut alerting = MockAlertingPort::new();
+        // Both CPU and Disk should trigger
+        alerting
+            .expect_record_alert()
+            .times(2)
+            .returning(|_, _, _, _| Ok(()));
+
+        let alerting: Arc<dyn AlertingPort> = Arc::new(alerting);
+        let thresholds = Arc::new(tokio::sync::RwLock::new(vec![
+            AlertThreshold {
+                alert_type: AlertType::Cpu,
+                threshold_percent: 80.0,
+                enabled: true,
+            },
+            AlertThreshold {
+                alert_type: AlertType::Disk,
+                threshold_percent: 70.0,
+                enabled: true,
+            },
+        ]));
+
+        let metrics = make_metrics("Ubuntu", 95.0, 0, 1, 85.0);
+        let mut cooldowns: HashMap<(String, String), Instant> = HashMap::new();
+
+        MetricsCollector::check_alerts_headless(
+            &alerting,
+            &thresholds,
+            &metrics,
+            &mut cooldowns,
+        )
+        .await;
+
+        assert_eq!(cooldowns.len(), 2);
     }
 }

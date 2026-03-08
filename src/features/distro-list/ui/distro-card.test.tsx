@@ -45,8 +45,8 @@ const defaultProps = {
   onStop: noop,
   onRestart: noop,
   onSnapshot: noop,
-  onExpand: noop,
-  isExpanded: false,
+  onSelect: noop,
+  isSelected: false,
   snapshotCount: 0,
 };
 
@@ -134,11 +134,11 @@ describe("DistroCard", () => {
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 
-  it("calls onExpand when card is clicked", () => {
-    const onExpand = vi.fn();
-    renderWithProviders(<DistroCard distro={makeDistro()} {...defaultProps} onExpand={onExpand} />);
+  it("calls onSelect when card is clicked", () => {
+    const onSelect = vi.fn();
+    renderWithProviders(<DistroCard distro={makeDistro()} {...defaultProps} onSelect={onSelect} />);
     fireEvent.click(screen.getByRole("button", { name: CARD_LABEL }));
-    expect(onExpand).toHaveBeenCalledOnce();
+    expect(onSelect).toHaveBeenCalledOnce();
   });
 
   it("shows spinner on start button when pendingAction is Starting", () => {
@@ -168,19 +168,19 @@ describe("DistroCard", () => {
     expect(screen.getByLabelText(SNAPSHOT_LABEL)).toBeDisabled();
   });
 
-  it("does not call onExpand when action button is clicked", () => {
-    const onExpand = vi.fn();
+  it("does not call onSelect when action button is clicked", () => {
+    const onSelect = vi.fn();
     const onStop = vi.fn();
     renderWithProviders(
       <DistroCard
         distro={makeDistro({ state: "Running" })}
         {...defaultProps}
-        onExpand={onExpand}
+        onSelect={onSelect}
         onStop={onStop}
       />,
     );
     fireEvent.click(screen.getByLabelText(STOP_LABEL));
     expect(onStop).toHaveBeenCalledOnce();
-    expect(onExpand).not.toHaveBeenCalled();
+    expect(onSelect).not.toHaveBeenCalled();
   });
 });

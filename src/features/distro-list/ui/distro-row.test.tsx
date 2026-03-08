@@ -45,8 +45,8 @@ const defaultProps = {
   onStop: noop,
   onRestart: noop,
   onSnapshot: noop,
-  onExpand: noop,
-  isExpanded: false,
+  onSelect: noop,
+  isSelected: false,
   snapshotCount: 0,
 };
 
@@ -134,27 +134,27 @@ describe("DistroRow", () => {
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 
-  it("calls onExpand when row is clicked", () => {
-    const onExpand = vi.fn();
-    render(<DistroRow distro={makeDistro()} {...defaultProps} onExpand={onExpand} />);
+  it("calls onSelect when row is clicked", () => {
+    const onSelect = vi.fn();
+    render(<DistroRow distro={makeDistro()} {...defaultProps} onSelect={onSelect} />);
     fireEvent.click(screen.getByRole("button", { name: ROW_LABEL }));
-    expect(onExpand).toHaveBeenCalledOnce();
+    expect(onSelect).toHaveBeenCalledOnce();
   });
 
-  it("does not call onExpand when action button is clicked", () => {
-    const onExpand = vi.fn();
+  it("does not call onSelect when action button is clicked", () => {
+    const onSelect = vi.fn();
     const onStop = vi.fn();
     render(
       <DistroRow
         distro={makeDistro({ state: "Running" })}
         {...defaultProps}
-        onExpand={onExpand}
+        onSelect={onSelect}
         onStop={onStop}
       />,
     );
     fireEvent.click(screen.getByLabelText(STOP_LABEL));
     expect(onStop).toHaveBeenCalledOnce();
-    expect(onExpand).not.toHaveBeenCalled();
+    expect(onSelect).not.toHaveBeenCalled();
   });
 
   it("disables all action buttons when any action is pending", () => {
