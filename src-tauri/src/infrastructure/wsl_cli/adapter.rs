@@ -832,36 +832,52 @@ impl WslManagerPort for WslCliAdapter {
     }
 
     async fn get_default_user(&self, name: &DistroName) -> Result<Option<String>, DomainError> {
+        // Phase 0: ask WSL directly who the current default user is.
+        // This is the most reliable method — it reflects the actual user WSL
+        // launches (whether configured via registry, wsl.conf, or distro setup).
+        if let Ok(output) = self.exec_in_distro_raw(name.as_str(), "whoami").await {
+            let user = output.trim().to_string();
+            if !user.is_empty() && user != "root" {
+                tracing::info!("detected default user via whoami: {}", user);
+                return Ok(Some(user));
+            }
+        }
+
         // Phase 1: read [user] default= from /etc/wsl.conf
         if let Ok(config) = self.get_distro_config(name).await
             && let Some(user) = config.user_default
             && !user.is_empty()
+            && user != "root"
         {
             return Ok(Some(user));
         }
 
         // Phase 2: scan /etc/passwd for first regular user (UID >= 1000)
-        let output = self
+        if let Ok(output) = self
             .exec_in_distro_raw(
                 name.as_str(),
                 "awk -F: '$3>=1000 && $3<60000 && $7 !~ /nologin|false/ {print $1; exit}' /etc/passwd",
             )
-            .await?;
-        let user = output.trim().to_string();
-        if !user.is_empty() {
-            return Ok(Some(user));
+            .await
+        {
+            let user = output.trim().to_string();
+            if !user.is_empty() {
+                return Ok(Some(user));
+            }
         }
 
         // Phase 3: fallback UID >= 500 (SUSE/RHEL)
-        let output = self
+        if let Ok(output) = self
             .exec_in_distro_raw(
                 name.as_str(),
                 "awk -F: '$3>=500 && $3<60000 && $7 !~ /nologin|false/ {print $1; exit}' /etc/passwd",
             )
-            .await?;
-        let user = output.trim().to_string();
-        if !user.is_empty() {
-            return Ok(Some(user));
+            .await
+        {
+            let user = output.trim().to_string();
+            if !user.is_empty() {
+                return Ok(Some(user));
+            }
         }
 
         Ok(None)
