@@ -17,6 +17,6 @@ export async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>
     return result;
   } catch (error) {
     _onIpcTiming?.(cmd, performance.now() - start, false);
-    throw new Error(typeof error === "string" ? error : String(error));
+    throw new Error(typeof error === "string" ? error : String(error), { cause: error });
   }
 }

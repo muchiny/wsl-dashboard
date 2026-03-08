@@ -53,7 +53,7 @@ dirs = "6"
 portable-pty = "0.9"
 
 # Profiling: CrabNebula DevTools (opt-in via --features devtools)
-tauri-plugin-devtools = { version = "2.0.0-rc.2", optional = true }
+tauri-plugin-devtools = { version = "2.0.1", optional = true }
 
 [features]
 default = []
