@@ -80,7 +80,7 @@ export function MonitoringPage() {
   const chartData = timeRange === "live" ? liveHistory : historicalChartData;
 
   return (
-    <div className="min-w-0 space-y-6">
+    <div className="h-full min-w-0 space-y-6 overflow-y-auto">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="bg-sapphire/25 relative flex h-9 w-9 items-center justify-center rounded-lg">

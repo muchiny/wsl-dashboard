@@ -48,6 +48,15 @@ pub async fn create_snapshot(
         _ => ExportFormat::Tar,
     };
 
+    tracing::info!(
+        distro = %args.distro_name,
+        name = %args.name,
+        format = ?format,
+        output_dir = %args.output_dir,
+        description = ?args.description,
+        "create_snapshot command received"
+    );
+
     let handler = CreateSnapshotHandler::new(
         state.wsl_manager.clone(),
         state.snapshot_repo.clone(),
@@ -62,8 +71,22 @@ pub async fn create_snapshot(
         output_dir: args.output_dir,
     };
 
-    let snapshot = handler.handle(cmd).await?;
-    Ok(SnapshotResponse::from(snapshot))
+    match handler.handle(cmd).await {
+        Ok(snapshot) => {
+            tracing::info!(
+                snapshot_id = %snapshot.id,
+                "create_snapshot command completed successfully"
+            );
+            Ok(SnapshotResponse::from(snapshot))
+        }
+        Err(e) => {
+            tracing::error!(
+                error = %e,
+                "create_snapshot command failed"
+            );
+            Err(e)
+        }
+    }
 }
 
 #[tauri::command]

@@ -18,6 +18,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useDistros, distroKeys } from "../api/queries";
 import { useStartAll } from "../api/mutations";
 import { usePreferencesStore, type SortKey } from "@/shared/stores/use-preferences-store";
+import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/shared/lib/utils";
 import type { Distro } from "@/shared/types/distro";
 
@@ -82,7 +83,14 @@ export function DistrosToolbar({
   const queryClient = useQueryClient();
   const { isFetching } = useDistros();
   const startAll = useStartAll();
-  const { sortKey, setSortKey, viewMode, setViewMode } = usePreferencesStore();
+  const { sortKey, setSortKey, viewMode, setViewMode } = usePreferencesStore(
+    useShallow((s) => ({
+      sortKey: s.sortKey,
+      setSortKey: s.setSortKey,
+      viewMode: s.viewMode,
+      setViewMode: s.setViewMode,
+    })),
+  );
   const [sortOpen, setSortOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
 

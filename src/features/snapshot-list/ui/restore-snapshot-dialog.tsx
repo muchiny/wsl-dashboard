@@ -23,7 +23,7 @@ export function RestoreSnapshotDialog({
 }: RestoreSnapshotDialogProps) {
   const { t } = useTranslation();
   const restoreSnapshot = useRestoreSnapshot();
-  const { defaultInstallLocation } = usePreferencesStore();
+  const defaultInstallLocation = usePreferencesStore((s) => s.defaultInstallLocation);
 
   const [mode, setMode] = useState<"clone" | "overwrite">("clone");
   const [newName, setNewName] = useState("");

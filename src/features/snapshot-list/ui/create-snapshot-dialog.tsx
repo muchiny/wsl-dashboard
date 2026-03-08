@@ -18,7 +18,7 @@ export function CreateSnapshotDialog({ open, onClose, defaultDistro }: CreateSna
   const { t } = useTranslation();
   const { data: distros } = useDistros();
   const createSnapshot = useCreateSnapshot();
-  const { defaultSnapshotDir } = usePreferencesStore();
+  const defaultSnapshotDir = usePreferencesStore((s) => s.defaultSnapshotDir);
 
   const [distroName, setDistroName] = useState(defaultDistro ?? "");
   const [name, setName] = useState("");

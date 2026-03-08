@@ -26,18 +26,21 @@ vi.mock("@/shared/stores/use-locale-store", () => ({
 }));
 
 vi.mock("@/shared/stores/use-preferences-store", () => ({
-  usePreferencesStore: () => ({
-    metricsInterval: 2000,
-    processesInterval: 3000,
-    defaultSnapshotDir: "",
-    defaultInstallLocation: "",
-    alertThresholds: defaultThresholds,
-    setMetricsInterval: mockSetMetricsInterval,
-    setProcessesInterval: mockSetProcessesInterval,
-    setDefaultSnapshotDir: mockSetDefaultSnapshotDir,
-    setDefaultInstallLocation: mockSetDefaultInstallLocation,
-    setAlertThresholds: mockSetAlertThresholds,
-  }),
+  usePreferencesStore: (selector?: (state: Record<string, unknown>) => unknown) => {
+    const state = {
+      metricsInterval: 2000,
+      processesInterval: 3000,
+      defaultSnapshotDir: "",
+      defaultInstallLocation: "",
+      alertThresholds: defaultThresholds,
+      setMetricsInterval: mockSetMetricsInterval,
+      setProcessesInterval: mockSetProcessesInterval,
+      setDefaultSnapshotDir: mockSetDefaultSnapshotDir,
+      setDefaultInstallLocation: mockSetDefaultInstallLocation,
+      setAlertThresholds: mockSetAlertThresholds,
+    };
+    return selector ? selector(state) : state;
+  },
 }));
 
 vi.mock("@/features/monitoring-dashboard/api/queries", () => ({

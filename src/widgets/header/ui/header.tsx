@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -38,15 +38,19 @@ export function Header() {
   const matchRoute = useMatchRoute();
   const [isMaximized, setIsMaximized] = useState(false);
 
+  const resizeTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
   useEffect(() => {
     const appWindow = getCurrentWindow();
-    // Check initial maximized state
     appWindow.isMaximized().then(setIsMaximized);
-    // Listen for resize events to track maximize/restore
     const unlisten = appWindow.onResized(() => {
-      appWindow.isMaximized().then(setIsMaximized);
+      clearTimeout(resizeTimerRef.current);
+      resizeTimerRef.current = setTimeout(() => {
+        appWindow.isMaximized().then(setIsMaximized);
+      }, 150);
     });
     return () => {
+      clearTimeout(resizeTimerRef.current);
       unlisten.then((fn) => fn());
     };
   }, []);
@@ -65,7 +69,7 @@ export function Header() {
 
   return (
     <header
-      className="glass-header relative z-30 shrink-0"
+      className="glass-header relative z-30 shrink-0 rounded-t-xl"
       onMouseDown={handleDrag}
       onDoubleClick={handleDoubleClick}
     >

@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
 
 use tauri::Emitter;
@@ -10,6 +11,9 @@ use tracing_subscriber::layer::Context;
 use tracing_subscriber::registry::LookupSpan;
 
 use super::buffer::DebugLogBuffer;
+
+/// Minimum interval (ms) between event emissions to the frontend.
+const EMIT_THROTTLE_MS: u64 = 100;
 
 /// Data stored on each span to track its timing.
 struct SpanTiming {
@@ -23,6 +27,10 @@ struct SpanTiming {
 pub struct DebugLogLayer {
     buffer: Arc<DebugLogBuffer>,
     app_handle: Arc<std::sync::OnceLock<tauri::AppHandle>>,
+    /// Epoch-relative timestamp (ms) of the last frontend emission.
+    last_emit_ms: AtomicU64,
+    /// Epoch reference for computing elapsed milliseconds.
+    epoch: Instant,
 }
 
 impl DebugLogLayer {
@@ -30,12 +38,28 @@ impl DebugLogLayer {
         Self {
             buffer,
             app_handle: Arc::new(std::sync::OnceLock::new()),
+            last_emit_ms: AtomicU64::new(0),
+            epoch: Instant::now(),
         }
     }
 
     /// Returns a shared slot to set the AppHandle later (from Tauri setup).
     pub fn app_handle_slot(&self) -> Arc<std::sync::OnceLock<tauri::AppHandle>> {
         self.app_handle.clone()
+    }
+
+    /// Returns true if enough time has elapsed since the last emission.
+    fn should_emit(&self) -> bool {
+        let now_ms = self.epoch.elapsed().as_millis() as u64;
+        let prev = self.last_emit_ms.load(Ordering::Relaxed);
+        if now_ms.saturating_sub(prev) >= EMIT_THROTTLE_MS {
+            // Best-effort CAS; if another thread wins, skip this emission.
+            self.last_emit_ms
+                .compare_exchange(prev, now_ms, Ordering::Relaxed, Ordering::Relaxed)
+                .is_ok()
+        } else {
+            false
+        }
     }
 }
 
@@ -109,9 +133,11 @@ where
 
         let entry = self.buffer.push(level, visitor.message, target);
 
-        // Emit real-time event to frontend (best-effort)
-        if let Some(handle) = self.app_handle.get() {
-            let _ = handle.emit("debug-log-entry", &entry);
+        // Emit real-time event to frontend (throttled, best-effort)
+        if self.should_emit() {
+            if let Some(handle) = self.app_handle.get() {
+                let _ = handle.emit("debug-log-entry", &entry);
+            }
         }
     }
 }

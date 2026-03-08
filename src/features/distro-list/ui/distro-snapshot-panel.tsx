@@ -18,7 +18,7 @@ export function DistroSnapshotPanel({
   const { t } = useTranslation();
 
   return (
-    <div className="glass-card-lite border-mauve/30 expand-down rounded-xl p-5">
+    <div className="glass-card-lite border-mauve/30 expand-down rounded-t-xl p-5">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Archive className="text-mauve h-5 w-5" />
@@ -41,7 +41,9 @@ export function DistroSnapshotPanel({
           </button>
         </div>
       </div>
-      <SnapshotList distroName={distroName} onRestore={onRestore} hideDistroName />
+      <div className="max-h-40 overflow-y-auto">
+        <SnapshotList distroName={distroName} onRestore={onRestore} hideDistroName />
+      </div>
     </div>
   );
 }

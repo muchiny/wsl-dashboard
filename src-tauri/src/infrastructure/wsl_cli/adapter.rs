@@ -152,6 +152,7 @@ impl WslCliAdapter {
     /// Run a wsl.exe command and return raw stdout bytes
     async fn run_wsl_raw(&self, args: &[&str]) -> Result<Vec<u8>, DomainError> {
         tracing::debug!(args = ?args, "wsl.exe");
+        let start = std::time::Instant::now();
         let output = self
             .wsl_command()
             .args(args)
@@ -159,7 +160,12 @@ impl WslCliAdapter {
             .stderr(Stdio::piped())
             .output()
             .await
-            .map_err(|e| DomainError::WslCliError(format!("Failed to execute wsl.exe: {}", e)))?;
+            .map_err(|e| {
+                tracing::error!(error = %e, args = ?args, "failed to execute wsl.exe");
+                DomainError::WslCliError(format!("Failed to execute wsl.exe: {}", e))
+            })?;
+
+        let elapsed_ms = start.elapsed().as_millis() as u64;
 
         if !output.status.success() {
             let stderr = decode_wsl_output(&output.stderr)
@@ -183,9 +189,22 @@ impl WslCliAdapter {
                 stderr.to_string()
             };
 
+            tracing::error!(
+                args = ?args,
+                exit_code = output.status.code().unwrap_or(-1),
+                elapsed_ms = elapsed_ms,
+                error_msg = %msg,
+                "wsl.exe failed"
+            );
             return Err(DomainError::WslCliError(msg));
         }
 
+        tracing::debug!(
+            args = ?args,
+            elapsed_ms = elapsed_ms,
+            stdout_bytes = output.stdout.len(),
+            "wsl.exe completed successfully"
+        );
         Ok(output.stdout)
     }
 

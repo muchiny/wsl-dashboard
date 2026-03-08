@@ -20,12 +20,15 @@ vi.mock("../api/mutations", () => ({
 const mockSetViewMode = vi.fn();
 const mockSetSortKey = vi.fn();
 vi.mock("@/shared/stores/use-preferences-store", () => ({
-  usePreferencesStore: () => ({
-    sortKey: "name-asc",
-    setSortKey: mockSetSortKey,
-    viewMode: "grid",
-    setViewMode: mockSetViewMode,
-  }),
+  usePreferencesStore: (selector?: (state: Record<string, unknown>) => unknown) => {
+    const state = {
+      sortKey: "name-asc",
+      setSortKey: mockSetSortKey,
+      viewMode: "grid",
+      setViewMode: mockSetViewMode,
+    };
+    return selector ? selector(state) : state;
+  },
 }));
 
 function makeDistro(overrides: Partial<Distro> = {}): Distro {

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { CheckCircle2, XCircle, AlertTriangle, Info, X } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
@@ -25,14 +25,24 @@ const variantConfig: Record<
   info: { icon: Info, bg: "bg-blue/20", text: "text-blue", border: "border-blue/30" },
 };
 
-function ToastItem({ toast: toastItem, onDismiss }: { toast: Toast; onDismiss: () => void }) {
+function ToastItem({
+  toast: toastItem,
+  toastId,
+  onDismiss,
+}: {
+  toast: Toast;
+  toastId: string;
+  onDismiss: (id: string) => void;
+}) {
   const { t } = useTranslation();
+
+  const handleDismiss = useCallback(() => onDismiss(toastId), [onDismiss, toastId]);
 
   useEffect(() => {
     if (!toastItem.duration) return;
-    const timer = setTimeout(onDismiss, toastItem.duration);
+    const timer = setTimeout(handleDismiss, toastItem.duration);
     return () => clearTimeout(timer);
-  }, [toastItem.duration, onDismiss]);
+  }, [toastItem.duration, handleDismiss]);
 
   const config = variantConfig[toastItem.variant];
   const Icon = config.icon;
@@ -53,7 +63,7 @@ function ToastItem({ toast: toastItem, onDismiss }: { toast: Toast; onDismiss: (
       </div>
       <p className="text-text min-w-0 flex-1 text-sm">{toastItem.message}</p>
       <button
-        onClick={onDismiss}
+        onClick={handleDismiss}
         className="text-subtext-0 hover:text-text shrink-0 p-0.5 transition-colors"
         aria-label={t("toast.dismiss")}
       >
@@ -77,7 +87,12 @@ export function ToastContainer() {
       className="fixed right-4 bottom-4 z-[100] flex w-80 flex-col gap-2"
     >
       {toasts.map((toastItem) => (
-        <ToastItem key={toastItem.id} toast={toastItem} onDismiss={() => dismiss(toastItem.id)} />
+        <ToastItem
+          key={toastItem.id}
+          toast={toastItem}
+          toastId={toastItem.id}
+          onDismiss={dismiss}
+        />
       ))}
     </div>
   );

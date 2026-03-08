@@ -52,6 +52,7 @@ impl CreateSnapshotHandler {
     }
 
     pub async fn handle(&self, cmd: CreateSnapshotCommand) -> Result<Snapshot, DomainError> {
+        let overall_start = std::time::Instant::now();
         let id = SnapshotId::new();
         let file_path = std::path::PathBuf::from(&cmd.output_dir)
             .join(format!(
@@ -62,6 +63,16 @@ impl CreateSnapshotHandler {
             ))
             .to_string_lossy()
             .to_string();
+
+        tracing::info!(
+            snapshot_id = %id,
+            distro = %cmd.distro_name,
+            name = %cmd.name,
+            format = ?cmd.format,
+            output_dir = %cmd.output_dir,
+            file_path = %file_path,
+            "creating snapshot"
+        );
 
         let mut snapshot = Snapshot {
             id: id.clone(),
@@ -77,6 +88,7 @@ impl CreateSnapshotHandler {
             status: SnapshotStatus::InProgress,
         };
 
+        tracing::info!(snapshot_id = %id, "saving snapshot with status InProgress");
         self.snapshot_repo.save(&snapshot).await?;
 
         // Shut down the entire WSL VM before exporting to avoid:
@@ -84,15 +96,18 @@ impl CreateSnapshotHandler {
         // - TAR: HCS_E_CONNECTION_TIMEOUT (HCS can't reach the VM)
         // wsl --terminate alone is insufficient: the lightweight utility VM
         // may still hold locks. A full --shutdown ensures a clean state.
+        tracing::info!(distro = %cmd.distro_name, "terminating distro before export");
         let was_running = self
             .wsl_manager
             .terminate_distro(&cmd.distro_name)
             .await
             .is_ok();
+        tracing::info!(was_running = was_running, "terminate result, shutting down WSL");
         let _ = self.wsl_manager.shutdown_all().await;
 
         // Wait for WSL VM to fully release all file handles.
         // 2s is often insufficient on slower machines; 5s provides a safer margin.
+        tracing::info!("WSL shutdown complete, waiting 5s for file handle release");
         tokio::time::sleep(std::time::Duration::from_secs(5)).await;
 
         tracing::info!(
@@ -103,24 +118,59 @@ impl CreateSnapshotHandler {
         );
 
         // Try export, retry once after another shutdown if HCS times out
+        let export_start = std::time::Instant::now();
         let export_result = match self
             .wsl_manager
             .export_distro(&cmd.distro_name, &file_path, cmd.format.clone())
             .await
         {
             Err(e) if e.to_string().contains("TIMEOUT") || e.to_string().contains("SHARING") => {
-                tracing::warn!(error = %e, "export failed, retrying after full shutdown");
+                tracing::warn!(
+                    error = %e,
+                    elapsed_ms = export_start.elapsed().as_millis() as u64,
+                    "export failed, retrying after full shutdown"
+                );
                 let _ = self.wsl_manager.shutdown_all().await;
+                tracing::info!("retry: WSL shutdown complete, waiting 5s");
                 tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                self.wsl_manager
+                let retry_start = std::time::Instant::now();
+                let result = self
+                    .wsl_manager
                     .export_distro(&cmd.distro_name, &file_path, cmd.format)
-                    .await
+                    .await;
+                match &result {
+                    Ok(()) => tracing::info!(
+                        elapsed_ms = retry_start.elapsed().as_millis() as u64,
+                        "retry export completed successfully"
+                    ),
+                    Err(e) => tracing::error!(
+                        error = %e,
+                        elapsed_ms = retry_start.elapsed().as_millis() as u64,
+                        "retry export also failed"
+                    ),
+                }
+                result
             }
-            other => other,
+            Ok(()) => {
+                tracing::info!(
+                    elapsed_ms = export_start.elapsed().as_millis() as u64,
+                    "wsl --export completed successfully"
+                );
+                Ok(())
+            }
+            Err(e) => {
+                tracing::error!(
+                    error = %e,
+                    elapsed_ms = export_start.elapsed().as_millis() as u64,
+                    "wsl --export failed"
+                );
+                Err(e)
+            }
         };
 
         // Restart the distro if it was running before the export
         if was_running {
+            tracing::info!(distro = %cmd.distro_name, "restarting distro (was running before export)");
             let _ = self.wsl_manager.start_distro(&cmd.distro_name).await;
         }
 
@@ -139,9 +189,26 @@ impl CreateSnapshotHandler {
                         }
                     })
                     .map(|m| MemorySize::from_bytes(m.len()))
-                    .unwrap_or_else(|_| MemorySize::zero());
+                    .unwrap_or_else(|e| {
+                        tracing::error!(
+                            file_path = %file_path,
+                            error = %e,
+                            "failed to read export file metadata"
+                        );
+                        MemorySize::zero()
+                    });
+
+                tracing::info!(
+                    file_path = %file_path,
+                    file_size_bytes = snapshot.file_size.bytes(),
+                    "export file size"
+                );
 
                 if snapshot.file_size.bytes() == 0 {
+                    tracing::error!(
+                        file_path = %file_path,
+                        "export produced an empty file (0 bytes)"
+                    );
                     snapshot.status =
                         SnapshotStatus::Failed("Export produced an empty file".into());
                     self.snapshot_repo.save(&snapshot).await?;
@@ -173,17 +240,25 @@ impl CreateSnapshotHandler {
                             "Export produced an invalid tar file (missing ustar magic)".into(),
                         ));
                     }
+                    tracing::info!("tar magic validation passed");
                 }
 
                 snapshot.status = SnapshotStatus::Completed;
             }
             Err(e) => {
+                tracing::error!(error = %e, "export failed, saving snapshot as Failed");
                 snapshot.status = SnapshotStatus::Failed(e.to_string());
                 self.snapshot_repo.save(&snapshot).await?;
                 return Err(e);
             }
         }
 
+        tracing::info!(
+            snapshot_id = %id,
+            file_size_bytes = snapshot.file_size.bytes(),
+            elapsed_ms = overall_start.elapsed().as_millis() as u64,
+            "snapshot completed successfully, saving final status"
+        );
         self.snapshot_repo.save(&snapshot).await?;
         self.audit_logger
             .log("snapshot.create", &id.to_string())

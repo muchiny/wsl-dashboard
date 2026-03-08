@@ -46,8 +46,11 @@ vi.mock("@/shared/ui/confirm-dialog", () => ({
 vi.mock("@/shared/hooks/use-debounce", () => ({
   useDebounce: <T,>(v: T) => v,
 }));
+const preferencesState = { sortKey: "name-asc" as const, viewMode: "grid" as const };
 vi.mock("@/shared/stores/use-preferences-store", () => ({
-  usePreferencesStore: vi.fn(() => ({ sortKey: "name-asc", viewMode: "grid" })),
+  usePreferencesStore: vi.fn((selector?: (state: typeof preferencesState) => unknown) =>
+    selector ? selector(preferencesState) : preferencesState,
+  ),
 }));
 vi.mock("@/shared/ui/toast-store", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -116,10 +119,10 @@ describe("DistrosPage", () => {
 
   it("passes viewMode from preferences store", () => {
     setup();
-    vi.mocked(usePreferencesStore).mockReturnValue({
-      sortKey: "name-asc",
-      viewMode: "list",
-    } as ReturnType<typeof usePreferencesStore>);
+    const listState = { sortKey: "name-asc" as const, viewMode: "list" as const };
+    vi.mocked(usePreferencesStore).mockImplementation(((
+      selector?: (state: typeof listState) => unknown,
+    ) => (selector ? selector(listState) : listState)) as typeof usePreferencesStore);
 
     renderWithProviders(<DistrosPage />);
 

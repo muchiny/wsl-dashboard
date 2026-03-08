@@ -14,9 +14,10 @@ vi.mock("../api/mutations", () => ({
 }));
 
 vi.mock("@/shared/stores/use-preferences-store", () => ({
-  usePreferencesStore: () => ({
-    defaultInstallLocation: "C:\\WSL",
-  }),
+  usePreferencesStore: (selector?: (state: Record<string, unknown>) => unknown) => {
+    const state = { defaultInstallLocation: "C:\\WSL" };
+    return selector ? selector(state) : state;
+  },
 }));
 
 vi.mock("@/shared/api/tauri-client", () => ({

@@ -7,12 +7,12 @@ import { DistroActions } from "./distro-actions";
 
 interface DistroCardProps {
   distro: Distro;
-  onStart: () => void;
-  onStop: () => void;
-  onRestart: () => void;
-  onSnapshot: () => void;
+  onStart: (name: string) => void;
+  onStop: (name: string) => void;
+  onRestart: (name: string) => void;
+  onSnapshot: (name: string) => void;
   pendingAction?: string;
-  onSelect: () => void;
+  onSelect: (name: string) => void;
   isSelected: boolean;
   snapshotCount: number;
 }
@@ -56,7 +56,7 @@ export const DistroCard = memo(function DistroCard({
     <div
       role="button"
       tabIndex={0}
-      onClick={onSelect}
+      onClick={() => onSelect(distro.name)}
       onKeyDown={handleKeyDown}
       aria-pressed={isSelected}
       aria-label={ariaLabel}

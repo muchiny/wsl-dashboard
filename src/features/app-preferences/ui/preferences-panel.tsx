@@ -6,6 +6,7 @@ import { ToggleSwitch } from "@/shared/ui/toggle-switch";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useThemeStore } from "@/shared/hooks/use-theme";
 import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
+import { useShallow } from "zustand/react/shallow";
 import { useLocaleStore } from "@/shared/stores/use-locale-store";
 import { supportedLocales, localeLabels, type Locale } from "@/shared/config/i18n";
 import {
@@ -50,7 +51,20 @@ export function PreferencesPanel() {
     setDefaultSnapshotDir,
     setDefaultInstallLocation,
     setAlertThresholds,
-  } = usePreferencesStore();
+  } = usePreferencesStore(
+    useShallow((s) => ({
+      metricsInterval: s.metricsInterval,
+      processesInterval: s.processesInterval,
+      defaultSnapshotDir: s.defaultSnapshotDir,
+      defaultInstallLocation: s.defaultInstallLocation,
+      alertThresholds: s.alertThresholds,
+      setMetricsInterval: s.setMetricsInterval,
+      setProcessesInterval: s.setProcessesInterval,
+      setDefaultSnapshotDir: s.setDefaultSnapshotDir,
+      setDefaultInstallLocation: s.setDefaultInstallLocation,
+      setAlertThresholds: s.setAlertThresholds,
+    })),
+  );
 
   // Sync thresholds from backend on mount
   const { data: backendThresholds } = useAlertThresholds();

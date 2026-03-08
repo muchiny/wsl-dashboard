@@ -39,9 +39,10 @@ vi.mock("@/shared/api/distro-queries", () => ({
 }));
 
 vi.mock("@/shared/stores/use-preferences-store", () => ({
-  usePreferencesStore: () => ({
-    defaultSnapshotDir: "C:\\snapshots",
-  }),
+  usePreferencesStore: (selector?: (state: Record<string, unknown>) => unknown) => {
+    const state = { defaultSnapshotDir: "C:\\snapshots" };
+    return selector ? selector(state) : state;
+  },
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({

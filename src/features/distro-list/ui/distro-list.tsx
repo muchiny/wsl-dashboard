@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useTranslation, Trans } from "react-i18next";
 import { Server, Search } from "lucide-react";
 import { useStartDistro, useStopDistro, useRestartDistro } from "../api/mutations";
@@ -33,6 +34,13 @@ export function DistroList({
   const stopDistro = useStopDistro();
   const restartDistro = useRestartDistro();
   const snapshotCounts = useSnapshotCounts();
+
+  const handleStart = useCallback((name: string) => startDistro.mutate(name), [startDistro.mutate]);
+  const handleStop = useCallback((name: string) => stopDistro.mutate(name), [stopDistro.mutate]);
+  const handleRestart = useCallback(
+    (name: string) => restartDistro.mutate(name),
+    [restartDistro.mutate],
+  );
 
   if (isLoading) {
     return (
@@ -104,13 +112,13 @@ export function DistroList({
           <DistroRow
             key={distro.name}
             distro={distro}
-            onStart={() => startDistro.mutate(distro.name)}
-            onStop={() => stopDistro.mutate(distro.name)}
-            onRestart={() => restartDistro.mutate(distro.name)}
-            onSnapshot={() => onSnapshot(distro.name)}
+            onStart={handleStart}
+            onStop={handleStop}
+            onRestart={handleRestart}
+            onSnapshot={onSnapshot}
             pendingAction={pendingAction?.distro === distro.name ? pendingAction.action : undefined}
             snapshotCount={snapshotCounts[distro.name] ?? 0}
-            onSelect={() => onSelectDistro(distro.name)}
+            onSelect={onSelectDistro}
             isSelected={selectedDistro === distro.name}
           />
         ))}
@@ -124,12 +132,12 @@ export function DistroList({
         <DistroCard
           key={distro.name}
           distro={distro}
-          onStart={() => startDistro.mutate(distro.name)}
-          onStop={() => stopDistro.mutate(distro.name)}
-          onRestart={() => restartDistro.mutate(distro.name)}
-          onSnapshot={() => onSnapshot(distro.name)}
+          onStart={handleStart}
+          onStop={handleStop}
+          onRestart={handleRestart}
+          onSnapshot={onSnapshot}
           pendingAction={pendingAction?.distro === distro.name ? pendingAction.action : undefined}
-          onSelect={() => onSelectDistro(distro.name)}
+          onSelect={onSelectDistro}
           isSelected={selectedDistro === distro.name}
           snapshotCount={snapshotCounts[distro.name] ?? 0}
         />

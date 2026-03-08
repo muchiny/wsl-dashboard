@@ -2,6 +2,7 @@ import { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, Maximize2, Minimize2 } from "lucide-react";
 import { useTerminalStore } from "../model/use-terminal-store";
+import { useShallow } from "zustand/react/shallow";
 import { TerminalTabBar } from "./terminal-tab-bar";
 import { TerminalInstance } from "./terminal-instance";
 import { createTerminal } from "../api/mutations";
@@ -11,7 +12,16 @@ import { cn } from "@/shared/lib/utils";
 export function TerminalPanel() {
   const { t } = useTranslation();
   const { sessions, activeSessionId, isOpen, panelHeight, closePanel, setPanelHeight } =
-    useTerminalStore();
+    useTerminalStore(
+      useShallow((s) => ({
+        sessions: s.sessions,
+        activeSessionId: s.activeSessionId,
+        isOpen: s.isOpen,
+        panelHeight: s.panelHeight,
+        closePanel: s.closePanel,
+        setPanelHeight: s.setPanelHeight,
+      })),
+    );
   const addSession = useTerminalStore((s) => s.addSession);
   const { data: distros } = useDistros();
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null);

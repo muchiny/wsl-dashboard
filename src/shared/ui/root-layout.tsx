@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet } from "@tanstack/react-router";
 import { Header } from "@/widgets/header/ui/header";
@@ -26,7 +26,7 @@ export function RootLayout() {
   }, []);
 
   return (
-    <div className="bg-background text-foreground flex h-screen flex-col overflow-hidden">
+    <div className="text-foreground flex h-screen flex-col overflow-hidden rounded-xl">
       <a
         href="#main-content"
         className="bg-blue text-crust fixed top-0 left-1/2 z-[200] -translate-x-1/2 -translate-y-full rounded-b-lg px-4 py-2 text-sm font-medium transition-transform focus:translate-y-0"
@@ -34,12 +34,11 @@ export function RootLayout() {
         {t("header.skipToContent")}
       </a>
       <Header />
-      <main
-        id="main-content"
-        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6"
-      >
+      <main id="main-content" className="min-h-0 flex-1 overflow-hidden p-4 sm:p-6">
         <ErrorBoundary>
-          <Outlet />
+          <Suspense>
+            <Outlet />
+          </Suspense>
         </ErrorBoundary>
       </main>
       <TerminalPanel />

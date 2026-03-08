@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import i18n from "@/shared/config/i18n";
+import i18n, { loadLocale } from "@/shared/config/i18n";
 import type { Locale } from "@/shared/config/i18n";
 
 interface LocaleStore {
@@ -9,7 +9,8 @@ interface LocaleStore {
   setLocale: (locale: Locale) => void;
 }
 
-function applyLocale(locale: Locale) {
+async function applyLocale(locale: Locale) {
+  await loadLocale(locale);
   i18n.changeLanguage(locale);
   document.documentElement.setAttribute("lang", locale);
 }

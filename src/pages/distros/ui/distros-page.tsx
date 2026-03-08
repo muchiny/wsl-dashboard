@@ -49,7 +49,8 @@ export function DistrosPage() {
   const [wslVersionFilter, setWslVersionFilter] = useState<"all" | 1 | 2>("all");
 
   // Persisted preferences
-  const { sortKey, viewMode } = usePreferencesStore();
+  const sortKey = usePreferencesStore((s) => s.sortKey);
+  const viewMode = usePreferencesStore((s) => s.viewMode);
 
   // Selection state
   const [selectedDistro, setSelectedDistro] = useState<string | null>(null);
@@ -101,50 +102,55 @@ export function DistrosPage() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Toolbar */}
-      <DistrosToolbar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-        wslVersionFilter={wslVersionFilter}
-        onWslVersionFilterChange={setWslVersionFilter}
-        distros={distros}
-        onNewSnapshot={() => {
-          setCreateForDistro("");
-          setCreateOpen(true);
-        }}
-        onShutdownAll={() => setShowShutdownConfirm(true)}
-        shutdownAllPending={shutdownAll.isPending}
-        running={running}
-        stopped={stopped}
-        total={total}
-      />
-
-      {/* Distro List */}
-      <DistroList
-        distros={processedDistros}
-        isLoading={isLoading}
-        error={error}
-        viewMode={viewMode}
-        isFiltered={isFiltered}
-        onSnapshot={handleSnapshot}
-        selectedDistro={selectedDistro}
-        onSelectDistro={handleSelectDistro}
-      />
-
-      {/* Snapshot Panel (bottom) */}
-      {selectedDistro && (
-        <DistroSnapshotPanel
-          distroName={selectedDistro}
-          onRestore={(id, distroName) => {
-            setRestoreSnapshotId(id);
-            setRestoreDistroName(distroName);
+    <div className="flex h-full flex-col">
+      {/* Scrollable content area */}
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
+        {/* Toolbar */}
+        <DistrosToolbar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          wslVersionFilter={wslVersionFilter}
+          onWslVersionFilterChange={setWslVersionFilter}
+          distros={distros}
+          onNewSnapshot={() => {
+            setCreateForDistro("");
+            setCreateOpen(true);
           }}
-          onCreateSnapshot={() => handleSnapshot(selectedDistro)}
-          onClose={() => setSelectedDistro(null)}
+          onShutdownAll={() => setShowShutdownConfirm(true)}
+          shutdownAllPending={shutdownAll.isPending}
+          running={running}
+          stopped={stopped}
+          total={total}
         />
+
+        {/* Distro List */}
+        <DistroList
+          distros={processedDistros}
+          isLoading={isLoading}
+          error={error}
+          viewMode={viewMode}
+          isFiltered={isFiltered}
+          onSnapshot={handleSnapshot}
+          selectedDistro={selectedDistro}
+          onSelectDistro={handleSelectDistro}
+        />
+      </div>
+
+      {/* Snapshot Panel (fixed at bottom) */}
+      {selectedDistro && (
+        <div className="shrink-0 pt-3">
+          <DistroSnapshotPanel
+            distroName={selectedDistro}
+            onRestore={(id, distroName) => {
+              setRestoreSnapshotId(id);
+              setRestoreDistroName(distroName);
+            }}
+            onCreateSnapshot={() => handleSnapshot(selectedDistro)}
+            onClose={() => setSelectedDistro(null)}
+          />
+        </div>
       )}
 
       {/* Dialogs */}

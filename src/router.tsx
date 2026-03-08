@@ -1,8 +1,16 @@
+import { lazy } from "react";
 import { createRouter, createRoute, createRootRoute } from "@tanstack/react-router";
 import { RootLayout } from "@/shared/ui/root-layout";
-import { DistrosPage } from "@/pages/distros/ui/distros-page";
-import { MonitoringPage } from "@/pages/monitoring/ui/monitoring-page";
-import { SettingsPage } from "@/pages/settings/ui/settings-page";
+
+const DistrosPage = lazy(() =>
+  import("@/pages/distros/ui/distros-page").then((m) => ({ default: m.DistrosPage })),
+);
+const MonitoringPage = lazy(() =>
+  import("@/pages/monitoring/ui/monitoring-page").then((m) => ({ default: m.MonitoringPage })),
+);
+const SettingsPage = lazy(() =>
+  import("@/pages/settings/ui/settings-page").then((m) => ({ default: m.SettingsPage })),
+);
 
 const rootRoute = createRootRoute({
   component: RootLayout,

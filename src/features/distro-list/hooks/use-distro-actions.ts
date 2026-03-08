@@ -5,11 +5,11 @@ import type { Distro } from "@/shared/types/distro";
 interface UseDistroActionsProps {
   distro: Distro;
   pendingAction?: string;
-  onStart: () => void;
-  onStop: () => void;
-  onRestart: () => void;
-  onSnapshot: () => void;
-  onExpand: () => void;
+  onStart: (name: string) => void;
+  onStop: (name: string) => void;
+  onRestart: (name: string) => void;
+  onSnapshot: (name: string) => void;
+  onExpand: (name: string) => void;
 }
 
 export function useDistroActions({
@@ -31,7 +31,7 @@ export function useDistroActions({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      onExpand();
+      onExpand(distro.name);
     }
   };
 
@@ -40,10 +40,10 @@ export function useDistroActions({
     fn();
   };
 
-  const handleStart = stopPropagation(onStart);
-  const handleStop = stopPropagation(onStop);
-  const handleRestart = stopPropagation(onRestart);
-  const handleSnapshot = stopPropagation(onSnapshot);
+  const handleStart = stopPropagation(() => onStart(distro.name));
+  const handleStop = stopPropagation(() => onStop(distro.name));
+  const handleRestart = stopPropagation(() => onRestart(distro.name));
+  const handleSnapshot = stopPropagation(() => onSnapshot(distro.name));
   const handleTerminal = stopPropagation(() => createTerminalSession.mutate(distro.name));
   const handleMonitorClick = (e: React.MouseEvent) => e.stopPropagation();
 

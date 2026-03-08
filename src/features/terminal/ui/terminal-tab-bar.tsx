@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { X, Plus } from "lucide-react";
 import { useTerminalStore, type TerminalSession } from "../model/use-terminal-store";
+import { useShallow } from "zustand/react/shallow";
 import { closeTerminal } from "../api/mutations";
 import { cn } from "@/shared/lib/utils";
 
@@ -10,7 +11,14 @@ interface TerminalTabBarProps {
 
 export function TerminalTabBar({ onNewTerminal }: TerminalTabBarProps) {
   const { t } = useTranslation();
-  const { sessions, activeSessionId, setActiveSession, removeSession } = useTerminalStore();
+  const { sessions, activeSessionId, setActiveSession, removeSession } = useTerminalStore(
+    useShallow((s) => ({
+      sessions: s.sessions,
+      activeSessionId: s.activeSessionId,
+      setActiveSession: s.setActiveSession,
+      removeSession: s.removeSession,
+    })),
+  );
 
   return (
     <div className="glass-surface flex items-center gap-0.5 overflow-x-auto px-2">
