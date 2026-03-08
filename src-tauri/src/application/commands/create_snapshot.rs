@@ -281,7 +281,7 @@ impl CreateSnapshotHandler {
                 snapshot.status = SnapshotStatus::Completed;
             }
             Err(e) => {
-                tracing::error!(error = %e, "export failed, saving snapshot as Failed");
+                tracing::error!("export failed, saving snapshot as Failed: {}", e);
                 snapshot.status = SnapshotStatus::Failed(e.to_string());
                 self.snapshot_repo.save(&snapshot).await?;
                 return Err(e);

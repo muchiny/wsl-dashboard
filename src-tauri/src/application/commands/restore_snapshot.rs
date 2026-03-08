@@ -37,12 +37,12 @@ impl RestoreSnapshotHandler {
         let snapshot = self.snapshot_repo.get_by_id(&cmd.snapshot_id).await?;
 
         tracing::info!(
-            snapshot_id = %cmd.snapshot_id,
-            file_path = %snapshot.file_path,
-            format = ?snapshot.format,
-            mode = ?cmd.mode,
-            install_location = %cmd.install_location,
-            "starting snapshot restore"
+            "starting snapshot restore: id={} path={} format={:?} mode={:?} install={}",
+            cmd.snapshot_id,
+            snapshot.file_path,
+            snapshot.format,
+            cmd.mode,
+            cmd.install_location
         );
 
         // Try the stored path first; if it fails (e.g. Windows path on Linux),
@@ -52,9 +52,9 @@ impl RestoreSnapshotHandler {
                 let linux_path = windows_to_linux_path(&snapshot.file_path);
                 if linux_path != snapshot.file_path {
                     tracing::info!(
-                        original = %snapshot.file_path,
-                        converted = %linux_path,
-                        "retrying metadata with converted path"
+                        "retrying metadata with converted path: original={} converted={}",
+                        snapshot.file_path,
+                        linux_path
                     );
                     std::fs::metadata(&linux_path)
                 } else {
@@ -105,9 +105,9 @@ impl RestoreSnapshotHandler {
             ));
             let backup_str = backup_file.to_string_lossy().to_string();
             tracing::info!(
-                distro = %target_name,
-                backup_path = %backup_str,
-                "creating safety backup before overwrite restore"
+                "creating safety backup before overwrite restore: distro={} path={}",
+                target_name,
+                backup_str
             );
             match self
                 .wsl_manager
@@ -122,15 +122,15 @@ impl RestoreSnapshotHandler {
                         .map(|m| m.len())
                         .unwrap_or(0);
                     if backup_size > 0 {
-                        tracing::info!(backup_size, "safety backup created successfully");
+                        tracing::info!("safety backup created successfully: {} bytes", backup_size);
                         Some(backup_str)
                     } else {
-                        tracing::warn!("safety backup is empty, proceeding without it");
+                        tracing::warn!("safety backup is empty (0 bytes), proceeding without it");
                         None
                     }
                 }
                 Err(e) => {
-                    tracing::warn!(error = %e, "safety backup failed, proceeding without it");
+                    tracing::warn!("safety backup failed, proceeding without it: {}", e);
                     None
                 }
             }
@@ -180,9 +180,9 @@ impl RestoreSnapshotHandler {
                 if tokio::time::Instant::now() >= deadline {
                     // VHDX still locked — try another full shutdown
                     tracing::warn!(
-                        path = %vhdx_path.display(),
-                        linux_path = %vhdx_path_linux.display(),
-                        "VHDX still exists after 10s, forcing WSL shutdown"
+                        "VHDX still exists after 10s, forcing WSL shutdown: path={} linux={}",
+                        vhdx_path.display(),
+                        vhdx_path_linux.display()
                     );
                     let _ = self.wsl_manager.shutdown_all().await;
                     tokio::time::sleep(std::time::Duration::from_secs(3)).await;
@@ -191,7 +191,11 @@ impl RestoreSnapshotHandler {
                         if p.exists()
                             && let Err(e) = std::fs::remove_file(p)
                         {
-                            tracing::warn!(path = %p.display(), error = %e, "force-delete VHDX failed");
+                            tracing::warn!(
+                                "force-delete VHDX failed: path={} error={}",
+                                p.display(),
+                                e
+                            );
                         }
                     }
                     // Final check: if VHDX is STILL there, abort to avoid silent data reuse
@@ -211,14 +215,17 @@ impl RestoreSnapshotHandler {
             if let Ok(entries) = std::fs::read_dir(&cmd.install_location) {
                 for entry in entries.flatten() {
                     let path = entry.path();
-                    tracing::info!(file = %path.display(), "removing residual file from install directory");
+                    tracing::info!(
+                        "removing residual file from install directory: {}",
+                        path.display()
+                    );
                     let _ = std::fs::remove_file(&path);
                 }
             }
 
             tracing::info!(
-                vhdx = %vhdx_path.display(),
-                "install directory cleaned, proceeding with import"
+                "install directory cleaned, proceeding with import: vhdx={}",
+                vhdx_path.display()
             );
 
             // Final WSL shutdown to release any lingering file handles
@@ -228,11 +235,11 @@ impl RestoreSnapshotHandler {
         }
 
         tracing::info!(
-            distro = %target_name,
-            install_location = %cmd.install_location,
-            snapshot_file = %snapshot.file_path,
-            snapshot_size = snapshot.file_size.bytes(),
-            "executing wsl --import"
+            "executing wsl --import: distro={} install={} snapshot={} size={}",
+            target_name,
+            cmd.install_location,
+            snapshot.file_path,
+            snapshot.file_size.bytes()
         );
 
         let import_result = self
@@ -251,8 +258,8 @@ impl RestoreSnapshotHandler {
             && let Some(ref backup_path) = safety_backup_path
         {
             tracing::error!(
-                error = %import_err,
-                "import failed, attempting to restore from safety backup"
+                "import failed, attempting to restore from safety backup: {}",
+                import_err
             );
             if let Err(restore_err) = self
                 .wsl_manager
@@ -264,10 +271,7 @@ impl RestoreSnapshotHandler {
                 )
                 .await
             {
-                tracing::error!(
-                    error = %restore_err,
-                    "safety backup restore also failed"
-                );
+                tracing::error!("safety backup restore also failed: {}", restore_err);
                 return Err(DomainError::SnapshotError(format!(
                     "Import failed: {}. Safety backup restore also failed: {}. \
                      The backup file is preserved at: {}",
@@ -295,7 +299,7 @@ impl RestoreSnapshotHandler {
                     target_name
                 ))
             })?;
-        tracing::info!(distro = %target_name, "import verified: distro exists");
+        tracing::info!("import verified: distro '{}' exists", target_name);
 
         // Verify the new VHDX was actually created from the snapshot.
         // If the import silently reused stale data, the VHDX won't have
@@ -319,10 +323,10 @@ impl RestoreSnapshotHandler {
                 .and_then(|t| t.elapsed().ok())
                 .is_some_and(|age| age.as_secs() < 120);
             tracing::info!(
-                vhdx_size = meta.len(),
-                snapshot_size = snapshot.file_size.bytes(),
-                modified_recently,
-                "post-import VHDX verification"
+                "post-import VHDX verification: vhdx_size={} snapshot_size={} modified_recently={}",
+                meta.len(),
+                snapshot.file_size.bytes(),
+                modified_recently
             );
             if !modified_recently {
                 return Err(DomainError::SnapshotError(
@@ -334,41 +338,69 @@ impl RestoreSnapshotHandler {
             }
         } else {
             tracing::warn!(
-                install_location = %cmd.install_location,
-                "post-import VHDX not found — import may have used a different path"
+                "post-import VHDX not found — import may have used a different path: install={}",
+                cmd.install_location
             );
         }
 
         // After wsl --import, the default user is reset to root.
         // If the snapshot's /etc/wsl.conf doesn't have a [user] section,
         // detect the first regular user from /etc/passwd and add it.
-        if let Err(e) = self
-            .wsl_manager
-            .exec_in_distro(
-                &target_name,
-                r#"if ! grep -q '^\[user\]' /etc/wsl.conf 2>/dev/null; then U=$(awk -F: '$3>=1000 && $7 !~ /nologin|false/ {print $1; exit}' /etc/passwd); [ -n "$U" ] && printf '\n[user]\ndefault=%s\n' "$U" >> /etc/wsl.conf; fi"#,
-            )
-            .await
-        {
-            tracing::warn!(error = %e, "failed to restore default user in wsl.conf");
+        // The distro filesystem may not be ready immediately after import,
+        // so retry up to 3 times with a delay.
+        tracing::info!("waiting 3s for distro filesystem to initialize after import");
+        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+
+        let mut user_restored = false;
+        for attempt in 1..=3 {
+            match self
+                .wsl_manager
+                .exec_in_distro(
+                    &target_name,
+                    r#"if ! grep -q '^\[user\]' /etc/wsl.conf 2>/dev/null; then U=$(awk -F: '$3>=1000 && $7 !~ /nologin|false/ {print $1; exit}' /etc/passwd); [ -n "$U" ] && printf '\n[user]\ndefault=%s\n' "$U" >> /etc/wsl.conf; fi"#,
+                )
+                .await
+            {
+                Ok(_) => {
+                    tracing::info!(
+                        "default user restored in wsl.conf (attempt {})",
+                        attempt
+                    );
+                    user_restored = true;
+                    break;
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "failed to restore default user in wsl.conf (attempt {}/3): {}",
+                        attempt,
+                        e
+                    );
+                    if attempt < 3 {
+                        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                    }
+                }
+            }
+        }
+        if !user_restored {
+            tracing::error!("all 3 attempts to restore default user in wsl.conf failed");
         }
 
         // Restart the distro so the [user] default takes effect
         if let Err(e) = self.wsl_manager.terminate_distro(&target_name).await {
-            tracing::warn!(error = %e, "failed to terminate distro after user restore");
+            tracing::warn!("failed to terminate distro after user restore: {}", e);
         }
         // Auto-start in overwrite mode since the original distro was running
         if matches!(cmd.mode, RestoreMode::Overwrite)
             && let Err(e) = self.wsl_manager.start_distro(&target_name).await
         {
-            tracing::warn!(error = %e, "failed to auto-start distro after restore");
+            tracing::warn!("failed to auto-start distro after restore: {}", e);
         }
 
         // Clean up safety backup on success
         if let Some(ref backup_path) = safety_backup_path {
             tracing::info!(
-                backup_path,
-                "cleaning up safety backup after successful restore"
+                "cleaning up safety backup after successful restore: {}",
+                backup_path
             );
             let _ = std::fs::remove_file(backup_path)
                 .or_else(|_| std::fs::remove_file(windows_to_linux_path(backup_path)));

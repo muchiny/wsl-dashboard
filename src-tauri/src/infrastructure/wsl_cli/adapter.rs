@@ -161,7 +161,7 @@ impl WslCliAdapter {
             .output()
             .await
             .map_err(|e| {
-                tracing::error!(error = %e, args = ?args, "failed to execute wsl.exe");
+                tracing::error!("failed to execute wsl.exe: args={:?} error={}", args, e);
                 DomainError::WslCliError(format!("Failed to execute wsl.exe: {}", e))
             })?;
 
