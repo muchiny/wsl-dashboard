@@ -2,11 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import { renderWithProviders } from "@/test/test-utils";
 import { useDistros } from "@/shared/api/distro-queries";
-import {
-  useProcesses,
-  useMetricsHistory,
-} from "@/features/monitoring-dashboard/api/queries";
-import { useLiveMetrics } from "@/features/monitoring-dashboard/hooks/use-live-metrics";
+import { useProcesses } from "@/features/monitoring-dashboard/api/queries";
 import { MonitoringPage } from "./monitoring-page";
 
 vi.mock("@/shared/api/distro-queries", () => ({ useDistros: vi.fn() }));
@@ -61,7 +57,7 @@ describe("MonitoringPage", () => {
       data: [],
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useDistros>);
 
     renderWithProviders(<MonitoringPage />);
 
@@ -83,7 +79,7 @@ describe("MonitoringPage", () => {
       ],
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useDistros>);
 
     renderWithProviders(<MonitoringPage />);
 
@@ -106,7 +102,7 @@ describe("MonitoringPage", () => {
       ],
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useDistros>);
 
     renderWithProviders(<MonitoringPage />);
 
@@ -121,7 +117,7 @@ describe("MonitoringPage", () => {
       data: [],
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useDistros>);
 
     renderWithProviders(<MonitoringPage />);
 
@@ -133,7 +129,7 @@ describe("MonitoringPage", () => {
       data: [],
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useDistros>);
 
     renderWithProviders(<MonitoringPage />);
 
@@ -145,7 +141,7 @@ describe("MonitoringPage", () => {
       data: [],
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useDistros>);
 
     renderWithProviders(<MonitoringPage />);
 
@@ -167,7 +163,7 @@ describe("MonitoringPage", () => {
       ],
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useDistros>);
     vi.mocked(useProcesses).mockReturnValue({
       data: [
         {
@@ -179,7 +175,7 @@ describe("MonitoringPage", () => {
           command: "test",
         },
       ],
-    } as any);
+    } as ReturnType<typeof useProcesses>);
 
     renderWithProviders(<MonitoringPage />);
 

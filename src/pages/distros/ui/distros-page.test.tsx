@@ -17,17 +17,17 @@ vi.mock("@/features/distro-list/api/mutations", () => ({
   useStartAllDistros: vi.fn(),
 }));
 vi.mock("@/features/distro-list/ui/distro-list", () => ({
-  DistroList: (props: any) => (
-    <div data-testid="distro-list" data-view={props.viewMode} />
+  DistroList: (props: Record<string, unknown>) => (
+    <div data-testid="distro-list" data-view={props.viewMode as string} />
   ),
 }));
 vi.mock("@/features/distro-list/ui/distros-toolbar", () => ({
-  DistrosToolbar: (props: any) => (
+  DistrosToolbar: (props: Record<string, unknown>) => (
     <div
       data-testid="distros-toolbar"
-      data-running={props.running}
-      data-stopped={props.stopped}
-      data-total={props.total}
+      data-running={props.running as string}
+      data-stopped={props.stopped as string}
+      data-total={props.total as string}
     />
   ),
 }));
@@ -44,7 +44,7 @@ vi.mock("@/shared/ui/confirm-dialog", () => ({
   ConfirmDialog: () => null,
 }));
 vi.mock("@/shared/hooks/use-debounce", () => ({
-  useDebounce: (v: any) => v,
+  useDebounce: <T,>(v: T) => v,
 }));
 vi.mock("@/shared/stores/use-preferences-store", () => ({
   usePreferencesStore: vi.fn(() => ({ sortKey: "name-asc", viewMode: "grid" })),
@@ -88,11 +88,11 @@ function setup() {
     data: mockDistros,
     isLoading: false,
     error: null,
-  } as any);
+  } as ReturnType<typeof useDistros>);
   vi.mocked(useShutdownAll).mockReturnValue({
     isPending: false,
     mutate: vi.fn(),
-  } as any);
+  } as ReturnType<typeof useShutdownAll>);
 }
 
 describe("DistrosPage", () => {
@@ -119,7 +119,7 @@ describe("DistrosPage", () => {
     vi.mocked(usePreferencesStore).mockReturnValue({
       sortKey: "name-asc",
       viewMode: "list",
-    } as any);
+    } as ReturnType<typeof usePreferencesStore>);
 
     renderWithProviders(<DistrosPage />);
 
@@ -178,15 +178,15 @@ describe("DistrosPage", () => {
       ],
       isLoading: false,
       error: null,
-    } as any);
+    } as ReturnType<typeof useDistros>);
     vi.mocked(useShutdownAll).mockReturnValue({
       isPending: false,
       mutate: vi.fn(),
-    } as any);
+    } as ReturnType<typeof useShutdownAll>);
     vi.mocked(usePreferencesStore).mockReturnValue({
       sortKey: "name-asc",
       viewMode: "grid",
-    } as any);
+    } as ReturnType<typeof usePreferencesStore>);
 
     renderWithProviders(<DistrosPage />);
 

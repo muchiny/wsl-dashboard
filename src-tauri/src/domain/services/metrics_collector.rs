@@ -292,7 +292,13 @@ mod tests {
         Distro::new(DistroName::new(name).unwrap(), state, WslVersion::V2, false)
     }
 
-    fn make_metrics(distro_name: &str, cpu: f64, mem_used: u64, mem_total: u64, disk: f64) -> SystemMetrics {
+    fn make_metrics(
+        distro_name: &str,
+        cpu: f64,
+        mem_used: u64,
+        mem_total: u64,
+        disk: f64,
+    ) -> SystemMetrics {
         SystemMetrics {
             distro_name: distro_name.to_string(),
             timestamp: chrono::Utc::now(),
@@ -416,13 +422,8 @@ mod tests {
         let metrics = make_metrics("Ubuntu", 95.0, 0, 1, 0.0);
         let mut cooldowns: HashMap<(String, String), Instant> = HashMap::new();
 
-        MetricsCollector::check_alerts_headless(
-            &alerting,
-            &thresholds,
-            &metrics,
-            &mut cooldowns,
-        )
-        .await;
+        MetricsCollector::check_alerts_headless(&alerting, &thresholds, &metrics, &mut cooldowns)
+            .await;
 
         // Cooldown entry should be recorded
         assert!(cooldowns.contains_key(&("Ubuntu".to_string(), "cpu".to_string())));
@@ -432,9 +433,7 @@ mod tests {
     async fn alert_not_triggered_when_value_below_threshold() {
         let mut alerting = MockAlertingPort::new();
         // record_alert should NOT be called
-        alerting
-            .expect_record_alert()
-            .times(0);
+        alerting.expect_record_alert().times(0);
 
         let alerting: Arc<dyn AlertingPort> = Arc::new(alerting);
         let thresholds = Arc::new(tokio::sync::RwLock::new(vec![AlertThreshold {
@@ -446,13 +445,8 @@ mod tests {
         let metrics = make_metrics("Ubuntu", 50.0, 0, 1, 0.0);
         let mut cooldowns: HashMap<(String, String), Instant> = HashMap::new();
 
-        MetricsCollector::check_alerts_headless(
-            &alerting,
-            &thresholds,
-            &metrics,
-            &mut cooldowns,
-        )
-        .await;
+        MetricsCollector::check_alerts_headless(&alerting, &thresholds, &metrics, &mut cooldowns)
+            .await;
 
         assert!(cooldowns.is_empty());
     }
@@ -477,22 +471,12 @@ mod tests {
         let mut cooldowns: HashMap<(String, String), Instant> = HashMap::new();
 
         // First call: should trigger alert
-        MetricsCollector::check_alerts_headless(
-            &alerting,
-            &thresholds,
-            &metrics,
-            &mut cooldowns,
-        )
-        .await;
+        MetricsCollector::check_alerts_headless(&alerting, &thresholds, &metrics, &mut cooldowns)
+            .await;
 
         // Second call: should be suppressed by cooldown
-        MetricsCollector::check_alerts_headless(
-            &alerting,
-            &thresholds,
-            &metrics,
-            &mut cooldowns,
-        )
-        .await;
+        MetricsCollector::check_alerts_headless(&alerting, &thresholds, &metrics, &mut cooldowns)
+            .await;
     }
 
     #[tokio::test]
@@ -510,13 +494,8 @@ mod tests {
         let metrics = make_metrics("Ubuntu", 95.0, 0, 1, 0.0);
         let mut cooldowns: HashMap<(String, String), Instant> = HashMap::new();
 
-        MetricsCollector::check_alerts_headless(
-            &alerting,
-            &thresholds,
-            &metrics,
-            &mut cooldowns,
-        )
-        .await;
+        MetricsCollector::check_alerts_headless(&alerting, &thresholds, &metrics, &mut cooldowns)
+            .await;
 
         assert!(cooldowns.is_empty());
     }
@@ -540,13 +519,8 @@ mod tests {
         let metrics = make_metrics("Ubuntu", 0.0, 950, 1000, 0.0);
         let mut cooldowns: HashMap<(String, String), Instant> = HashMap::new();
 
-        MetricsCollector::check_alerts_headless(
-            &alerting,
-            &thresholds,
-            &metrics,
-            &mut cooldowns,
-        )
-        .await;
+        MetricsCollector::check_alerts_headless(&alerting, &thresholds, &metrics, &mut cooldowns)
+            .await;
 
         assert!(cooldowns.contains_key(&("Ubuntu".to_string(), "memory".to_string())));
     }
@@ -567,13 +541,8 @@ mod tests {
         let metrics = make_metrics("Ubuntu", 0.0, 0, 0, 0.0);
         let mut cooldowns: HashMap<(String, String), Instant> = HashMap::new();
 
-        MetricsCollector::check_alerts_headless(
-            &alerting,
-            &thresholds,
-            &metrics,
-            &mut cooldowns,
-        )
-        .await;
+        MetricsCollector::check_alerts_headless(&alerting, &thresholds, &metrics, &mut cooldowns)
+            .await;
 
         assert!(cooldowns.is_empty());
     }
@@ -604,13 +573,8 @@ mod tests {
         let metrics = make_metrics("Ubuntu", 95.0, 0, 1, 85.0);
         let mut cooldowns: HashMap<(String, String), Instant> = HashMap::new();
 
-        MetricsCollector::check_alerts_headless(
-            &alerting,
-            &thresholds,
-            &metrics,
-            &mut cooldowns,
-        )
-        .await;
+        MetricsCollector::check_alerts_headless(&alerting, &thresholds, &metrics, &mut cooldowns)
+            .await;
 
         assert_eq!(cooldowns.len(), 2);
     }

@@ -126,10 +126,7 @@ mod tests {
             .expect_purge_aggregated_before()
             .times(1)
             .returning(|_| Ok(0));
-        alerting
-            .expect_purge_before()
-            .times(1)
-            .returning(|_| Ok(0));
+        alerting.expect_purge_before().times(1).returning(|_| Ok(0));
 
         let aggregator = make_aggregator(metrics_repo, alerting);
         let result = aggregator.aggregate_and_purge().await;
@@ -152,10 +149,7 @@ mod tests {
             .expect_purge_aggregated_before()
             .times(1)
             .returning(|_| Ok(3));
-        alerting
-            .expect_purge_before()
-            .times(1)
-            .returning(|_| Ok(7));
+        alerting.expect_purge_before().times(1).returning(|_| Ok(7));
 
         let aggregator = make_aggregator(metrics_repo, alerting);
         let result = aggregator.aggregate_and_purge().await;
@@ -179,10 +173,7 @@ mod tests {
             .expect_purge_aggregated_before()
             .times(1)
             .returning(|_| Ok(0));
-        alerting
-            .expect_purge_before()
-            .times(1)
-            .returning(|_| Ok(0));
+        alerting.expect_purge_before().times(1).returning(|_| Ok(0));
 
         let aggregator = make_aggregator(metrics_repo, alerting);
         let result = aggregator.aggregate_and_purge().await;
@@ -204,10 +195,7 @@ mod tests {
             .expect_purge_aggregated_before()
             .times(1)
             .returning(|_| Ok(0));
-        alerting
-            .expect_purge_before()
-            .times(1)
-            .returning(|_| Ok(0));
+        alerting.expect_purge_before().times(1).returning(|_| Ok(0));
 
         let aggregator = make_aggregator(metrics_repo, alerting);
         let result = aggregator.aggregate_and_purge().await;
@@ -222,16 +210,11 @@ mod tests {
         metrics_repo
             .expect_aggregate_raw_buckets()
             .returning(|_, _| Ok(0));
-        metrics_repo
-            .expect_purge_raw_before()
-            .returning(|_| Ok(0));
+        metrics_repo.expect_purge_raw_before().returning(|_| Ok(0));
         metrics_repo
             .expect_purge_aggregated_before()
             .returning(|_| Err(DomainError::Internal("purge agg failed".into())));
-        alerting
-            .expect_purge_before()
-            .times(1)
-            .returning(|_| Ok(0));
+        alerting.expect_purge_before().times(1).returning(|_| Ok(0));
 
         let aggregator = make_aggregator(metrics_repo, alerting);
         let result = aggregator.aggregate_and_purge().await;
@@ -246,9 +229,7 @@ mod tests {
         metrics_repo
             .expect_aggregate_raw_buckets()
             .returning(|_, _| Ok(0));
-        metrics_repo
-            .expect_purge_raw_before()
-            .returning(|_| Ok(0));
+        metrics_repo.expect_purge_raw_before().returning(|_| Ok(0));
         metrics_repo
             .expect_purge_aggregated_before()
             .returning(|_| Ok(0));
