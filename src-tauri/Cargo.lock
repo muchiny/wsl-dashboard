@@ -6829,7 +6829,7 @@ dependencies = [
 
 [[package]]
 name = "wsl-nexus"
-version = "1.0.9"
+version = "1.0.10"
 dependencies = [
  "anyhow",
  "async-trait",
