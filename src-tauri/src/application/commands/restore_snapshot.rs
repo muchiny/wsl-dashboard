@@ -92,9 +92,22 @@ impl RestoreSnapshotHandler {
             RestoreMode::Overwrite => snapshot.distro_name.clone(),
         };
 
-        // For overwrite mode, create a safety backup of the current distro before
-        // destroying it. If the import fails, the user won't lose their data.
+        // For overwrite mode: terminate, shutdown, create safety backup, then unregister.
+        // The backup is created AFTER terminate+shutdown so the export doesn't
+        // compete with a running VM for VHDX file handles.
         let safety_backup_path: Option<String> = if matches!(cmd.mode, RestoreMode::Overwrite) {
+            // Best-effort terminate; ignore error if already stopped
+            let _ = self.wsl_manager.terminate_distro(&target_name).await;
+
+            // Shut down the entire WSL VM to release VHDX locks.
+            // wsl --terminate alone is insufficient: the lightweight utility VM
+            // may still hold file handles on the VHDX.
+            let _ = self.wsl_manager.shutdown_all().await;
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+
+            // Create safety backup AFTER shutdown — exporting while the distro
+            // is running can leave file handles open on the VHDX, which later
+            // prevents remove_dir_all from nuking the install directory.
             let backup_dir = std::path::Path::new(&cmd.install_location)
                 .parent()
                 .unwrap_or(std::path::Path::new(&cmd.install_location));
@@ -105,7 +118,7 @@ impl RestoreSnapshotHandler {
             ));
             let backup_str = backup_file.to_string_lossy().to_string();
             tracing::info!(
-                "creating safety backup before overwrite restore: distro={} path={}",
+                "creating safety backup after shutdown: distro={} path={}",
                 target_name,
                 backup_str
             );
@@ -138,18 +151,7 @@ impl RestoreSnapshotHandler {
             None
         };
 
-        // For overwrite mode, unregister the existing distro first
-        // (terminate + unregister, since wsl --import fails if the name exists)
         if matches!(cmd.mode, RestoreMode::Overwrite) {
-            // Best-effort terminate; ignore error if already stopped
-            let _ = self.wsl_manager.terminate_distro(&target_name).await;
-
-            // Shut down the entire WSL VM before unregister to release VHDX locks.
-            // wsl --terminate alone is insufficient: the lightweight utility VM
-            // may still hold file handles on the VHDX.
-            let _ = self.wsl_manager.shutdown_all().await;
-            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-
             // Unregister MUST succeed; if it fails, import will fail with a name collision
             self.wsl_manager
                 .unregister_distro(&target_name)
@@ -277,6 +279,13 @@ impl RestoreSnapshotHandler {
             })?;
         tracing::warn!("import verified: distro '{}' exists", target_name);
 
+        // Force a clean VHDX mount — without this, wslservice.exe may serve
+        // cached filesystem data from the previous (pre-unregister) VHDX.
+        // The first exec_in_distro below boots the distro; if the VM still
+        // holds stale pages the "new" import appears to contain old data.
+        let _ = self.wsl_manager.shutdown_all().await;
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+
         // Verify the new VHDX was actually created from the snapshot.
         // If the import silently reused stale data, the VHDX won't have
         // a recent modification time.
@@ -320,10 +329,11 @@ impl RestoreSnapshotHandler {
         }
 
         // Diagnostic: check snapshot marker to prove the imported filesystem
-        // is actually from the snapshot tar/vhdx
+        // is actually from the snapshot tar/vhdx.
+        // Marker lives in /root/ (not /tmp/) so it survives tmpfs clears on reboot.
         match self
             .wsl_manager
-            .exec_in_distro(&target_name, "cat /tmp/.snapshot-marker 2>/dev/null")
+            .exec_in_distro(&target_name, "cat /root/.snapshot-marker 2>/dev/null")
             .await
         {
             Ok(marker) if !marker.trim().is_empty() => {
@@ -395,6 +405,20 @@ impl RestoreSnapshotHandler {
             && let Err(e) = self.wsl_manager.start_distro(&target_name).await
         {
             tracing::warn!("failed to auto-start distro after restore: {}", e);
+        }
+
+        // Final verification: list /home/ after a fresh boot to confirm the
+        // restored filesystem matches the snapshot (not stale cached data).
+        match self
+            .wsl_manager
+            .exec_in_distro(
+                &target_name,
+                "echo '---FINAL-HOME-VERIFY---' && ls -la /home/ 2>/dev/null",
+            )
+            .await
+        {
+            Ok(output) => tracing::warn!("FINAL /home/ verification after restore:\n{}", output),
+            Err(e) => tracing::warn!("final /home/ verification failed: {}", e),
         }
 
         // Clean up safety backup on success

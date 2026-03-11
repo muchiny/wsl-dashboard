@@ -104,12 +104,14 @@ impl CreateSnapshotHandler {
 
         // Write a marker file to verify restore integrity later.
         // If the marker is found after import, the tar/vhdx contains this filesystem.
+        // Uses /root/ instead of /tmp/ because /tmp is often a tmpfs that gets
+        // cleared on reboot, so the marker wouldn't survive import + first boot.
         let marker = format!("snapshot-marker-{}", id);
         match self
             .wsl_manager
             .exec_in_distro(
                 &cmd.distro_name,
-                &format!("echo '{}' > /tmp/.snapshot-marker", marker),
+                &format!("echo '{}' > /root/.snapshot-marker", marker),
             )
             .await
         {
@@ -426,7 +428,11 @@ mod tests {
         wsl_mock.expect_shutdown_all().returning(|| Ok(()));
         wsl_mock
             .expect_export_distro()
-            .withf(|_, path, _| path.starts_with("/tmp/Ubuntu-") && path.ends_with(".tar"))
+            .withf(|_, path, _| {
+                // On Windows, PathBuf::join uses backslash, so accept both separators
+                (path.starts_with("/tmp/Ubuntu-") || path.starts_with("/tmp\\Ubuntu-"))
+                    && path.ends_with(".tar")
+            })
             .returning(|_, _, _| Err(DomainError::WslCliError("abort".into())));
         wsl_mock.expect_start_distro().returning(|_| Ok(()));
 
