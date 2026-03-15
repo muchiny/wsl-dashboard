@@ -63,7 +63,7 @@ describe("ConfirmDialog", () => {
     const onCancel = vi.fn();
     render(<ConfirmDialog {...defaultProps} onCancel={onCancel} />);
     // The backdrop is the first child div with the onClick handler
-    const backdrop = document.querySelector(".fixed.inset-0.backdrop-blur-md");
+    const backdrop = document.querySelector(".fixed.inset-0.backdrop-blur-lg");
     expect(backdrop).toBeTruthy();
     fireEvent.click(backdrop!);
     expect(onCancel).toHaveBeenCalledTimes(1);

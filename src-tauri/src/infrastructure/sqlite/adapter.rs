@@ -193,6 +193,16 @@ impl SnapshotRepositoryPort for SqliteSnapshotRepository {
             .db_err()?;
         Ok(())
     }
+
+    async fn delete_by_distro(&self, distro: &DistroName) -> Result<Vec<Snapshot>, DomainError> {
+        let snapshots = self.list_by_distro(distro).await?;
+        sqlx::query("DELETE FROM snapshots WHERE distro_name = ?")
+            .bind(distro.as_str())
+            .execute(&self.db.pool)
+            .await
+            .db_err()?;
+        Ok(snapshots)
+    }
 }
 
 // --- Audit Logger backed by SQLite ---

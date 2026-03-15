@@ -4,6 +4,7 @@
     "cancel": "Cancelar",
     "save": "Guardar",
     "delete": "Eliminar",
+    "restore": "Restaurar",
     "close": "Cerrar",
     "browse": "Explorar...",
     "optional": "(opcional)",
@@ -13,6 +14,8 @@
     "appName": "WSL Nexus",
     "subtitle": "Gestión de WSL2",
     "skipToContent": "Ir al contenido principal",
+    "toggleTerminal": "Alternar terminal (Ctrl+`)",
+    "terminalTitle": "Terminal (Ctrl+`)",
     "toggleDebugConsole": "Alternar consola de depuración (Ctrl+Shift+D)",
     "debugConsoleTitle": "Consola de depuración (Ctrl+Shift+D)",
     "toggleTheme": "Alternar tema",
@@ -66,6 +69,13 @@
     "createSnapshotOf": "Crear snapshot de {{name}}",
     "openTerminalIn": "Abrir terminal en {{name}}",
     "monitorAction": "Monitorear {{name}}",
+    "tipStart": "Iniciar",
+    "tipStop": "Detener",
+    "tipRestart": "Reiniciar",
+    "tipSnapshot": "Snapshot",
+    "tipTerminal": "Terminal",
+    "tipMonitor": "Monitorear",
+    "tipDelete": "Eliminar",
     "stateRunning": "En ejecución",
     "stateStopped": "Detenida",
     "stateInstalling": "Instalando",
@@ -94,7 +104,15 @@
     "toastSetDefault": "{{name}} establecida como predeterminada",
     "toastSetDefaultFailed": "Error al establecer {{name}} como predeterminada: {{message}}",
     "toastResized": "{{name}} redimensionada a {{size}}",
-    "toastResizeFailed": "Error al redimensionar {{name}}: {{message}}"
+    "toastResizeFailed": "Error al redimensionar {{name}}: {{message}}",
+    "deleteTitle": "Eliminar distribución",
+    "deleteWarning": "Esto desregistrará permanentemente \"{{name}}\" y eliminará su disco virtual. Esta acción no se puede deshacer.",
+    "deleteSnapshotsOption": "Eliminar también las instantáneas asociadas",
+    "deleteConfirm": "Eliminar",
+    "deleting": "Eliminando...",
+    "deleteAction": "Eliminar {{name}}",
+    "toastDeleteSuccess": "\"{{name}}\" eliminada",
+    "toastDeleteFailed": "Error al eliminar \"{{name}}\": {{message}}"
   },
   "snapshots": {
     "title": "Snapshots — {{name}}",
@@ -206,10 +224,10 @@
   "preferences": {
     "appearance": "Apariencia",
     "language": "Idioma",
-    "mochaDark": "Neon Dark",
-    "mochaDarkDesc": "Glassmorfismo oscuro con acentos neón",
-    "latteLight": "Frosted Light",
-    "latteLightDesc": "Tema de vidrio esmerilado para ambientes luminosos",
+    "mochaDark": "Catppuccin Mocha",
+    "mochaDarkDesc": "Tema oscuro cálido con acentos pastel",
+    "latteLight": "Catppuccin Latte",
+    "latteLightDesc": "Tema claro cálido para ambientes luminosos",
     "monitoring": "Monitoreo",
     "monitoringDesc": "Ajuste la frecuencia de consulta de métricas de las distribuciones en ejecución.",
     "metricsInterval": "Intervalo de métricas del sistema",
@@ -237,7 +255,10 @@
     "alertDisk": "Disco",
     "toggleAlert": "Activar/desactivar alerta de {{label}}",
     "snapshotDirPlaceholder": "C:\\WSL-Snapshots",
-    "installLocationPlaceholder": "C:\\WSL"
+    "installLocationPlaceholder": "C:\\WSL",
+    "developer": "Desarrollador",
+    "developerMode": "Modo desarrollador",
+    "developerModeDescription": "Mostrar consola de depuración y herramientas de diagnóstico"
   },
   "wslConfig": {
     "title": ".wslconfig (Configuración global de WSL2)",
@@ -355,7 +376,8 @@
     "closeTab": "Cerrar {{title}}",
     "minimize": "Minimizar terminal",
     "expand": "Expandir terminal",
-    "hide": "Ocultar terminal"
+    "hide": "Ocultar terminal",
+    "resizeHandle": "Redimensionar panel de terminal"
   },
   "errors": {
     "somethingWentWrong": "Algo salió mal",

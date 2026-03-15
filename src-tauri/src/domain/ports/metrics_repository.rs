@@ -87,4 +87,7 @@ pub trait MetricsRepositoryPort: Send + Sync {
 
     /// Delete aggregated metrics older than the given timestamp. Returns rows deleted.
     async fn purge_aggregated_before(&self, before: DateTime<Utc>) -> Result<u64, DomainError>;
+
+    /// Delete all metrics (raw + aggregated) for a distro.
+    async fn delete_by_distro(&self, distro: &DistroName) -> Result<(), DomainError>;
 }

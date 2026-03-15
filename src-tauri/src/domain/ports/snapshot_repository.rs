@@ -21,4 +21,7 @@ pub trait SnapshotRepositoryPort: Send + Sync {
 
     /// Delete a snapshot's metadata
     async fn delete(&self, id: &SnapshotId) -> Result<(), DomainError>;
+
+    /// Delete all snapshots for a distro and return them (for file cleanup)
+    async fn delete_by_distro(&self, distro: &DistroName) -> Result<Vec<Snapshot>, DomainError>;
 }

@@ -97,7 +97,7 @@ describe("DialogShell", () => {
         <p>Content</p>
       </DialogShell>,
     );
-    const overlay = document.querySelector(".fixed.inset-0.backdrop-blur-md");
+    const overlay = document.querySelector(".fixed.inset-0.backdrop-blur-lg");
     expect(overlay).toBeTruthy();
     fireEvent.click(overlay!);
     expect(onClose).toHaveBeenCalledTimes(1);

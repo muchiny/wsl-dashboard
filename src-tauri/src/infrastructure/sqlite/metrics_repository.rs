@@ -224,6 +224,20 @@ impl MetricsRepositoryPort for SqliteMetricsRepository {
 
         Ok(result.rows_affected())
     }
+
+    async fn delete_by_distro(&self, distro: &DistroName) -> Result<(), DomainError> {
+        sqlx::query("DELETE FROM metrics_raw WHERE distro_name = ?")
+            .bind(distro.as_str())
+            .execute(&self.db.pool)
+            .await
+            .db_err()?;
+        sqlx::query("DELETE FROM metrics_aggregated WHERE distro_name = ?")
+            .bind(distro.as_str())
+            .execute(&self.db.pool)
+            .await
+            .db_err()?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

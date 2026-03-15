@@ -45,7 +45,7 @@ export function ProcessTable({ processes }: ProcessTableProps) {
   );
 
   return (
-    <div className="glass-card min-w-0 overflow-hidden rounded-xl">
+    <div className="glass-card min-w-0 overflow-hidden rounded-xl shadow-elevation-2">
       <div className="border-surface-0 flex flex-col gap-2 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
         <h4 className="text-sm font-semibold">
           {t("monitoring.processes", { count: processes.length })}

@@ -33,7 +33,7 @@ export function useTauriMutation<TData = void, TVariables = void>({
     onSuccess: (data, variables) => {
       if (invalidateKeys) {
         for (const key of invalidateKeys) {
-          queryClient.invalidateQueries({ queryKey: key });
+          queryClient.refetchQueries({ queryKey: key });
         }
       }
       if (successMessage) {

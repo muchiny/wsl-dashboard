@@ -34,6 +34,10 @@ vi.mock("../api/mutations", () => ({
     isPending: false,
     variables: undefined,
   }),
+  useDeleteDistro: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
 }));
 
 vi.mock("@/features/terminal/api/mutations", () => ({
@@ -73,6 +77,7 @@ const defaultProps = {
   viewMode: "grid" as const,
   isFiltered: false,
   onSnapshot: noop,
+  onDelete: noop,
   selectedDistro: null as string | null,
   onSelectDistro: noop,
 };

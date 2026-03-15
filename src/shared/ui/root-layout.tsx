@@ -5,12 +5,14 @@ import { Header } from "@/widgets/header/ui/header";
 import { DebugConsole } from "@/widgets/debug-console/ui/debug-console";
 import { TerminalPanel } from "@/features/terminal/ui/terminal-panel";
 import { useTerminalStore } from "@/features/terminal/model/use-terminal-store";
+import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
 import { ToastContainer } from "@/shared/ui/toast";
 import { ErrorBoundary } from "@/shared/ui/error-boundary";
 import { useDebugConsoleSetup } from "@/shared/hooks/use-debug-console";
 
 export function RootLayout() {
   const { t } = useTranslation();
+  const developerMode = usePreferencesStore((s) => s.developerMode);
   useDebugConsoleSetup();
 
   // Ctrl+` to toggle terminal panel
@@ -42,7 +44,7 @@ export function RootLayout() {
         </ErrorBoundary>
       </main>
       <TerminalPanel />
-      <DebugConsole />
+      {developerMode && <DebugConsole />}
       <ToastContainer />
     </div>
   );

@@ -11,6 +11,7 @@ interface DistroCardProps {
   onStop: (name: string) => void;
   onRestart: (name: string) => void;
   onSnapshot: (name: string) => void;
+  onDelete: (name: string) => void;
   pendingAction?: string;
   onSelect: (name: string) => void;
   isSelected: boolean;
@@ -23,6 +24,7 @@ export const DistroCard = memo(function DistroCard({
   onStop,
   onRestart,
   onSnapshot,
+  onDelete,
   pendingAction,
   onSelect,
   isSelected,
@@ -39,6 +41,7 @@ export const DistroCard = memo(function DistroCard({
     handleStop,
     handleRestart,
     handleSnapshot,
+    handleDelete,
     handleTerminal,
     handleMonitorClick,
     ariaLabel,
@@ -50,6 +53,7 @@ export const DistroCard = memo(function DistroCard({
     onRestart,
     onSnapshot,
     onExpand: onSelect,
+    onDelete,
   });
 
   return (
@@ -61,10 +65,10 @@ export const DistroCard = memo(function DistroCard({
       aria-pressed={isSelected}
       aria-label={ariaLabel}
       className={cn(
-        "group glass-card-lite focus-ring cursor-pointer rounded-xl p-5 transition-all duration-200",
+        "group glass-card-lite focus-ring cursor-pointer rounded-xl p-5 shadow-elevation-1 transition-all duration-200",
         isSelected
-          ? "border-mauve/50 neon-glow-purple"
-          : "hover:border-blue/40 hover:shadow-[0_0_12px_rgba(10,132,255,0.1)]",
+          ? "border-mauve/40 shadow-elevation-2 neon-glow-purple"
+          : "hover:border-blue/30 hover:shadow-elevation-2 hover:-translate-y-0.5 active:translate-y-0",
       )}
     >
       {/* Header */}
@@ -72,8 +76,8 @@ export const DistroCard = memo(function DistroCard({
         <div className="flex items-center gap-3">
           <div
             className={cn(
-              "h-2.5 w-2.5 rounded-full",
-              isRunning ? "bg-green shadow-[0_0_12px_rgba(48,209,88,0.6)]" : "bg-surface-2",
+              "h-2.5 w-2.5 rounded-full transition-all",
+              isRunning ? "bg-green shadow-[0_0_12px_rgba(166,227,161,0.6)] animate-pulse" : "bg-surface-2",
             )}
             aria-hidden="true"
           />
@@ -111,7 +115,6 @@ export const DistroCard = memo(function DistroCard({
             {snapshotCount}
           </span>
         )}
-        <div className="flex-1" />
       </div>
 
       {/* Actions */}
@@ -125,6 +128,7 @@ export const DistroCard = memo(function DistroCard({
           handleStop={handleStop}
           handleRestart={handleRestart}
           handleSnapshot={handleSnapshot}
+          handleDelete={handleDelete}
           handleTerminal={handleTerminal}
           handleMonitorClick={handleMonitorClick}
           distroName={distro.name}

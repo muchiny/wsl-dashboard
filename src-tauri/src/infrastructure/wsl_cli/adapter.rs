@@ -112,6 +112,9 @@ fn parse_reg_basepath(output: &str, distro_name: &str) -> Option<String> {
 
 pub struct WslCliAdapter {
     wsl_exe: String,
+    /// PIDs of `wsl.exe -d <name> -- sleep infinity` keeper processes.
+    /// Killed during terminate to prevent auto-restart.
+    keeper_pids: std::sync::Mutex<std::collections::HashMap<String, u32>>,
 }
 
 impl WslCliAdapter {
@@ -133,7 +136,49 @@ impl WslCliAdapter {
 
         Self {
             wsl_exe: "wsl.exe".to_string(),
+            keeper_pids: std::sync::Mutex::new(std::collections::HashMap::new()),
         }
+    }
+
+    /// Kill all `wsl.exe` processes whose command line targets the given distro.
+    /// This prevents keeper processes (`wsl -d <name> -- sleep infinity`) from
+    /// restarting a distro after `wsl --terminate`.
+    #[cfg(windows)]
+    async fn kill_wsl_processes_for(&self, name: &DistroName) {
+        use std::os::windows::process::CommandExt;
+        // Use WMIC to find wsl.exe PIDs with matching command line
+        let output = std::process::Command::new("wmic")
+            .args([
+                "process", "where",
+                &format!(
+                    "Name='wsl.exe' AND CommandLine LIKE '%-d {}%'",
+                    name.as_str()
+                ),
+                "get", "ProcessId", "/format:list",
+            ])
+            .creation_flags(crate::infrastructure::CREATE_NO_WINDOW)
+            .output();
+
+        if let Ok(output) = output {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                if let Some(pid_str) = line.strip_prefix("ProcessId=") {
+                    let pid_str = pid_str.trim();
+                    if !pid_str.is_empty() {
+                        tracing::debug!("killing wsl.exe pid={} for distro '{}'", pid_str, name);
+                        let _ = std::process::Command::new("taskkill")
+                            .args(["/F", "/PID", pid_str])
+                            .creation_flags(crate::infrastructure::CREATE_NO_WINDOW)
+                            .output();
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(not(windows))]
+    async fn kill_wsl_processes_for(&self, _name: &DistroName) {
+        // No-op on non-Windows platforms
     }
 
     /// Build a Command with CREATE_NO_WINDOW on Windows to prevent console popups.
@@ -440,9 +485,12 @@ fn parse_version_output(text: &str) -> WslVersionInfo {
 
 #[async_trait]
 impl WslManagerPort for WslCliAdapter {
+    #[tracing::instrument(skip(self))]
     async fn list_distros(&self) -> Result<Vec<Distro>, DomainError> {
+        tracing::debug!("running wsl --list --verbose");
         let raw = self.run_wsl_raw(&["--list", "--verbose"]).await?;
         let text = decode_wsl_output(&raw)?;
+        tracing::debug!(raw_output = %text, "wsl --list --verbose output");
         parse_distro_list(&text)
     }
 
@@ -454,19 +502,27 @@ impl WslManagerPort for WslCliAdapter {
             .ok_or_else(|| DomainError::DistroNotFound(name.to_string()))
     }
 
+    #[tracing::instrument(skip(self), fields(distro = %name))]
     async fn start_distro(&self, name: &DistroName) -> Result<(), DomainError> {
         // Spawn a detached `wsl.exe -d <name> -- sleep infinity` process.
         // Unlike run_wsl_raw (which awaits exit), this keeps the wsl.exe
         // process alive as a foreground session, which prevents WSL from
         // shutting down the distro. The process is cleaned up automatically
         // when terminate_distro calls `wsl --terminate`.
-        self.wsl_command()
+        let child = self.wsl_command()
             .args(["-d", name.as_str(), "--", "sleep", "infinity"])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .stdin(Stdio::null())
             .spawn()
             .map_err(|e| DomainError::WslCliError(format!("Failed to start distro: {}", e)))?;
+
+        // Store the keeper process PID so terminate_distro can kill it
+        if let Some(pid) = child.id() {
+            if let Ok(mut pids) = self.keeper_pids.lock() {
+                pids.insert(name.to_string(), pid);
+            }
+        }
 
         // Poll until the distro reports Running (max 15s, 500ms intervals).
         // Heavy distros (AlmaLinux, Fedora, etc.) with systemd can take 10+ seconds.
@@ -506,16 +562,46 @@ impl WslManagerPort for WslCliAdapter {
         }
     }
 
+    #[tracing::instrument(skip(self), fields(distro = %name))]
     async fn terminate_distro(&self, name: &DistroName) -> Result<(), DomainError> {
-        self.run_wsl_raw(&["--terminate", name.as_str()]).await?;
+        // Kill ALL wsl.exe processes connected to this distro FIRST.
+        // `start_distro` spawns `wsl -d <name> -- sleep infinity` as a keeper.
+        // If we don't kill it, `wsl --terminate` kills the distro but the
+        // keeper's wsl.exe process immediately restarts it.
+        // We also remove the stored PID.
+        if let Ok(mut pids) = self.keeper_pids.lock() {
+            pids.remove(name.as_str());
+        }
+        self.kill_wsl_processes_for(name).await;
+
+        tracing::debug!("running wsl --terminate");
+
+        // Wrap terminate in a timeout — wsl.exe can hang when multiple
+        // distros are terminated concurrently due to kernel-level locks.
+        let args = ["--terminate", name.as_str()];
+        let terminate_fut = self.run_wsl_raw(&args);
+        match tokio::time::timeout(std::time::Duration::from_secs(15), terminate_fut).await {
+            Ok(result) => { result?; }
+            Err(_) => {
+                tracing::warn!("wsl --terminate timed out for '{}'", name);
+                return Err(DomainError::WslCliError(format!(
+                    "Timed out waiting for '{}' to stop",
+                    name
+                )));
+            }
+        }
+
         Ok(())
     }
 
+    #[tracing::instrument(skip(self), fields(distro = %name))]
     async fn unregister_distro(&self, name: &DistroName) -> Result<(), DomainError> {
+        tracing::debug!("running wsl --unregister");
         self.run_wsl_raw(&["--unregister", name.as_str()]).await?;
         Ok(())
     }
 
+    #[tracing::instrument(skip(self), fields(distro = %name, path = %path, format = ?format))]
     async fn export_distro(
         &self,
         name: &DistroName,
@@ -540,6 +626,7 @@ impl WslManagerPort for WslCliAdapter {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self), fields(distro = %name, install = %install_location, file = %file_path, format = ?format))]
     async fn import_distro(
         &self,
         name: &DistroName,
@@ -567,22 +654,39 @@ impl WslManagerPort for WslCliAdapter {
         if let Some(flag) = format.wsl_flag() {
             args.push(flag);
         }
+        // TAR imports need explicit --version 2 to prevent WSL from
+        // defaulting to WSL 1 (which uses the Windows filesystem directly
+        // instead of an isolated VHDX, breaking snapshot restore).
+        // VHDX imports are inherently WSL 2, so only TAR needs this.
+        if matches!(format, ExportFormat::Tar) {
+            args.push("--version");
+            args.push("2");
+        }
         tracing::info!(command = %format!("wsl.exe {}", args.join(" ")), "executing import");
         self.run_wsl_raw(&args).await?;
         Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn shutdown_all(&self) -> Result<(), DomainError> {
+        tracing::debug!("running wsl --shutdown");
         self.run_wsl_raw(&["--shutdown"]).await?;
         Ok(())
     }
 
+    #[tracing::instrument(skip(self), fields(distro = %name))]
     async fn exec_in_distro(
         &self,
         name: &DistroName,
         command: &str,
     ) -> Result<String, DomainError> {
-        self.exec_in_distro_raw(name.as_str(), command).await
+        tracing::debug!(cmd = %command, "executing command in distro");
+        let result = self.exec_in_distro_raw(name.as_str(), command).await;
+        match &result {
+            Ok(output) => tracing::debug!(output_len = output.len(), "command succeeded"),
+            Err(e) => tracing::debug!(error = %e, "command failed"),
+        }
+        result
     }
 
     async fn get_global_config(&self) -> Result<WslGlobalConfig, DomainError> {
@@ -831,6 +935,7 @@ impl WslManagerPort for WslCliAdapter {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self), fields(distro = %name))]
     async fn get_default_user(&self, name: &DistroName) -> Result<Option<String>, DomainError> {
         // Phase 0: ask WSL directly who the current default user is.
         // This is the most reliable method — it reflects the actual user WSL
@@ -883,6 +988,7 @@ impl WslManagerPort for WslCliAdapter {
         Ok(None)
     }
 
+    #[tracing::instrument(skip(self), fields(distro = %name, user = %user))]
     async fn set_default_user(&self, name: &DistroName, user: &str) -> Result<(), DomainError> {
         // Validate username to prevent shell injection
         if user.is_empty()
@@ -905,7 +1011,25 @@ impl WslManagerPort for WslCliAdapter {
             ),
             user, user
         );
-        self.exec_in_distro_raw(name.as_str(), &cmd).await?;
+        // Run as root: /etc/wsl.conf requires root to modify, but the default
+        // user may already be set to a non-root user (e.g. after wsl --import
+        // restores the registry default user).
+        let output = self
+            .wsl_command()
+            .args(["-d", name.as_str(), "-u", "root", "-e", "sh", "-c", &cmd])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+            .await
+            .map_err(|e| DomainError::WslCliError(e.to_string()))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(DomainError::WslCliError(format!(
+                "Command failed: {}",
+                stderr.trim()
+            )));
+        }
         Ok(())
     }
 }

@@ -33,6 +33,14 @@ impl RestoreSnapshotHandler {
         }
     }
 
+    #[tracing::instrument(
+        skip(self, cmd),
+        fields(
+            snapshot_id = %cmd.snapshot_id,
+            mode = ?cmd.mode,
+            install_location = %cmd.install_location,
+        )
+    )]
     pub async fn handle(&self, cmd: RestoreSnapshotCommand) -> Result<(), DomainError> {
         let snapshot = self.snapshot_repo.get_by_id(&cmd.snapshot_id).await?;
 
@@ -92,9 +100,25 @@ impl RestoreSnapshotHandler {
             RestoreMode::Overwrite => snapshot.distro_name.clone(),
         };
 
+        // Canary test: write a unique file BEFORE the restore that should NOT
+        // survive the import. If it's still present after, the filesystem wasn't replaced.
+        let canary_id = uuid::Uuid::new_v4().to_string();
+        let canary_path = format!("/var/tmp/.restore-canary-{}", canary_id);
+        if matches!(cmd.mode, RestoreMode::Overwrite) {
+            match self
+                .wsl_manager
+                .exec_in_distro(
+                    &snapshot.distro_name,
+                    &format!("echo '{}' > {}", canary_id, canary_path),
+                )
+                .await
+            {
+                Ok(_) => tracing::info!("canary written to {}", canary_path),
+                Err(e) => tracing::warn!("canary write failed: {}", e),
+            }
+        }
+
         // For overwrite mode: terminate, shutdown, create safety backup, then unregister.
-        // The backup is created AFTER terminate+shutdown so the export doesn't
-        // compete with a running VM for VHDX file handles.
         let safety_backup_path: Option<String> = if matches!(cmd.mode, RestoreMode::Overwrite) {
             // Best-effort terminate; ignore error if already stopped
             let _ = self.wsl_manager.terminate_distro(&target_name).await;
@@ -103,49 +127,41 @@ impl RestoreSnapshotHandler {
             // wsl --terminate alone is insufficient: the lightweight utility VM
             // may still hold file handles on the VHDX.
             let _ = self.wsl_manager.shutdown_all().await;
-            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
 
-            // Create safety backup AFTER shutdown — exporting while the distro
-            // is running can leave file handles open on the VHDX, which later
-            // prevents remove_dir_all from nuking the install directory.
-            let backup_dir = std::path::Path::new(&cmd.install_location)
+            // Safety backup: copy the ext4.vhdx file directly instead of using
+            // wsl --export. Using wsl --export (TAR format) boots the WSL VM to
+            // read the ext4 filesystem, which leaves wslservice.exe holding file
+            // handles on the VHDX. Even with shutdown_all afterwards, those handles
+            // can persist and cause remove_dir_all to silently fail, making the
+            // subsequent wsl --import reuse the stale VHDX.
+            // A direct file copy never boots the VM and never locks the VHDX.
+            let vhdx_path = std::path::Path::new(&cmd.install_location).join("ext4.vhdx");
+            let backup_path = std::path::Path::new(&cmd.install_location)
                 .parent()
-                .unwrap_or(std::path::Path::new(&cmd.install_location));
-            let backup_file = backup_dir.join(format!(
-                "{}_pre_restore_backup.{}",
-                target_name,
-                snapshot.format.extension()
-            ));
-            let backup_str = backup_file.to_string_lossy().to_string();
-            tracing::info!(
-                "creating safety backup after shutdown: distro={} path={}",
-                target_name,
-                backup_str
-            );
-            match self
-                .wsl_manager
-                .export_distro(&target_name, &backup_str, snapshot.format.clone())
-                .await
-            {
-                Ok(()) => {
-                    // Verify backup is not empty
-                    let linux_backup = windows_to_linux_path(&backup_str);
-                    let backup_size = std::fs::metadata(&backup_str)
-                        .or_else(|_| std::fs::metadata(&linux_backup))
-                        .map(|m| m.len())
-                        .unwrap_or(0);
-                    if backup_size > 0 {
-                        tracing::info!("safety backup created successfully: {} bytes", backup_size);
+                .unwrap_or(std::path::Path::new(&cmd.install_location))
+                .join(format!("{}_pre_restore_backup.vhdx", target_name));
+            let backup_str = backup_path.to_string_lossy().to_string();
+
+            if vhdx_path.exists() {
+                tracing::info!(
+                    "creating safety backup (VHDX copy): src={} dst={}",
+                    vhdx_path.display(),
+                    backup_str
+                );
+                match std::fs::copy(&vhdx_path, &backup_path) {
+                    Ok(bytes) => {
+                        tracing::info!("safety backup created: {} bytes", bytes);
                         Some(backup_str)
-                    } else {
-                        tracing::warn!("safety backup is empty (0 bytes), proceeding without it");
+                    }
+                    Err(e) => {
+                        tracing::warn!("safety backup copy failed, proceeding without: {}", e);
                         None
                     }
                 }
-                Err(e) => {
-                    tracing::warn!("safety backup failed, proceeding without it: {}", e);
-                    None
-                }
+            } else {
+                tracing::warn!("ext4.vhdx not found at {}, skipping backup", vhdx_path.display());
+                None
             }
         } else {
             None
@@ -239,13 +255,14 @@ impl RestoreSnapshotHandler {
                 "import failed, attempting to restore from safety backup: {}",
                 import_err
             );
+            // Safety backup is always a raw VHDX copy, so import with --vhd
             if let Err(restore_err) = self
                 .wsl_manager
                 .import_distro(
                     &target_name,
                     &cmd.install_location,
                     backup_path,
-                    snapshot.format.clone(),
+                    crate::domain::entities::snapshot::ExportFormat::Vhd,
                 )
                 .await
             {
@@ -267,17 +284,32 @@ impl RestoreSnapshotHandler {
         }
         import_result?;
 
-        // Verify the import actually registered the distro
-        self.wsl_manager
-            .get_distro(&target_name)
-            .await
-            .map_err(|_| {
-                DomainError::SnapshotError(format!(
-                    "Import claimed success but '{}' was not found afterwards",
-                    target_name
-                ))
-            })?;
-        tracing::warn!("import verified: distro '{}' exists", target_name);
+        // Verify the import actually registered the distro AND it's WSL 2.
+        // If wsl --import defaulted to WSL 1 (no --version 2 flag, or system
+        // default is 1), the filesystem model is completely different and
+        // snapshot restore cannot work.
+        let imported_distro = self.wsl_manager.get_distro(&target_name).await.map_err(|_| {
+            DomainError::SnapshotError(format!(
+                "Import claimed success but '{}' was not found afterwards",
+                target_name
+            ))
+        })?;
+        if matches!(
+            imported_distro.wsl_version,
+            crate::domain::value_objects::WslVersion::V1
+        ) {
+            return Err(DomainError::SnapshotError(
+                "Import created a WSL 1 distro instead of WSL 2. \
+                 Snapshot restore cannot work in WSL 1 mode. \
+                 Run: wsl --set-default-version 2"
+                    .into(),
+            ));
+        }
+        tracing::warn!(
+            "import verified: distro '{}' exists (WSL{})",
+            target_name,
+            imported_distro.wsl_version
+        );
 
         // Force a clean VHDX mount — without this, wslservice.exe may serve
         // cached filesystem data from the previous (pre-unregister) VHDX.
@@ -328,38 +360,62 @@ impl RestoreSnapshotHandler {
             );
         }
 
-        // Diagnostic: check snapshot marker to prove the imported filesystem
-        // is actually from the snapshot tar/vhdx.
-        // Marker lives in /root/ (not /tmp/) so it survives tmpfs clears on reboot.
+        // Verify snapshot marker to prove the imported filesystem is from the
+        // snapshot tar/vhdx. Marker lives in /var/tmp/ (persists across reboots).
+        // In overwrite mode, a missing marker is a fatal error — it means the
+        // imported filesystem contains stale data, not the snapshot.
         match self
             .wsl_manager
-            .exec_in_distro(&target_name, "cat /root/.snapshot-marker 2>/dev/null")
+            .exec_in_distro(&target_name, "cat /var/tmp/.snapshot-marker 2>/dev/null")
             .await
         {
             Ok(marker) if !marker.trim().is_empty() => {
-                tracing::warn!("snapshot marker found: {}", marker.trim());
+                tracing::info!("snapshot marker verified: {}", marker.trim());
             }
-            Ok(_) => {
-                tracing::warn!("snapshot marker file exists but is empty");
+            _ if matches!(cmd.mode, RestoreMode::Overwrite) => {
+                return Err(DomainError::SnapshotError(
+                    "Restore verification failed: snapshot marker not found in \
+                     imported filesystem. The restore may have used stale data."
+                        .into(),
+                ));
             }
-            Err(_) => {
-                tracing::warn!(
-                    "snapshot marker NOT found — filesystem may not be from the snapshot"
-                );
+            _ => {
+                tracing::warn!("snapshot marker not found (clone mode, non-fatal)");
             }
         }
 
-        // Diagnostic: list /home/ contents and filesystem type after import
-        match self
-            .wsl_manager
-            .exec_in_distro(
-                &target_name,
-                "echo '---HOME-AFTER-IMPORT---' && ls -la /home/ 2>/dev/null && echo '---FSINFO---' && df -T / 2>/dev/null && echo '---MOUNT---' && mount | grep ext4 2>/dev/null",
-            )
-            .await
-        {
-            Ok(output) => tracing::warn!("post-import filesystem diagnostic:\n{}", output),
-            Err(e) => tracing::warn!("post-import diagnostic failed: {}", e),
+        // Canary check: the canary file was written BEFORE the restore.
+        // If it survived, it means the filesystem was NOT replaced.
+        if matches!(cmd.mode, RestoreMode::Overwrite) {
+            match self
+                .wsl_manager
+                .exec_in_distro(
+                    &target_name,
+                    &format!("cat {} 2>/dev/null", canary_path),
+                )
+                .await
+            {
+                Ok(content) if !content.trim().is_empty() => {
+                    tracing::error!(
+                        "CANARY SURVIVED RESTORE! File {} still contains '{}'. \
+                         The filesystem was NOT replaced by the snapshot.",
+                        canary_path,
+                        content.trim()
+                    );
+                    return Err(DomainError::SnapshotError(
+                        "Restore verification failed: canary file written before restore \
+                         survived the import. The filesystem was not replaced. \
+                         This is a WSL bug — try: wsl --shutdown, then retry."
+                            .into(),
+                    ));
+                }
+                _ => {
+                    tracing::warn!(
+                        "CANARY GONE (good): {} not found after import — filesystem was replaced",
+                        canary_path
+                    );
+                }
+            }
         }
 
         // After wsl --import, the default user is reset to root.
@@ -405,20 +461,6 @@ impl RestoreSnapshotHandler {
             && let Err(e) = self.wsl_manager.start_distro(&target_name).await
         {
             tracing::warn!("failed to auto-start distro after restore: {}", e);
-        }
-
-        // Final verification: list /home/ after a fresh boot to confirm the
-        // restored filesystem matches the snapshot (not stale cached data).
-        match self
-            .wsl_manager
-            .exec_in_distro(
-                &target_name,
-                "echo '---FINAL-HOME-VERIFY---' && ls -la /home/ 2>/dev/null",
-            )
-            .await
-        {
-            Ok(output) => tracing::warn!("FINAL /home/ verification after restore:\n{}", output),
-            Err(e) => tracing::warn!("final /home/ verification failed: {}", e),
         }
 
         // Clean up safety backup on success
@@ -583,8 +625,8 @@ mod tests {
 
         let mut wsl_mock = MockWslManagerPort::new();
         wsl_mock
-            .expect_export_distro()
-            .returning(|_, _, _| Err(DomainError::WslCliError("backup skipped".into())));
+            .expect_exec_in_distro()
+            .returning(|_, _| Ok(String::new()));
         wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
         wsl_mock.expect_shutdown_all().returning(|| Ok(()));
         wsl_mock

@@ -1,190 +1,69 @@
-import { useState, useMemo } from "react";
-import { useTranslation } from "react-i18next";
+import { useState } from "react";
 import { DistroList } from "@/features/distro-list/ui/distro-list";
 import { DistrosToolbar } from "@/features/distro-list/ui/distros-toolbar";
-import { DistroSnapshotPanel } from "@/features/distro-list/ui/distro-snapshot-panel";
+import { DistroDetailDrawer } from "@/features/distro-list/ui/distro-detail-drawer";
 import { useDistros } from "@/shared/api/distro-queries";
-import { useShutdownAll } from "@/features/distro-list/api/mutations";
-import { CreateSnapshotDialog } from "@/features/snapshot-list/ui/create-snapshot-dialog";
-import { RestoreSnapshotDialog } from "@/features/snapshot-list/ui/restore-snapshot-dialog";
-import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import { toast } from "@/shared/ui/toast-store";
-import { useDebounce } from "@/shared/hooks/use-debounce";
-import { usePreferencesStore, type SortKey } from "@/shared/stores/use-preferences-store";
-import type { Distro } from "@/shared/types/distro";
-
-const SORT_COMPARATORS: Record<SortKey, (a: Distro, b: Distro) => number> = {
-  "name-asc": (a, b) => a.name.localeCompare(b.name),
-  "name-desc": (a, b) => b.name.localeCompare(a.name),
-  "status-running": (a, b) => {
-    if (a.state === "Running" && b.state !== "Running") return -1;
-    if (a.state !== "Running" && b.state === "Running") return 1;
-    return a.name.localeCompare(b.name);
-  },
-  "status-stopped": (a, b) => {
-    if (a.state === "Stopped" && b.state !== "Stopped") return -1;
-    if (a.state !== "Stopped" && b.state === "Stopped") return 1;
-    return a.name.localeCompare(b.name);
-  },
-  "default-first": (a, b) => {
-    if (a.is_default && !b.is_default) return -1;
-    if (!a.is_default && b.is_default) return 1;
-    return a.name.localeCompare(b.name);
-  },
-  "vhdx-size": (a, b) => {
-    const sizeA = a.vhdx_size_bytes ?? 0;
-    const sizeB = b.vhdx_size_bytes ?? 0;
-    return sizeB - sizeA;
-  },
-};
+import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
+import { useDistroFilter } from "@/features/distro-list/hooks/use-distro-filter";
+import { useDistroDialogs } from "@/features/distro-list/hooks/use-distro-dialogs";
 
 export function DistrosPage() {
-  const { t } = useTranslation();
   const { data: distros, isLoading, error } = useDistros();
-  const shutdownAll = useShutdownAll();
-
-  // Ephemeral filter state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "running" | "stopped">("all");
-  const [wslVersionFilter, setWslVersionFilter] = useState<"all" | 1 | 2>("all");
-
-  // Persisted preferences
-  const sortKey = usePreferencesStore((s) => s.sortKey);
   const viewMode = usePreferencesStore((s) => s.viewMode);
 
-  // Selection state
   const [selectedDistro, setSelectedDistro] = useState<string | null>(null);
 
   const handleSelectDistro = (distroName: string) => {
     setSelectedDistro((prev) => (prev === distroName ? null : distroName));
   };
 
-  // Dialog state
-  const [createOpen, setCreateOpen] = useState(false);
-  const [createForDistro, setCreateForDistro] = useState("");
-  const [restoreSnapshotId, setRestoreSnapshotId] = useState<string | null>(null);
-  const [restoreDistroName, setRestoreDistroName] = useState("");
-  const [showShutdownConfirm, setShowShutdownConfirm] = useState(false);
-
-  const debouncedSearch = useDebounce(searchQuery, 200);
-
-  // Stats from raw data (always reflects true state)
-  const running = distros?.filter((d) => d.state === "Running").length ?? 0;
-  const stopped = (distros?.length ?? 0) - running;
-  const total = distros?.length ?? 0;
-
-  const isFiltered = debouncedSearch !== "" || statusFilter !== "all" || wslVersionFilter !== "all";
-
-  const processedDistros = useMemo(() => {
-    let result = distros ?? [];
-
-    if (debouncedSearch) {
-      const lower = debouncedSearch.toLowerCase();
-      result = result.filter((d) => d.name.toLowerCase().includes(lower));
-    }
-
-    if (statusFilter === "running") {
-      result = result.filter((d) => d.state === "Running");
-    } else if (statusFilter === "stopped") {
-      result = result.filter((d) => d.state === "Stopped");
-    }
-
-    if (wslVersionFilter !== "all") {
-      result = result.filter((d) => d.wsl_version === wslVersionFilter);
-    }
-
-    return [...result].sort(SORT_COMPARATORS[sortKey]);
-  }, [distros, debouncedSearch, statusFilter, wslVersionFilter, sortKey]);
-
-  const handleSnapshot = (distroName: string) => {
-    setCreateForDistro(distroName);
-    setCreateOpen(true);
-  };
+  const filter = useDistroFilter(distros);
+  const dialogs = useDistroDialogs();
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Scrollable content area */}
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
-        {/* Toolbar */}
+    <div className="flex h-full gap-4">
+      {/* Main content */}
+      <div className="min-w-0 flex-1 space-y-4 overflow-y-auto">
         <DistrosToolbar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          wslVersionFilter={wslVersionFilter}
-          onWslVersionFilterChange={setWslVersionFilter}
+          searchQuery={filter.searchQuery}
+          onSearchChange={filter.setSearchQuery}
+          statusFilter={filter.statusFilter}
+          onStatusFilterChange={filter.setStatusFilter}
+          wslVersionFilter={filter.wslVersionFilter}
+          onWslVersionFilterChange={filter.setWslVersionFilter}
           distros={distros}
-          onNewSnapshot={() => {
-            setCreateForDistro("");
-            setCreateOpen(true);
-          }}
-          onShutdownAll={() => setShowShutdownConfirm(true)}
-          shutdownAllPending={shutdownAll.isPending}
-          running={running}
-          stopped={stopped}
-          total={total}
+          onNewSnapshot={() => dialogs.openCreateSnapshot()}
+          onShutdownAll={dialogs.openShutdownConfirm}
+          shutdownAllPending={dialogs.shutdownAllPending}
+          running={filter.running}
+          stopped={filter.stopped}
+          total={filter.total}
         />
 
-        {/* Distro List */}
         <DistroList
-          distros={processedDistros}
+          distros={filter.processedDistros}
           isLoading={isLoading}
           error={error}
           viewMode={viewMode}
-          isFiltered={isFiltered}
-          onSnapshot={handleSnapshot}
+          isFiltered={filter.isFiltered}
+          onSnapshot={(name) => dialogs.openCreateSnapshot(name)}
+          onDelete={dialogs.openDelete}
           selectedDistro={selectedDistro}
           onSelectDistro={handleSelectDistro}
         />
       </div>
 
-      {/* Snapshot Panel (fixed at bottom) */}
+      {/* Right drawer for snapshot details */}
       {selectedDistro && (
-        <div className="shrink-0 pt-3">
-          <DistroSnapshotPanel
-            distroName={selectedDistro}
-            onRestore={(id, distroName) => {
-              setRestoreSnapshotId(id);
-              setRestoreDistroName(distroName);
-            }}
-            onCreateSnapshot={() => handleSnapshot(selectedDistro)}
-            onClose={() => setSelectedDistro(null)}
-          />
-        </div>
+        <DistroDetailDrawer
+          distroName={selectedDistro}
+          onRestore={dialogs.openRestore}
+          onCreateSnapshot={() => dialogs.openCreateSnapshot(selectedDistro)}
+          onClose={() => setSelectedDistro(null)}
+        />
       )}
 
-      {/* Dialogs */}
-      <CreateSnapshotDialog
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        defaultDistro={createForDistro}
-      />
-      <RestoreSnapshotDialog
-        open={!!restoreSnapshotId}
-        snapshotId={restoreSnapshotId}
-        distroName={restoreDistroName}
-        onClose={() => setRestoreSnapshotId(null)}
-      />
-      <ConfirmDialog
-        open={showShutdownConfirm}
-        title={t("distros.shutdownAllTitle")}
-        description={t("distros.shutdownAllDescription", { count: running })}
-        confirmLabel={t("distros.shutdownAllConfirm")}
-        variant="danger"
-        isPending={shutdownAll.isPending}
-        onConfirm={() => {
-          shutdownAll.mutate(undefined, {
-            onSuccess: () => {
-              toast.success(t("distros.shutdownSuccess"));
-              setShowShutdownConfirm(false);
-            },
-            onError: (err) => {
-              toast.error(t("distros.shutdownFailed", { message: err.message }));
-            },
-          });
-        }}
-        onCancel={() => setShowShutdownConfirm(false)}
-      />
+      <dialogs.DialogsRenderer running={filter.running} />
     </div>
   );
 }

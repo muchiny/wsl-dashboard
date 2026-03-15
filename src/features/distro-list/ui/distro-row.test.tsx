@@ -45,6 +45,7 @@ const defaultProps = {
   onStop: noop,
   onRestart: noop,
   onSnapshot: noop,
+  onDelete: noop,
   onSelect: noop,
   isSelected: false,
   snapshotCount: 0,

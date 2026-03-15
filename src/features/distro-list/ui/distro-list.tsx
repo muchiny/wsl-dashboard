@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation, Trans } from "react-i18next";
 import { Server, Search } from "lucide-react";
 import { useStartDistro, useStopDistro, useRestartDistro } from "../api/mutations";
@@ -14,6 +15,7 @@ interface DistroListProps {
   viewMode: ViewMode;
   isFiltered: boolean;
   onSnapshot: (distroName: string) => void;
+  onDelete: (distroName: string) => void;
   selectedDistro: string | null;
   onSelectDistro: (distroName: string) => void;
 }
@@ -25,6 +27,7 @@ export function DistroList({
   viewMode,
   isFiltered,
   onSnapshot,
+  onDelete,
   selectedDistro,
   onSelectDistro,
 }: DistroListProps) {
@@ -33,6 +36,74 @@ export function DistroList({
   const stopDistro = useStopDistro();
   const restartDistro = useRestartDistro();
   const snapshotCounts = useSnapshotCounts();
+
+  const [pendingActions, setPendingActions] = useState<Map<string, string>>(new Map());
+
+  const markPending = useCallback((name: string, action: string) => {
+    setPendingActions((prev) => new Map(prev).set(name, action));
+  }, []);
+
+  const clearPending = useCallback((name: string) => {
+    setPendingActions((prev) => {
+      const next = new Map(prev);
+      next.delete(name);
+      return next;
+    });
+  }, []);
+
+  // Expected target state for each pending action
+  const expectedStates = useRef<Map<string, Distro["state"]>>(new Map());
+
+  // Safety net: auto-clear pending actions when the real distro state
+  // matches the expected target, OR after 30s as a fallback.
+  useEffect(() => {
+    if (pendingActions.size === 0) return;
+    for (const [name] of pendingActions) {
+      const target = expectedStates.current.get(name);
+      const actual = distros.find((d) => d.name === name)?.state;
+      if (target && actual === target) {
+        clearPending(name);
+        expectedStates.current.delete(name);
+      }
+    }
+  }, [distros, pendingActions, clearPending]);
+
+  // Fallback timeout: clear stuck pending actions after 30s
+  useEffect(() => {
+    if (pendingActions.size === 0) return;
+    const timer = setTimeout(() => {
+      setPendingActions(new Map());
+      expectedStates.current.clear();
+    }, 30_000);
+    return () => clearTimeout(timer);
+  }, [pendingActions]);
+
+  const handleStart = useCallback(
+    (name: string) => {
+      markPending(name, t("distros.pendingStarting"));
+      expectedStates.current.set(name, "Running");
+      startDistro.mutate(name, { onSettled: () => clearPending(name) });
+    },
+    [startDistro.mutate, t, markPending, clearPending],
+  );
+
+  const handleStop = useCallback(
+    (name: string) => {
+      markPending(name, t("distros.pendingStopping"));
+      expectedStates.current.set(name, "Stopped");
+      stopDistro.mutate(name, { onSettled: () => clearPending(name) });
+    },
+    [stopDistro.mutate, t, markPending, clearPending],
+  );
+
+  const handleRestart = useCallback(
+    (name: string) => {
+      markPending(name, t("distros.pendingRestarting"));
+      expectedStates.current.set(name, "Running");
+      restartDistro.mutate(name, { onSettled: () => clearPending(name) });
+    },
+    [restartDistro.mutate, t, markPending, clearPending],
+  );
 
   if (isLoading) {
     return (
@@ -79,24 +150,6 @@ export function DistroList({
     );
   }
 
-  const pendingAction =
-    (startDistro.isPending && startDistro.variables) ||
-    (stopDistro.isPending && stopDistro.variables) ||
-    (restartDistro.isPending && restartDistro.variables)
-      ? {
-          distro:
-            (startDistro.isPending && startDistro.variables) ||
-            (stopDistro.isPending && stopDistro.variables) ||
-            (restartDistro.isPending && restartDistro.variables) ||
-            "",
-          action: startDistro.isPending
-            ? t("distros.pendingStarting")
-            : stopDistro.isPending
-              ? t("distros.pendingStopping")
-              : t("distros.pendingRestarting"),
-        }
-      : null;
-
   if (viewMode === "list") {
     return (
       <div className="flex flex-col gap-2">
@@ -104,11 +157,12 @@ export function DistroList({
           <DistroRow
             key={distro.name}
             distro={distro}
-            onStart={startDistro.mutate}
-            onStop={stopDistro.mutate}
-            onRestart={restartDistro.mutate}
+            onStart={handleStart}
+            onStop={handleStop}
+            onRestart={handleRestart}
             onSnapshot={onSnapshot}
-            pendingAction={pendingAction?.distro === distro.name ? pendingAction.action : undefined}
+            onDelete={onDelete}
+            pendingAction={pendingActions.get(distro.name)}
             snapshotCount={snapshotCounts[distro.name] ?? 0}
             onSelect={onSelectDistro}
             isSelected={selectedDistro === distro.name}
@@ -124,11 +178,12 @@ export function DistroList({
         <DistroCard
           key={distro.name}
           distro={distro}
-          onStart={startDistro.mutate}
-          onStop={stopDistro.mutate}
-          onRestart={restartDistro.mutate}
+          onStart={handleStart}
+          onStop={handleStop}
+          onRestart={handleRestart}
           onSnapshot={onSnapshot}
-          pendingAction={pendingAction?.distro === distro.name ? pendingAction.action : undefined}
+          onDelete={onDelete}
+          pendingAction={pendingActions.get(distro.name)}
           onSelect={onSelectDistro}
           isSelected={selectedDistro === distro.name}
           snapshotCount={snapshotCounts[distro.name] ?? 0}

@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronDown, Maximize2, Minimize2 } from "lucide-react";
+import { ChevronDown, Maximize2 } from "lucide-react";
 import { useTerminalStore } from "../model/use-terminal-store";
 import { useShallow } from "zustand/react/shallow";
 import { TerminalTabBar } from "./terminal-tab-bar";
@@ -25,9 +25,9 @@ export function TerminalPanel() {
   const addSession = useTerminalStore((s) => s.addSession);
   const { data: distros } = useDistros();
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const handleNewTerminal = useCallback(async () => {
-    // Pick the first running distro, or prompt if multiple
     const running = distros?.filter((d) => d.state === "Running") ?? [];
     const target = running[0];
     if (!target) return;
@@ -49,6 +49,11 @@ export function TerminalPanel() {
       e.preventDefault();
       dragRef.current = { startY: e.clientY, startHeight: panelHeight };
 
+      // Disable transition during drag for responsiveness
+      if (panelRef.current) {
+        panelRef.current.style.transition = "none";
+      }
+
       const onMouseMove = (ev: MouseEvent) => {
         if (!dragRef.current) return;
         const delta = dragRef.current.startY - ev.clientY;
@@ -57,6 +62,9 @@ export function TerminalPanel() {
 
       const onMouseUp = () => {
         dragRef.current = null;
+        if (panelRef.current) {
+          panelRef.current.style.transition = "";
+        }
         document.removeEventListener("mousemove", onMouseMove);
         document.removeEventListener("mouseup", onMouseUp);
       };
@@ -71,15 +79,23 @@ export function TerminalPanel() {
 
   return (
     <div
-      className={cn("glass-panel flex flex-col border-t", !isOpen && "h-8")}
+      ref={panelRef}
+      className={cn("glass-panel flex flex-col border-t transition-[height] duration-200 ease-out", !isOpen && "h-8")}
       style={isOpen ? { height: panelHeight } : undefined}
     >
-      {/* Resize handle */}
+      {/* Resize handle with grip indicator */}
       {isOpen && (
         <div
-          className="hover:bg-blue/50 h-1 cursor-ns-resize transition-colors"
+          className="group hover:bg-blue/30 flex h-2 cursor-ns-resize items-center justify-center transition-colors"
           onMouseDown={handleMouseDown}
-        />
+          aria-label={t("terminal.resizeHandle")}
+        >
+          <div className="bg-overlay-0 group-hover:bg-blue flex gap-0.5 rounded-full px-2 py-px transition-colors">
+            <span className="bg-overlay-1 group-hover:bg-blue h-0.5 w-0.5 rounded-full" />
+            <span className="bg-overlay-1 group-hover:bg-blue h-0.5 w-0.5 rounded-full" />
+            <span className="bg-overlay-1 group-hover:bg-blue h-0.5 w-0.5 rounded-full" />
+          </div>
+        </div>
       )}
 
       {/* Tab bar + controls */}
@@ -92,20 +108,12 @@ export function TerminalPanel() {
             aria-label={isOpen ? t("terminal.minimize") : t("terminal.expand")}
             data-testid="terminal-toggle"
           >
-            {isOpen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-          </button>
-          <button
-            onClick={closePanel}
-            className="text-subtext-0 hover:text-text rounded p-1 transition-colors"
-            aria-label={t("terminal.hide")}
-            data-testid="terminal-hide"
-          >
-            <ChevronDown className="h-3.5 w-3.5" />
+            {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
           </button>
         </div>
       </div>
 
-      {/* Terminal instances — always mounted, hidden via CSS to preserve sessions */}
+      {/* Terminal instances */}
       <div className={cn("min-h-0 flex-1", !isOpen && "hidden")}>
         {sessions.map((session) => (
           <TerminalInstance

@@ -38,6 +38,8 @@ vi.mock("@/shared/stores/use-preferences-store", () => ({
       setDefaultSnapshotDir: mockSetDefaultSnapshotDir,
       setDefaultInstallLocation: mockSetDefaultInstallLocation,
       setAlertThresholds: mockSetAlertThresholds,
+      developerMode: false,
+      setDeveloperMode: vi.fn(),
     };
     return selector ? selector(state) : state;
   },
@@ -62,8 +64,8 @@ describe("PreferencesPanel", () => {
   it("renders theme toggle section", () => {
     renderWithProviders(<PreferencesPanel />);
     expect(screen.getByText("Appearance")).toBeInTheDocument();
-    expect(screen.getByText("Neon Dark")).toBeInTheDocument();
-    expect(screen.getByText("Frosted Light")).toBeInTheDocument();
+    expect(screen.getByText("Catppuccin Mocha")).toBeInTheDocument();
+    expect(screen.getByText("Catppuccin Latte")).toBeInTheDocument();
   });
 
   it("renders language selection", () => {

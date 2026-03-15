@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { RotateCw, X, FolderOpen, Loader2 } from "lucide-react";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { RotateCw, X, Loader2 } from "lucide-react";
 import { DialogShell } from "@/shared/ui/dialog-shell";
 import { useRestoreSnapshot } from "../api/mutations";
 import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
-import { tauriInvoke } from "@/shared/api/tauri-client";
-import { cn } from "@/shared/lib/utils";
+import { RestoreCloneForm } from "./restore-clone-form";
+import { RestoreOverwriteForm } from "./restore-overwrite-form";
 
 interface RestoreSnapshotDialogProps {
   open: boolean;
@@ -14,6 +13,8 @@ interface RestoreSnapshotDialogProps {
   distroName: string;
   onClose: () => void;
 }
+
+const VALID_DISTRO_NAME = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
 
 export function RestoreSnapshotDialog({
   open,
@@ -30,48 +31,21 @@ export function RestoreSnapshotDialog({
   const [installLocation, setInstallLocation] = useState(defaultInstallLocation);
   const [overwritePath, setOverwritePath] = useState<string | null>(null);
   const [overwritePathLoading, setOverwritePathLoading] = useState(false);
-  const [manualOverwritePath, setManualOverwritePath] = useState("");
-  const [fetchKey, setFetchKey] = useState<string | null>(null);
-
-  // Set loading state during render when fetch conditions change
-  const currentFetchKey = mode === "overwrite" && open && distroName ? distroName : null;
-  if (currentFetchKey !== fetchKey) {
-    setFetchKey(currentFetchKey);
-    if (currentFetchKey) {
-      setOverwritePathLoading(true);
-      setOverwritePath(null);
-    }
-  }
-
-  // Fetch distro install path when switching to overwrite mode
-  useEffect(() => {
-    if (!currentFetchKey) return;
-    let cancelled = false;
-    tauriInvoke<string>("get_distro_install_path", { name: currentFetchKey })
-      .then((path) => {
-        if (!cancelled) setOverwritePath(path);
-      })
-      .catch(() => {
-        if (!cancelled) setOverwritePath(null);
-      })
-      .finally(() => {
-        if (!cancelled) setOverwritePathLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [currentFetchKey]);
 
   const isDialogOpen = open && !!snapshotId;
 
-  const VALID_DISTRO_NAME = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
   const nameError =
     mode === "clone" && newName && !VALID_DISTRO_NAME.test(newName)
       ? t("snapshots.restore.nameError")
       : null;
 
   const effectiveInstallLocation =
-    mode === "overwrite" ? (overwritePath ?? (manualOverwritePath || null)) : installLocation;
+    mode === "overwrite" ? overwritePath : installLocation;
+
+  const handlePathResolved = useCallback((path: string | null, loading: boolean) => {
+    setOverwritePath(path);
+    setOverwritePathLoading(loading);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,8 +69,6 @@ export function RestoreSnapshotDialog({
     );
   };
 
-  const inputClass = "focus-ring w-full rounded-lg glass-input px-3 py-2 text-sm text-text";
-
   return (
     <DialogShell
       open={isDialogOpen}
@@ -104,6 +76,7 @@ export function RestoreSnapshotDialog({
       ariaLabelledby="restore-snapshot-title"
       maxWidth="max-w-lg"
     >
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <RotateCw className="text-blue h-5 w-5" />
@@ -122,6 +95,7 @@ export function RestoreSnapshotDialog({
       </div>
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        {/* Step 1: Mode selection */}
         <div>
           <label className="text-subtext-1 mb-2 block text-sm font-medium">
             {t("snapshots.restore.mode")}
@@ -162,114 +136,24 @@ export function RestoreSnapshotDialog({
           </div>
         </div>
 
-        {mode === "clone" && (
-          <div>
-            <label className="text-subtext-1 mb-1 block text-sm font-medium">
-              {t("snapshots.restore.newDistroName")}
-            </label>
-            <input
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder={t("snapshots.restore.newDistroNamePlaceholder")}
-              maxLength={64}
-              className={cn(inputClass, nameError && "border-red")}
-              required
-            />
-            {nameError && <p className="text-red mt-1 text-xs">{nameError}</p>}
-          </div>
+        {/* Step 2: Mode-specific form */}
+        {mode === "clone" ? (
+          <RestoreCloneForm
+            newName={newName}
+            onNewNameChange={setNewName}
+            installLocation={installLocation}
+            onInstallLocationChange={setInstallLocation}
+            nameError={nameError}
+          />
+        ) : (
+          <RestoreOverwriteForm
+            distroName={distroName}
+            open={isDialogOpen}
+            onPathResolved={handlePathResolved}
+          />
         )}
 
-        {mode === "overwrite" && (
-          <div className="border-yellow/30 bg-yellow/20 text-yellow rounded-lg border p-3 text-sm">
-            {t("snapshots.restore.overwriteWarning")}
-          </div>
-        )}
-
-        {mode === "clone" && (
-          <div>
-            <label className="text-subtext-1 mb-1 block text-sm font-medium">
-              {t("snapshots.restore.installLocation")}
-            </label>
-            <div className="flex gap-1">
-              <input
-                type="text"
-                value={installLocation}
-                onChange={(e) => setInstallLocation(e.target.value)}
-                placeholder="C:\WSL\..."
-                maxLength={260}
-                className={`${inputClass} flex-1`}
-                required
-              />
-              <button
-                type="button"
-                onClick={async () => {
-                  const dir = await openDialog({
-                    directory: true,
-                    title: t("snapshots.restore.browseInstallLocationTitle"),
-                  });
-                  if (dir) setInstallLocation(dir);
-                }}
-                className="border-surface-1 text-subtext-0 hover:text-text shrink-0 rounded-lg border px-2 hover:bg-white/8"
-                aria-label={t("snapshots.restore.browseInstallLocation")}
-              >
-                <FolderOpen className="h-4 w-4" />
-              </button>
-            </div>
-            <p className="text-overlay-0 mt-1 text-xs">
-              {t("snapshots.restore.installLocationHint")}
-            </p>
-          </div>
-        )}
-
-        {mode === "overwrite" && (
-          <div>
-            <label className="text-subtext-1 mb-1 block text-sm font-medium">
-              {t("snapshots.restore.installLocation")}
-            </label>
-            {overwritePathLoading ? (
-              <div className="text-subtext-0 flex items-center gap-2 text-sm">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {t("snapshots.restore.detectingPath")}
-              </div>
-            ) : overwritePath ? (
-              <p className="text-text glass-input rounded-lg px-3 py-2 font-mono text-xs">
-                {overwritePath}
-              </p>
-            ) : (
-              <div>
-                <p className="text-yellow mb-1 text-xs">
-                  {t("snapshots.restore.manualPathRequired")}
-                </p>
-                <div className="flex gap-1">
-                  <input
-                    type="text"
-                    value={manualOverwritePath}
-                    onChange={(e) => setManualOverwritePath(e.target.value)}
-                    placeholder="C:\Users\...\LocalState"
-                    maxLength={260}
-                    className={`${inputClass} flex-1`}
-                  />
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const dir = await openDialog({
-                        directory: true,
-                        title: t("snapshots.restore.browseInstallLocationTitle"),
-                      });
-                      if (dir) setManualOverwritePath(dir);
-                    }}
-                    className="border-surface-1 text-subtext-0 hover:text-text shrink-0 rounded-lg border px-2 hover:bg-white/8"
-                    aria-label={t("snapshots.restore.browseInstallLocation")}
-                  >
-                    <FolderOpen className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
+        {/* Actions */}
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"

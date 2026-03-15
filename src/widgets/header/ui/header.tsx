@@ -9,6 +9,7 @@ import {
   Activity,
   Settings,
   Terminal,
+  Bug,
   Minus,
   Maximize2,
   Minimize2,
@@ -17,7 +18,10 @@ import {
 } from "lucide-react";
 import { useThemeStore } from "@/shared/hooks/use-theme";
 import { useDebugConsoleStore } from "@/shared/hooks/use-debug-console";
+import { useTerminalStore } from "@/features/terminal/model/use-terminal-store";
+import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
 import { cn } from "@/shared/lib/utils";
+import { Tooltip } from "@/shared/ui/tooltip";
 import { LanguageSwitcher } from "./language-switcher";
 
 interface NavTab {
@@ -35,6 +39,7 @@ const navTabs: NavTab[] = [
 export function Header() {
   const { t } = useTranslation();
   const { theme, toggleTheme } = useThemeStore();
+  const developerMode = usePreferencesStore((s) => s.developerMode);
   const matchRoute = useMatchRoute();
   const [isMaximized, setIsMaximized] = useState(false);
 
@@ -87,7 +92,7 @@ export function Header() {
 
         {/* Navigation Tabs */}
         <nav
-          className="glass-surface flex items-center gap-1 rounded-xl p-1"
+          className="glass-surface flex items-center gap-1 rounded-xl p-1 shadow-elevation-1"
           onMouseDown={(e) => e.stopPropagation()}
         >
           {navTabs.map((tab) => {
@@ -104,7 +109,7 @@ export function Header() {
                 className={cn(
                   "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 sm:px-5 sm:py-2.5",
                   isActive
-                    ? "bg-blue text-crust hover:neon-glow-blue shadow-md"
+                    ? "bg-blue text-crust shadow-elevation-2"
                     : "text-subtext-1 hover:text-text hover:bg-white/8",
                 )}
               >
@@ -117,21 +122,40 @@ export function Header() {
 
         {/* Actions + Window Controls */}
         <div className="flex items-center gap-1" onMouseDown={(e) => e.stopPropagation()}>
-          <button
-            onClick={useDebugConsoleStore.getState().toggle}
-            className="text-subtext-0 hover:text-text flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-white/8"
-            aria-label={t("header.toggleDebugConsole")}
-            title={t("header.debugConsoleTitle")}
-          >
-            <Terminal className="h-4 w-4" />
-          </button>
-          <button
-            onClick={toggleTheme}
-            className="text-subtext-0 hover:text-text flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-white/8"
-            aria-label={t("header.toggleTheme")}
-          >
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
+          <Tooltip content="Terminal">
+            <button
+              onClick={() => useTerminalStore.getState().togglePanel()}
+              className="bg-teal/15 text-teal hover:bg-teal/25 flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
+              aria-label={t("header.toggleTerminal")}
+            >
+              <Terminal className="h-4 w-4" />
+            </button>
+          </Tooltip>
+          {developerMode && (
+            <Tooltip content="Debug">
+              <button
+                onClick={useDebugConsoleStore.getState().toggle}
+                className="bg-peach/15 text-peach hover:bg-peach/25 flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
+                aria-label={t("header.toggleDebugConsole")}
+              >
+                <Bug className="h-4 w-4" />
+              </button>
+            </Tooltip>
+          )}
+          <Tooltip content={t("header.toggleTheme")}>
+            <button
+              onClick={toggleTheme}
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+                theme === "dark"
+                  ? "bg-yellow/15 text-yellow hover:bg-yellow/25"
+                  : "bg-blue/15 text-blue hover:bg-blue/25",
+              )}
+              aria-label={t("header.toggleTheme")}
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+          </Tooltip>
           <LanguageSwitcher />
 
           {/* Divider */}

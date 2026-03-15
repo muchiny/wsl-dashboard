@@ -20,6 +20,7 @@ interface PreferencesStore {
   sortKey: SortKey;
   viewMode: ViewMode;
   alertThresholds: AlertThreshold[];
+  developerMode: boolean;
   setMetricsInterval: (ms: number) => void;
   setProcessesInterval: (ms: number) => void;
   setDefaultSnapshotDir: (path: string) => void;
@@ -27,6 +28,7 @@ interface PreferencesStore {
   setSortKey: (key: SortKey) => void;
   setViewMode: (mode: ViewMode) => void;
   setAlertThresholds: (thresholds: AlertThreshold[]) => void;
+  setDeveloperMode: (enabled: boolean) => void;
 }
 
 export const usePreferencesStore = create<PreferencesStore>()(
@@ -38,6 +40,7 @@ export const usePreferencesStore = create<PreferencesStore>()(
       defaultInstallLocation: "",
       sortKey: "name-asc",
       viewMode: "grid",
+      developerMode: false,
       alertThresholds: [
         { alert_type: "cpu", threshold_percent: 90, enabled: false },
         { alert_type: "memory", threshold_percent: 85, enabled: false },
@@ -50,6 +53,7 @@ export const usePreferencesStore = create<PreferencesStore>()(
       setSortKey: (key) => set({ sortKey: key }),
       setViewMode: (mode) => set({ viewMode: mode }),
       setAlertThresholds: (thresholds) => set({ alertThresholds: thresholds }),
+      setDeveloperMode: (enabled) => set({ developerMode: enabled }),
     }),
     { name: "wsl-nexus-preferences" },
   ),

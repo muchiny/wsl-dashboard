@@ -71,6 +71,15 @@ function createJsEntry(level: LogLevel, message: string, target = "frontend"): L
   };
 }
 
+function safeStringify(value: unknown): string {
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
 export function useDebugConsoleSetup() {
   const initialized = useRef(false);
 
@@ -96,13 +105,13 @@ export function useDebugConsoleSetup() {
 
     console.error = (...args: unknown[]) => {
       origError(...args);
-      const msg = args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ");
+      const msg = args.map(safeStringify).join(" ");
       addLog(createJsEntry("ERROR", msg));
     };
 
     console.warn = (...args: unknown[]) => {
       origWarn(...args);
-      const msg = args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ");
+      const msg = args.map(safeStringify).join(" ");
       // Filter out known noisy warnings
       if (
         msg.includes("should be greater than 0") || // Recharts ResponsiveContainer init

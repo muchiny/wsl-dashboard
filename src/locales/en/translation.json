@@ -4,6 +4,7 @@
     "cancel": "Cancel",
     "save": "Save",
     "delete": "Delete",
+    "restore": "Restore",
     "close": "Close",
     "browse": "Browse...",
     "optional": "(optional)",
@@ -13,6 +14,8 @@
     "appName": "WSL Nexus",
     "subtitle": "WSL2 Management",
     "skipToContent": "Skip to main content",
+    "toggleTerminal": "Toggle terminal (Ctrl+`)",
+    "terminalTitle": "Terminal (Ctrl+`)",
     "toggleDebugConsole": "Toggle debug console (Ctrl+Shift+D)",
     "debugConsoleTitle": "Debug Console (Ctrl+Shift+D)",
     "toggleTheme": "Toggle theme",
@@ -66,6 +69,13 @@
     "createSnapshotOf": "Create snapshot of {{name}}",
     "openTerminalIn": "Open terminal in {{name}}",
     "monitorAction": "Monitor {{name}}",
+    "tipStart": "Start",
+    "tipStop": "Stop",
+    "tipRestart": "Restart",
+    "tipSnapshot": "Snapshot",
+    "tipTerminal": "Terminal",
+    "tipMonitor": "Monitor",
+    "tipDelete": "Delete",
     "stateRunning": "Running",
     "stateStopped": "Stopped",
     "stateInstalling": "Installing",
@@ -94,7 +104,15 @@
     "toastSetDefault": "{{name}} set as default",
     "toastSetDefaultFailed": "Failed to set {{name}} as default: {{message}}",
     "toastResized": "{{name}} resized to {{size}}",
-    "toastResizeFailed": "Failed to resize {{name}}: {{message}}"
+    "toastResizeFailed": "Failed to resize {{name}}: {{message}}",
+    "deleteTitle": "Delete Distribution",
+    "deleteWarning": "This will permanently unregister \"{{name}}\" and delete its virtual disk. This action cannot be undone.",
+    "deleteSnapshotsOption": "Also delete associated snapshots",
+    "deleteConfirm": "Delete",
+    "deleting": "Deleting...",
+    "deleteAction": "Delete {{name}}",
+    "toastDeleteSuccess": "\"{{name}}\" deleted",
+    "toastDeleteFailed": "Failed to delete \"{{name}}\": {{message}}"
   },
   "snapshots": {
     "title": "Snapshots — {{name}}",
@@ -206,10 +224,10 @@
   "preferences": {
     "appearance": "Appearance",
     "language": "Language",
-    "mochaDark": "Neon Dark",
-    "mochaDarkDesc": "Dark glassmorphism with neon accents",
-    "latteLight": "Frosted Light",
-    "latteLightDesc": "Frosted glass theme for bright environments",
+    "mochaDark": "Catppuccin Mocha",
+    "mochaDarkDesc": "Warm dark theme with pastel accents",
+    "latteLight": "Catppuccin Latte",
+    "latteLightDesc": "Warm light theme for bright environments",
     "monitoring": "Monitoring",
     "monitoringDesc": "Adjust how often metrics are polled from running distributions.",
     "metricsInterval": "System Metrics Interval",
@@ -237,7 +255,10 @@
     "alertDisk": "Disk",
     "toggleAlert": "Toggle {{label}} alert",
     "snapshotDirPlaceholder": "C:\\WSL-Snapshots",
-    "installLocationPlaceholder": "C:\\WSL"
+    "installLocationPlaceholder": "C:\\WSL",
+    "developer": "Developer",
+    "developerMode": "Developer Mode",
+    "developerModeDescription": "Show debug console and diagnostic tools"
   },
   "wslConfig": {
     "title": ".wslconfig (Global WSL2 Settings)",
@@ -355,7 +376,8 @@
     "closeTab": "Close {{title}}",
     "minimize": "Minimize terminal",
     "expand": "Expand terminal",
-    "hide": "Hide terminal"
+    "hide": "Hide terminal",
+    "resizeHandle": "Resize terminal panel"
   },
   "errors": {
     "somethingWentWrong": "Something went wrong",

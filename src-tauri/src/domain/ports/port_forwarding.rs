@@ -44,4 +44,7 @@ pub trait PortForwardRulesRepository: Send + Sync {
 
     /// Get a single rule by ID.
     async fn get_rule(&self, rule_id: &str) -> Result<Option<PortForwardRule>, DomainError>;
+
+    /// Delete all port forwarding rules for a distro.
+    async fn delete_by_distro(&self, distro_name: &str) -> Result<(), DomainError>;
 }

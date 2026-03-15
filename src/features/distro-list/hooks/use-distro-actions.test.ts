@@ -31,6 +31,7 @@ function makeCallbacks() {
     onRestart: vi.fn(),
     onSnapshot: vi.fn(),
     onExpand: vi.fn(),
+    onDelete: vi.fn(),
   };
 }
 

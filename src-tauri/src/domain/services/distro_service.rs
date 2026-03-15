@@ -23,12 +23,10 @@ impl DistroService {
         self.wsl_manager.start_distro(name).await
     }
 
-    /// Stop (terminate) a distribution. Validates it is running.
+    /// Stop (terminate) a distribution. Skips state validation to avoid
+    /// extra `wsl.exe -l -v` calls that serialize and slow down bulk stops.
+    /// `wsl --terminate` on an already-stopped distro is a harmless no-op.
     pub async fn stop(&self, name: &DistroName) -> Result<(), DomainError> {
-        let distro = self.wsl_manager.get_distro(name).await?;
-        if !distro.state.is_running() {
-            return Err(DomainError::DistroNotRunning(name.to_string()));
-        }
         self.wsl_manager.terminate_distro(name).await
     }
 
@@ -82,30 +80,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_stop_running_distro_succeeds() {
+    async fn test_stop_distro_succeeds() {
         let mut mock = MockWslManagerPort::new();
-        let distro = make_distro("Ubuntu", DistroState::Running);
-
-        mock.expect_get_distro()
-            .returning(move |_| Ok(distro.clone()));
         mock.expect_terminate_distro().returning(|_| Ok(()));
 
         let service = DistroService::new(Arc::new(mock));
         let name = DistroName::new("Ubuntu").unwrap();
         assert!(service.stop(&name).await.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_stop_stopped_distro_fails() {
-        let mut mock = MockWslManagerPort::new();
-        let distro = make_distro("Ubuntu", DistroState::Stopped);
-
-        mock.expect_get_distro()
-            .returning(move |_| Ok(distro.clone()));
-
-        let service = DistroService::new(Arc::new(mock));
-        let name = DistroName::new("Ubuntu").unwrap();
-        let result = service.stop(&name).await;
-        assert!(matches!(result, Err(DomainError::DistroNotRunning(_))));
     }
 }

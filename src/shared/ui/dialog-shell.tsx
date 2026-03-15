@@ -66,7 +66,7 @@ export function DialogShell({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
-        className="animate-in fade-in fixed inset-0 bg-black/60 backdrop-blur-md"
+        className="animate-in fade-in fixed inset-0 bg-black/50 backdrop-blur-lg"
         onClick={onClose}
       />
       <div
@@ -76,7 +76,7 @@ export function DialogShell({
         aria-labelledby={ariaLabelledby}
         aria-describedby={ariaDescribedby}
         className={cn(
-          "glass-card animate-in zoom-in-95 fade-in relative z-10 mx-4 w-full rounded-2xl p-6 shadow-2xl",
+          "glass-card animate-in zoom-in-95 fade-in relative z-10 mx-4 w-full rounded-2xl p-6 shadow-elevation-4",
           maxWidth,
           className,
         )}

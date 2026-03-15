@@ -78,6 +78,9 @@ pub trait AlertingPort: Send + Sync {
 
     /// Purge old alerts. Returns rows deleted.
     async fn purge_before(&self, before: DateTime<Utc>) -> Result<u64, DomainError>;
+
+    /// Delete all alerts for a distro.
+    async fn delete_by_distro(&self, distro: &DistroName) -> Result<(), DomainError>;
 }
 
 #[cfg(test)]

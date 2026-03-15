@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Terminal, X, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Tooltip } from "@/shared/ui/tooltip";
 import {
   useDebugConsoleStore,
   type LogFilter,
@@ -95,20 +96,24 @@ export function DebugConsole() {
 
             {/* Actions */}
             <div className="flex items-center gap-1">
-              <button
-                onClick={clear}
-                className="text-subtext-0 hover:text-text rounded p-1 transition-colors hover:bg-white/8"
-                title={t("debug.clearLogs")}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={toggle}
-                className="text-subtext-0 hover:text-text rounded p-1 transition-colors hover:bg-white/8"
-                title={t("debug.close")}
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+              <Tooltip content={t("debug.clearLogs")} position="top">
+                <button
+                  onClick={clear}
+                  className="bg-red/15 text-red hover:bg-red/25 rounded p-1 transition-colors"
+                  aria-label={t("debug.clearLogs")}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </Tooltip>
+              <Tooltip content={t("debug.close")} position="top">
+                <button
+                  onClick={toggle}
+                  className="text-subtext-0 hover:text-text hover:bg-white/8 rounded p-1 transition-colors"
+                  aria-label={t("debug.close")}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </Tooltip>
             </div>
           </div>
 

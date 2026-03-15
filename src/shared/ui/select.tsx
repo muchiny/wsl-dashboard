@@ -152,9 +152,9 @@ export function Select({
         aria-haspopup="listbox"
         aria-activedescendant={activeDescendant}
         className={cn(
-          "glass-input text-text flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors",
+          "glass-input text-text flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-all",
           "focus-ring hover:border-surface-2",
-          open && "border-blue",
+          open && "border-blue shadow-elevation-2",
         )}
       >
         <span className={cn("truncate", !selectedLabel && "text-overlay-0")}>
@@ -171,7 +171,7 @@ export function Select({
         <div
           ref={listboxRef}
           role="listbox"
-          className="glass-dropdown absolute top-full left-0 z-50 mt-1 max-h-60 w-full min-w-[160px] overflow-y-auto rounded-lg py-1 shadow-lg"
+          className="glass-dropdown animate-scale-in absolute top-full left-0 z-50 mt-1 max-h-60 w-full min-w-[160px] overflow-y-auto rounded-lg py-1 shadow-elevation-3"
         >
           {allItems.map((item, index) => {
             const isSelected = item.value === value || (!item.value && !value);

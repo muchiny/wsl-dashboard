@@ -3,6 +3,7 @@ import { useTranslation, Trans } from "react-i18next";
 import { Network, Plus, Trash2, ArrowRight, AlertTriangle, Loader2 } from "lucide-react";
 import { Select } from "@/shared/ui/select";
 import { ActionIconButton } from "@/shared/ui/action-icon-button";
+import { Tooltip } from "@/shared/ui/tooltip";
 import { useDistros } from "@/shared/api/distro-queries";
 import { useListeningPorts, usePortForwardingRules } from "../api/queries";
 import { useRemovePortForwarding } from "../api/mutations";
@@ -87,15 +88,17 @@ export function PortForwardingPanel() {
                     {rule.protocol}
                   </span>
                 </div>
-                <ActionIconButton
-                  icon={Trash2}
-                  loading={removeRule.isPending && removeRule.variables === rule.id}
-                  disabled={removeRule.isPending}
-                  onClick={() => removeRule.mutate(rule.id)}
-                  className="text-overlay-0 hover:text-red"
-                  iconClassName="h-4 w-4"
-                  title={t("portForwarding.removeRule")}
-                />
+                <Tooltip content={t("common.delete")}>
+                  <ActionIconButton
+                    icon={Trash2}
+                    loading={removeRule.isPending && removeRule.variables === rule.id}
+                    disabled={removeRule.isPending}
+                    onClick={() => removeRule.mutate(rule.id)}
+                    className="bg-red/15 text-red hover:bg-red/25"
+                    iconClassName="h-4 w-4"
+                    aria-label={t("portForwarding.removeRule")}
+                  />
+                </Tooltip>
               </div>
             ))}
           </div>

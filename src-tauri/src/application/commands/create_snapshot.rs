@@ -51,6 +51,14 @@ impl CreateSnapshotHandler {
         &buf[257..262] == b"ustar"
     }
 
+    #[tracing::instrument(
+        skip(self, cmd),
+        fields(
+            distro = %cmd.distro_name,
+            snapshot_name = %cmd.name,
+            format = ?cmd.format,
+        )
+    )]
     pub async fn handle(&self, cmd: CreateSnapshotCommand) -> Result<Snapshot, DomainError> {
         let overall_start = std::time::Instant::now();
         let id = SnapshotId::new();
@@ -104,14 +112,15 @@ impl CreateSnapshotHandler {
 
         // Write a marker file to verify restore integrity later.
         // If the marker is found after import, the tar/vhdx contains this filesystem.
-        // Uses /root/ instead of /tmp/ because /tmp is often a tmpfs that gets
-        // cleared on reboot, so the marker wouldn't survive import + first boot.
+        // Uses /var/tmp/ instead of /tmp/ because /tmp is often a tmpfs that gets
+        // cleared on reboot. /var/tmp/ is writable by all users (unlike /root/)
+        // and persists across reboots.
         let marker = format!("snapshot-marker-{}", id);
         match self
             .wsl_manager
             .exec_in_distro(
                 &cmd.distro_name,
-                &format!("echo '{}' > /root/.snapshot-marker", marker),
+                &format!("echo '{}' > /var/tmp/.snapshot-marker", marker),
             )
             .await
         {
@@ -119,21 +128,18 @@ impl CreateSnapshotHandler {
             Err(e) => tracing::warn!("failed to write snapshot marker: {}", e),
         }
 
-        // Diagnostic: log /home/ contents BEFORE export so we know what the snapshot will contain
-        match self
-            .wsl_manager
-            .exec_in_distro(
-                &cmd.distro_name,
-                "echo '---HOME-BEFORE-EXPORT---' && ls -la /home/ 2>/dev/null",
-            )
-            .await
-        {
-            Ok(output) => tracing::warn!("pre-export /home/ contents:\n{}", output),
-            Err(e) => tracing::warn!("pre-export /home/ diagnostic failed: {}", e),
-        }
-
         tracing::info!(snapshot_id = %id, "saving snapshot with status InProgress");
         self.snapshot_repo.save(&snapshot).await?;
+
+        // Sync filesystem to flush all pending writes to VHDX before shutdown+export
+        match self
+            .wsl_manager
+            .exec_in_distro(&cmd.distro_name, "sync && echo 'SYNC OK'")
+            .await
+        {
+            Ok(o) => tracing::info!("pre-export sync: {}", o.trim()),
+            Err(e) => tracing::warn!("pre-export sync failed: {}", e),
+        }
 
         // Shut down the entire WSL VM before exporting to avoid:
         // - VHDX: ERROR_SHARING_VIOLATION (ext4.vhdx locked by running VM)

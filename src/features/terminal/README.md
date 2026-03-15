@@ -110,14 +110,14 @@ terminal/
 |-----------|------|
 | `TerminalPanel` | Container with drag-to-resize handle (mouse events), minimize/expand/hide controls. Always mounts all `TerminalInstance` components (hidden via CSS) to preserve session state. Auto-creates terminal in the first running distro via the "+" button |
 | `TerminalTabBar` | Horizontal scrollable tab strip. Each tab shows the session title with a close button (visible on hover). "+" button creates a new terminal |
-| `TerminalInstance` | Core xterm.js integration. Initializes `Terminal` with `FitAddon` and `WebLinksAddon`. Buffers PTY output arriving before xterm is ready. Uses `ResizeObserver` for container-driven resizing. Handles visibility changes (minimize/restore). Supports dark (Neon) and light (Frosted) color themes synced via `useThemeStore` |
+| `TerminalInstance` | Core xterm.js integration. Initializes `Terminal` with `FitAddon` and `WebLinksAddon`. Buffers PTY output arriving before xterm is ready. Uses `ResizeObserver` for container-driven resizing. Handles visibility changes (minimize/restore). Supports dark (Catppuccin Mocha) and light (Catppuccin Latte) color themes synced via `useThemeStore` |
 
 ## 🎨 Terminal Themes
 
 | Theme | Background | Cursor | Palette |
 |-------|-----------|--------|---------|
-| **Neon Dark** | `#0a0a1a` | `#00f0ff` (cyan) | Vibrant neon colors matching Catppuccin Mocha |
-| **Frosted Light** | `#f0f0f5` | `#0891b2` (teal) | Muted colors matching Catppuccin Latte |
+| **Catppuccin Mocha** | `#1e1e2e` | `#f5e0dc` (rosewater) | Catppuccin Mocha palette |
+| **Catppuccin Latte** | `#eff1f5` | `#dc8a78` (rosewater) | Catppuccin Latte palette |
 
 ## 🔑 Key Technical Details
 

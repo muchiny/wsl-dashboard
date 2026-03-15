@@ -55,6 +55,17 @@ export function useResizeVhd() {
   });
 }
 
+export function useDeleteDistro() {
+  return useTauriMutation<void, { name: string; deleteSnapshots: boolean }>({
+    mutationFn: ({ name, deleteSnapshots }) =>
+      tauriInvoke("delete_distro", { name, deleteSnapshots }),
+    invalidateKeys: [distroKeys.all],
+    successMessage: (_data, { name }) => i18next.t("distros.toastDeleteSuccess", { name }),
+    errorMessage: (err, { name }) =>
+      i18next.t("distros.toastDeleteFailed", { name, message: err.message }),
+  });
+}
+
 export function useShutdownAll() {
   return useTauriMutation({
     mutationFn: () => tauriInvoke("shutdown_all"),
@@ -66,15 +77,20 @@ export function useStartAll() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (names: string[]) => {
-      const results = await Promise.allSettled(
-        names.map((name) => tauriInvoke("start_distro", { name })),
-      );
-      const succeeded = results.filter((r) => r.status === "fulfilled").length;
-      const failed = results.filter((r) => r.status === "rejected").length;
+      let succeeded = 0;
+      let failed = 0;
+      for (const name of names) {
+        try {
+          await tauriInvoke("start_distro", { name });
+          succeeded++;
+        } catch {
+          failed++;
+        }
+        await queryClient.refetchQueries({ queryKey: distroKeys.list() });
+      }
       return { succeeded, failed };
     },
     onSuccess: ({ succeeded, failed }) => {
-      queryClient.invalidateQueries({ queryKey: distroKeys.all });
       if (succeeded > 0) {
         toast.success(i18next.t("distros.toastStartAllSuccess", { count: succeeded }));
       }

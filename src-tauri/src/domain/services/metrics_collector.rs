@@ -17,7 +17,7 @@ use crate::presentation::events::{EVENT_ALERT_TRIGGERED, EVENT_SYSTEM_METRICS};
 
 const COLLECTION_INTERVAL_SECS: u64 = 2;
 const ALERT_COOLDOWN_SECS: u64 = 300; // 5 minutes between same alert type/distro
-const DISTRO_CACHE_TTL_SECS: u64 = 10;
+const DISTRO_CACHE_TTL_SECS: u64 = 2;
 
 /// Background service that collects metrics from all running distros,
 /// persists them, emits Tauri events, and checks alert thresholds.

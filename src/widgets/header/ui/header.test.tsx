@@ -46,6 +46,17 @@ vi.mock("./language-switcher", () => ({
   LanguageSwitcher: () => <div data-testid="language-switcher">LangSwitch</div>,
 }));
 
+vi.mock("@/shared/stores/use-preferences-store", () => ({
+  usePreferencesStore: (selector?: (state: Record<string, unknown>) => unknown) =>
+    selector ? selector({ developerMode: true }) : { developerMode: true },
+}));
+
+vi.mock("@/features/terminal/model/use-terminal-store", () => ({
+  useTerminalStore: Object.assign(() => ({}), {
+    getState: () => ({ togglePanel: vi.fn() }),
+  }),
+}));
+
 // Import after mocks
 const { Header } = await import("./header");
 

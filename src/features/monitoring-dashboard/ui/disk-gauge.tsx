@@ -26,7 +26,7 @@ export const DiskGauge = memo(function DiskGauge({ disk, historicalData }: DiskG
   const isCritical = percent > 90;
 
   return (
-    <div className="glass-card min-w-0 overflow-hidden rounded-xl p-4">
+    <div className="glass-card min-w-0 overflow-hidden rounded-xl p-4 shadow-elevation-2">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="text-sm font-semibold">{t("monitoring.diskUsage")}</h4>
         {hasData && (

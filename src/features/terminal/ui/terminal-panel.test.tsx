@@ -64,7 +64,6 @@ describe("TerminalPanel", () => {
     renderWithProviders(<TerminalPanel />);
     expect(screen.getByTestId("mock-tab-bar")).toBeInTheDocument();
     expect(screen.getByTestId("terminal-toggle")).toBeInTheDocument();
-    expect(screen.getByTestId("terminal-hide")).toBeInTheDocument();
   });
 
   it("renders terminal instances for each session", () => {
@@ -101,14 +100,14 @@ describe("TerminalPanel", () => {
     expect(screen.getByLabelText("Expand terminal")).toBeInTheDocument();
   });
 
-  it("closes panel when hide button is clicked", () => {
+  it("closes panel when toggle button is clicked while open", () => {
     useTerminalStore.setState({
       sessions: [{ id: "s1", distroName: "Ubuntu", title: "Ubuntu" }],
       activeSessionId: "s1",
       isOpen: true,
     });
     renderWithProviders(<TerminalPanel />);
-    fireEvent.click(screen.getByTestId("terminal-hide"));
+    fireEvent.click(screen.getByTestId("terminal-toggle"));
     expect(useTerminalStore.getState().isOpen).toBe(false);
   });
 

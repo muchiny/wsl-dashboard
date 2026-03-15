@@ -12,6 +12,7 @@ use crate::application::queries::list_snapshots::ListSnapshotsHandler;
 use crate::domain::entities::snapshot::{ExportFormat, RestoreMode};
 use crate::domain::errors::DomainError;
 use crate::domain::value_objects::{DistroName, SnapshotId};
+use crate::infrastructure::terminal::adapter::TerminalSessionManager;
 use crate::presentation::state::AppState;
 
 #[tauri::command]
@@ -113,10 +114,11 @@ pub struct RestoreSnapshotArgs {
 }
 
 #[tauri::command]
-#[instrument(skip(state), fields(cmd = "restore_snapshot", snapshot = %args.snapshot_id))]
+#[instrument(skip(state, terminal_mgr), fields(cmd = "restore_snapshot", snapshot = %args.snapshot_id))]
 pub async fn restore_snapshot(
     args: RestoreSnapshotArgs,
     state: State<'_, AppState>,
+    terminal_mgr: State<'_, TerminalSessionManager>,
 ) -> Result<(), DomainError> {
     let mode = if args.mode == "clone" {
         let new_name = args
@@ -127,14 +129,17 @@ pub async fn restore_snapshot(
         RestoreMode::Overwrite
     };
 
+    // Resolve the snapshot to get distro_name for terminal cleanup
+    let snapshot = state
+        .snapshot_repo
+        .get_by_id(&SnapshotId::from_string(args.snapshot_id.clone()))
+        .await?;
+    let distro_name = snapshot.distro_name.to_string();
+
     // For overwrite mode without an explicit path, auto-detect from registry
     let install_location = match (&mode, args.install_location) {
         (_, Some(loc)) if !loc.is_empty() => loc,
         (RestoreMode::Overwrite, _) => {
-            let snapshot = state
-                .snapshot_repo
-                .get_by_id(&SnapshotId::from_string(args.snapshot_id.clone()))
-                .await?;
             state
                 .wsl_manager
                 .get_distro_install_path(&snapshot.distro_name)
@@ -146,6 +151,17 @@ pub async fn restore_snapshot(
             ));
         }
     };
+
+    // Close all terminal sessions for this distro before restore —
+    // the old PTY sessions would be stale after unregister + import.
+    let closed = terminal_mgr.close_sessions_by_distro(&distro_name).await;
+    if !closed.is_empty() {
+        tracing::info!(
+            "closed {} terminal session(s) for '{}' before restore",
+            closed.len(),
+            distro_name
+        );
+    }
 
     let handler = RestoreSnapshotHandler::new(
         state.wsl_manager.clone(),

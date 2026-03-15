@@ -104,6 +104,15 @@ impl PortForwardRulesRepository for SqlitePortForwardingRepository {
             created_at: r.get("created_at"),
         }))
     }
+
+    async fn delete_by_distro(&self, distro_name: &str) -> Result<(), DomainError> {
+        sqlx::query("DELETE FROM port_forwarding_rules WHERE distro_name = ?")
+            .bind(distro_name)
+            .execute(&self.pool)
+            .await
+            .db_err()?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

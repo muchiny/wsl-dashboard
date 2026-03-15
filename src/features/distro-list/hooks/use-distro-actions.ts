@@ -10,6 +10,7 @@ interface UseDistroActionsProps {
   onRestart: (name: string) => void;
   onSnapshot: (name: string) => void;
   onExpand: (name: string) => void;
+  onDelete: (name: string) => void;
 }
 
 export function useDistroActions({
@@ -20,6 +21,7 @@ export function useDistroActions({
   onRestart,
   onSnapshot,
   onExpand,
+  onDelete,
 }: UseDistroActionsProps) {
   const { t } = useTranslation();
   const createTerminalSession = useCreateTerminalSession();
@@ -44,6 +46,7 @@ export function useDistroActions({
   const handleStop = stopPropagation(() => onStop(distro.name));
   const handleRestart = stopPropagation(() => onRestart(distro.name));
   const handleSnapshot = stopPropagation(() => onSnapshot(distro.name));
+  const handleDelete = stopPropagation(() => onDelete(distro.name));
   const handleTerminal = stopPropagation(() => createTerminalSession.mutate(distro.name));
   const handleMonitorClick = (e: React.MouseEvent) => e.stopPropagation();
 
@@ -63,6 +66,7 @@ export function useDistroActions({
     handleStop,
     handleRestart,
     handleSnapshot,
+    handleDelete,
     handleTerminal,
     handleMonitorClick,
     ariaLabel,

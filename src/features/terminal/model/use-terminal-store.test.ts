@@ -133,8 +133,9 @@ describe("useTerminalStore", () => {
     expect(useTerminalStore.getState().panelHeight).toBe(150);
   });
 
-  it("clamps panel height to maximum of 600", () => {
+  it("clamps panel height to 60% of viewport", () => {
+    const maxHeight = Math.floor(window.innerHeight * 0.6);
     useTerminalStore.getState().setPanelHeight(1000);
-    expect(useTerminalStore.getState().panelHeight).toBe(600);
+    expect(useTerminalStore.getState().panelHeight).toBe(maxHeight);
   });
 });

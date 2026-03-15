@@ -26,14 +26,14 @@ export function ToggleSwitch({
         aria-label={label}
         onClick={onChange}
         className={cn(
-          "focus-ring relative h-6 w-11 shrink-0 rounded-full transition-colors",
-          checked ? "bg-teal shadow-[0_0_8px_rgba(0,240,255,0.4)]" : "bg-surface-1",
+          "focus-ring relative h-6 w-11 shrink-0 rounded-full transition-all duration-200",
+          checked ? "bg-teal shadow-[0_0_12px_rgba(148,226,213,0.5)]" : "bg-surface-1",
         )}
       >
         <span
           className={cn(
-            "bg-text absolute top-0.5 left-0.5 h-5 w-5 rounded-full transition-transform",
-            checked && "translate-x-5",
+            "bg-text absolute top-0.5 left-0.5 h-5 w-5 rounded-full transition-all duration-200",
+            checked && "translate-x-5 shadow-elevation-1",
           )}
         />
       </button>

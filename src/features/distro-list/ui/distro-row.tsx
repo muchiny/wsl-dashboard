@@ -12,6 +12,7 @@ interface DistroRowProps {
   onStop: (name: string) => void;
   onRestart: (name: string) => void;
   onSnapshot: (name: string) => void;
+  onDelete: (name: string) => void;
   pendingAction?: string;
   snapshotCount: number;
   onSelect: (name: string) => void;
@@ -24,6 +25,7 @@ export const DistroRow = memo(function DistroRow({
   onStop,
   onRestart,
   onSnapshot,
+  onDelete,
   pendingAction,
   snapshotCount,
   onSelect,
@@ -40,6 +42,7 @@ export const DistroRow = memo(function DistroRow({
     handleStop,
     handleRestart,
     handleSnapshot,
+    handleDelete,
     handleTerminal,
     handleMonitorClick,
     ariaLabel,
@@ -51,6 +54,7 @@ export const DistroRow = memo(function DistroRow({
     onRestart,
     onSnapshot,
     onExpand: onSelect,
+    onDelete,
   });
 
   return (
@@ -62,16 +66,16 @@ export const DistroRow = memo(function DistroRow({
       aria-pressed={isSelected}
       aria-label={ariaLabel}
       className={cn(
-        "glass-card-lite focus-ring flex cursor-pointer items-center gap-4 rounded-xl px-4 py-3 transition-colors",
-        isSelected ? "border-mauve/50" : "hover:border-blue/40",
+        "glass-card-lite focus-ring flex cursor-pointer items-center gap-4 rounded-xl px-4 py-3 shadow-elevation-1 transition-all duration-200",
+        isSelected ? "border-mauve/40 shadow-elevation-2" : "hover:border-blue/30 hover:shadow-elevation-2",
       )}
     >
       {/* Name + status dot + default star */}
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <div
           className={cn(
-            "h-2.5 w-2.5 shrink-0 rounded-full",
-            isRunning ? "bg-green shadow-[0_0_12px_rgba(48,209,88,0.6)]" : "bg-surface-2",
+            "h-2.5 w-2.5 shrink-0 rounded-full transition-all",
+            isRunning ? "bg-green shadow-[0_0_12px_rgba(166,227,161,0.6)] animate-pulse" : "bg-surface-2",
           )}
           aria-hidden="true"
         />
@@ -125,6 +129,7 @@ export const DistroRow = memo(function DistroRow({
         handleStop={handleStop}
         handleRestart={handleRestart}
         handleSnapshot={handleSnapshot}
+        handleDelete={handleDelete}
         handleTerminal={handleTerminal}
         handleMonitorClick={handleMonitorClick}
         distroName={distro.name}

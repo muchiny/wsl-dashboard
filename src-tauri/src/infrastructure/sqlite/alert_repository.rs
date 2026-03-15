@@ -101,6 +101,15 @@ impl AlertingPort for SqliteAlertRepository {
 
         Ok(result.rows_affected())
     }
+
+    async fn delete_by_distro(&self, distro: &DistroName) -> Result<(), DomainError> {
+        sqlx::query("DELETE FROM alert_log WHERE distro_name = ?")
+            .bind(distro.as_str())
+            .execute(&self.db.pool)
+            .await
+            .db_err()?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

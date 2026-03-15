@@ -2,13 +2,12 @@ import { describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import { renderWithProviders } from "@/test/test-utils";
 import { useDistros } from "@/shared/api/distro-queries";
-import { useShutdownAll } from "@/features/distro-list/api/mutations";
 import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
 import { DistrosPage } from "./distros-page";
 
 vi.mock("@/shared/api/distro-queries", () => ({ useDistros: vi.fn() }));
 vi.mock("@/features/distro-list/api/mutations", () => ({
-  useShutdownAll: vi.fn(),
+  useShutdownAll: vi.fn(() => ({ isPending: false, mutate: vi.fn() })),
   useStartDistro: vi.fn(),
   useStopDistro: vi.fn(),
   useRestartDistro: vi.fn(),
@@ -31,17 +30,18 @@ vi.mock("@/features/distro-list/ui/distros-toolbar", () => ({
     />
   ),
 }));
-vi.mock("@/features/distro-list/ui/distro-snapshot-panel", () => ({
-  DistroSnapshotPanel: () => <div data-testid="snapshot-panel" />,
+vi.mock("@/features/distro-list/ui/distro-detail-drawer", () => ({
+  DistroDetailDrawer: () => <div data-testid="detail-drawer" />,
 }));
-vi.mock("@/features/snapshot-list/ui/create-snapshot-dialog", () => ({
-  CreateSnapshotDialog: () => null,
-}));
-vi.mock("@/features/snapshot-list/ui/restore-snapshot-dialog", () => ({
-  RestoreSnapshotDialog: () => null,
-}));
-vi.mock("@/shared/ui/confirm-dialog", () => ({
-  ConfirmDialog: () => null,
+vi.mock("@/features/distro-list/hooks/use-distro-dialogs", () => ({
+  useDistroDialogs: () => ({
+    openCreateSnapshot: vi.fn(),
+    openRestore: vi.fn(),
+    openShutdownConfirm: vi.fn(),
+    openDelete: vi.fn(),
+    shutdownAllPending: false,
+    DialogsRenderer: () => null,
+  }),
 }));
 vi.mock("@/shared/hooks/use-debounce", () => ({
   useDebounce: <T,>(v: T) => v,
@@ -51,9 +51,6 @@ vi.mock("@/shared/stores/use-preferences-store", () => ({
   usePreferencesStore: vi.fn((selector?: (state: typeof preferencesState) => unknown) =>
     selector ? selector(preferencesState) : preferencesState,
   ),
-}));
-vi.mock("@/shared/ui/toast-store", () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
 }));
 
 const mockDistros = [
@@ -92,10 +89,6 @@ function setup() {
     isLoading: false,
     error: null,
   } as ReturnType<typeof useDistros>);
-  vi.mocked(useShutdownAll).mockReturnValue({
-    isPending: false,
-    mutate: vi.fn(),
-  } as unknown as ReturnType<typeof useShutdownAll>);
 }
 
 describe("DistrosPage", () => {
@@ -182,14 +175,6 @@ describe("DistrosPage", () => {
       isLoading: false,
       error: null,
     } as ReturnType<typeof useDistros>);
-    vi.mocked(useShutdownAll).mockReturnValue({
-      isPending: false,
-      mutate: vi.fn(),
-    } as unknown as ReturnType<typeof useShutdownAll>);
-    vi.mocked(usePreferencesStore).mockReturnValue({
-      sortKey: "name-asc",
-      viewMode: "grid",
-    } as ReturnType<typeof usePreferencesStore>);
 
     renderWithProviders(<DistrosPage />);
 

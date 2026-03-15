@@ -50,5 +50,8 @@ export const useTerminalStore = create<TerminalStore>()((set) => ({
   togglePanel: () => set((state) => ({ isOpen: !state.isOpen })),
   openPanel: () => set({ isOpen: true }),
   closePanel: () => set({ isOpen: false }),
-  setPanelHeight: (height) => set({ panelHeight: Math.max(150, Math.min(600, height)) }),
+  setPanelHeight: (height) =>
+    set({
+      panelHeight: Math.max(150, Math.min(Math.floor(window.innerHeight * 0.6), height)),
+    }),
 }));

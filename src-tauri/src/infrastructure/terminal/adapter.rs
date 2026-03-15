@@ -12,6 +12,8 @@ use crate::domain::errors::DomainError;
 /// Stored as Tauri managed state.
 pub struct TerminalSessionManager {
     sessions: RwLock<HashMap<String, PtySessionHandle>>,
+    /// Maps session_id → distro_name for bulk cleanup on restore/delete.
+    distro_map: RwLock<HashMap<String, String>>,
 }
 
 struct PtySessionHandle {
@@ -30,6 +32,7 @@ impl TerminalSessionManager {
     pub fn new() -> Self {
         Self {
             sessions: RwLock::new(HashMap::new()),
+            distro_map: RwLock::new(HashMap::new()),
         }
     }
 
@@ -54,7 +57,7 @@ impl TerminalSessionManager {
             .map_err(|e| DomainError::TerminalError(format!("Failed to open PTY: {e}")))?;
 
         let mut cmd = CommandBuilder::new("wsl.exe");
-        cmd.args(["-d", distro_name]);
+        cmd.args(["-d", distro_name, "--cd", "~"]);
 
         let child = pair
             .slave
@@ -81,6 +84,10 @@ impl TerminalSessionManager {
             .write()
             .await
             .insert(session_id.clone(), handle);
+        self.distro_map
+            .write()
+            .await
+            .insert(session_id.clone(), distro_name.to_string());
 
         // Spawn a background thread to read PTY output and emit Tauri events
         let sid = session_id.clone();
@@ -164,6 +171,25 @@ impl TerminalSessionManager {
                 let _ = child.kill();
             }
         }
+        self.distro_map.write().await.remove(session_id);
         Ok(())
+    }
+
+    /// Close all terminal sessions for a given distro.
+    /// Returns the list of closed session IDs.
+    pub async fn close_sessions_by_distro(&self, distro_name: &str) -> Vec<String> {
+        let session_ids: Vec<String> = {
+            let map = self.distro_map.read().await;
+            map.iter()
+                .filter(|(_, name)| name.as_str() == distro_name)
+                .map(|(id, _)| id.clone())
+                .collect()
+        };
+
+        for id in &session_ids {
+            let _ = self.close_session(id).await;
+        }
+
+        session_ids
     }
 }

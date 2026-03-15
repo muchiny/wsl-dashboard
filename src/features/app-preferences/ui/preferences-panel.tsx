@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Moon, Sun, Timer, Archive, FolderOpen, Bell } from "lucide-react";
+import { Moon, Sun, Timer, Archive, FolderOpen, Bell, Code } from "lucide-react";
 import { Select } from "@/shared/ui/select";
 import { ToggleSwitch } from "@/shared/ui/toggle-switch";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
@@ -46,11 +46,13 @@ export function PreferencesPanel() {
     defaultSnapshotDir,
     defaultInstallLocation,
     alertThresholds,
+    developerMode,
     setMetricsInterval,
     setProcessesInterval,
     setDefaultSnapshotDir,
     setDefaultInstallLocation,
     setAlertThresholds,
+    setDeveloperMode,
   } = usePreferencesStore(
     useShallow((s) => ({
       metricsInterval: s.metricsInterval,
@@ -58,11 +60,13 @@ export function PreferencesPanel() {
       defaultSnapshotDir: s.defaultSnapshotDir,
       defaultInstallLocation: s.defaultInstallLocation,
       alertThresholds: s.alertThresholds,
+      developerMode: s.developerMode,
       setMetricsInterval: s.setMetricsInterval,
       setProcessesInterval: s.setProcessesInterval,
       setDefaultSnapshotDir: s.setDefaultSnapshotDir,
       setDefaultInstallLocation: s.setDefaultInstallLocation,
       setAlertThresholds: s.setAlertThresholds,
+      setDeveloperMode: s.setDeveloperMode,
     })),
   );
 
@@ -284,6 +288,20 @@ export function PreferencesPanel() {
             );
           })}
         </div>
+      </div>
+
+      {/* Developer */}
+      <div className="glass-card-lite rounded-xl p-5">
+        <h3 className="text-text mb-4 flex items-center gap-2 text-sm font-semibold">
+          <Code className="text-blue h-4 w-4" />
+          {t("preferences.developer")}
+        </h3>
+        <ToggleSwitch
+          checked={developerMode}
+          onChange={() => setDeveloperMode(!developerMode)}
+          label={t("preferences.developerMode")}
+          description={t("preferences.developerModeDescription")}
+        />
       </div>
     </div>
   );
