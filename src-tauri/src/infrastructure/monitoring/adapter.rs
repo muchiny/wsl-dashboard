@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use std::sync::Arc;
 
 use crate::domain::entities::monitoring::{
-    CpuMetrics, DiskMetrics, GpuMetrics, MemoryMetrics, NetworkMetrics, ProcessInfo,
-    SystemMetrics, TcpConnectionMetrics,
+    CpuMetrics, DiskMetrics, GpuMetrics, MemoryMetrics, NetworkMetrics, ProcessInfo, SystemMetrics,
+    TcpConnectionMetrics,
 };
 use crate::domain::errors::DomainError;
 use crate::domain::ports::monitoring_provider::MonitoringProviderPort;
@@ -341,10 +341,7 @@ impl MonitoringProviderPort for ProcFsMonitoringAdapter {
         Ok(parse_ps_aux(&output))
     }
 
-    async fn get_all_metrics(
-        &self,
-        distro: &DistroName,
-    ) -> Result<SystemMetrics, DomainError> {
+    async fn get_all_metrics(&self, distro: &DistroName) -> Result<SystemMetrics, DomainError> {
         // Single wsl.exe call: two /proc/stat snapshots 200ms apart + loadavg + meminfo + df + net/dev + diskstats + tcp.
         let output = self
             .wsl_manager
@@ -465,10 +462,12 @@ impl MonitoringProviderPort for ProcFsMonitoringAdapter {
             disk,
             network,
             context_switches,
-            disk_io: disk_io_raw.map(|(r, w)| crate::domain::entities::monitoring::DiskIoMetrics {
-                read_bytes_per_sec: r,
-                write_bytes_per_sec: w,
-            }),
+            disk_io: disk_io_raw.map(
+                |(r, w)| crate::domain::entities::monitoring::DiskIoMetrics {
+                    read_bytes_per_sec: r,
+                    write_bytes_per_sec: w,
+                },
+            ),
             tcp_connections,
             gpu: None, // GPU probe is separate
         })
