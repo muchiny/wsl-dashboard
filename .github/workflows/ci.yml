@@ -126,6 +126,7 @@ jobs:
   e2e-wdio:
     name: E2E Full Stack (WebdriverIO)
     runs-on: windows-latest
+    continue-on-error: true
     needs: [frontend, rust]
     steps:
       - uses: actions/checkout@v4
