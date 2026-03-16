@@ -129,16 +129,7 @@ impl MetricsCollector {
         name: &DistroName,
         app_handle: &AppHandle,
     ) -> Result<SystemMetrics, DomainError> {
-        let (cpu, memory, disk, network) = monitoring.get_all_metrics(name).await?;
-
-        let metrics = SystemMetrics {
-            distro_name: name.as_str().to_string(),
-            timestamp: chrono::Utc::now(),
-            cpu,
-            memory,
-            disk,
-            network,
-        };
+        let metrics = monitoring.get_all_metrics(name).await?;
 
         // Store in SQLite
         if let Err(e) = metrics_repo.store_raw(&metrics).await {
@@ -322,6 +313,10 @@ mod tests {
                 usage_percent: disk,
             },
             network: NetworkMetrics { interfaces: vec![] },
+            context_switches: None,
+            disk_io: None,
+            tcp_connections: None,
+            gpu: None,
         }
     }
 

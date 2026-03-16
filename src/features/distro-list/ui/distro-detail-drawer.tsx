@@ -18,12 +18,14 @@ export function DistroDetailDrawer({
   const { t } = useTranslation();
 
   return (
-    <div className="glass-panel shadow-elevation-3 flex w-80 shrink-0 flex-col rounded-xl animate-in slide-in-from-right duration-200">
+    <div className="glass-panel shadow-elevation-3 animate-in slide-in-from-right flex w-80 shrink-0 flex-col rounded-xl duration-200">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-surface-0 p-4">
+      <div className="border-surface-0 flex items-center justify-between border-b p-4">
         <div className="flex items-center gap-2">
           <Archive className="text-mauve h-5 w-5" />
-          <h4 className="text-text text-sm font-semibold">{t("snapshots.title", { name: distroName })}</h4>
+          <h4 className="text-text text-sm font-semibold">
+            {t("snapshots.title", { name: distroName })}
+          </h4>
         </div>
         <button
           onClick={onClose}

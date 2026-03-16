@@ -4,9 +4,12 @@ import type { SystemMetrics } from "@/shared/types/monitoring";
 
 const MAX_POINTS = 30;
 
-interface MiniMetrics {
+export interface MiniMetrics {
   cpuHistory: number[];
   cpuCurrent: number;
+  memPercent: number;
+  perCore: number[];
+  perCoreHistory: number[][];
 }
 
 type Store = Map<string, MiniMetrics>;
@@ -36,10 +39,23 @@ function handleMetrics(metrics: SystemMetrics) {
     ? [...prev.cpuHistory, metrics.cpu.usage_percent].slice(-MAX_POINTS)
     : [metrics.cpu.usage_percent];
 
+  const memPercent =
+    metrics.memory.total_bytes > 0
+      ? (metrics.memory.used_bytes / metrics.memory.total_bytes) * 100
+      : 0;
+
+  const perCoreHistory = metrics.cpu.per_core.map((val, i) => {
+    const prevHistory = prev?.perCoreHistory[i] ?? [];
+    return [...prevHistory, val].slice(-MAX_POINTS);
+  });
+
   const next = new Map(store);
   next.set(name, {
     cpuHistory,
     cpuCurrent: metrics.cpu.usage_percent,
+    memPercent,
+    perCore: metrics.cpu.per_core,
+    perCoreHistory,
   });
   store = next;
   notify();
@@ -49,11 +65,9 @@ function handleMetrics(metrics: SystemMetrics) {
 function startListening() {
   listenerCount++;
   if (listenerCount === 1) {
-    listen<SystemMetrics>("system-metrics", (e) => handleMetrics(e.payload)).then(
-      (fn) => {
-        unlisten = fn;
-      },
-    );
+    listen<SystemMetrics>("system-metrics", (e) => handleMetrics(e.payload)).then((fn) => {
+      unlisten = fn;
+    });
   }
 }
 
@@ -66,7 +80,7 @@ function stopListening() {
 }
 
 /**
- * Returns live CPU sparkline data for a single distro.
+ * Returns live CPU sparkline data, memory %, and per-core history for a single distro.
  * All consumers share one Tauri event listener.
  */
 export function useMiniMetrics(distroName: string): MiniMetrics | null {

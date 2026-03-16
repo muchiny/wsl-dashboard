@@ -7,6 +7,8 @@ export async function createTerminal(distroName: string): Promise<string> {
   return invoke<string>("terminal_create", { distroName });
 }
 
+// Uses raw useMutation instead of useTauriMutation because of retry logic
+// and direct store manipulation (terminal sessions are not query-cached).
 export function useCreateTerminalSession() {
   return useMutation({
     mutationFn: (distroName: string) => createTerminal(distroName),

@@ -51,7 +51,7 @@ function ToastItem({
     <div
       role="alert"
       className={cn(
-        "glass-card flex items-start gap-3 rounded-xl px-4 py-3 shadow-elevation-3",
+        "glass-card shadow-elevation-3 flex items-start gap-3 rounded-xl px-4 py-3",
         "animate-in slide-in-from-right fade-in duration-200",
         config.border,
       )}

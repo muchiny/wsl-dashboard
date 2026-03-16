@@ -126,7 +126,7 @@ export function LanguageSwitcher() {
         <div
           role="listbox"
           aria-label={t("header.switchLanguage", { language: localeLabels[locale] })}
-          className="glass-dropdown animate-scale-in absolute top-full right-0 z-50 mt-1 min-w-[160px] overflow-hidden rounded-lg py-1 shadow-elevation-3"
+          className="glass-dropdown animate-scale-in shadow-elevation-3 absolute top-full right-0 z-50 mt-1 min-w-[160px] overflow-hidden rounded-lg py-1"
         >
           {supportedLocales.map((loc, index) => {
             const isActive = loc === locale;

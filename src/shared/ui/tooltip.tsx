@@ -68,7 +68,7 @@ export function Tooltip({ content, children, position = "bottom" }: TooltipProps
           <div
             role="tooltip"
             className={cn(
-              "tooltip-bubble pointer-events-none fixed z-[9999] -translate-x-1/2 whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-medium shadow-elevation-2",
+              "tooltip-bubble shadow-elevation-2 pointer-events-none fixed z-[9999] -translate-x-1/2 rounded-md px-2.5 py-1.5 text-xs font-medium whitespace-nowrap",
               position === "top" && "-translate-y-full",
             )}
             style={coords}

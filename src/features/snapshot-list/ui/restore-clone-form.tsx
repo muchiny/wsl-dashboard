@@ -69,9 +69,7 @@ export function RestoreCloneForm({
             <FolderOpen className="h-4 w-4" />
           </button>
         </div>
-        <p className="text-overlay-0 mt-1 text-xs">
-          {t("snapshots.restore.installLocationHint")}
-        </p>
+        <p className="text-overlay-0 mt-1 text-xs">{t("snapshots.restore.installLocationHint")}</p>
       </div>
     </>
   );

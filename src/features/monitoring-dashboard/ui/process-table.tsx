@@ -45,7 +45,7 @@ export function ProcessTable({ processes }: ProcessTableProps) {
   );
 
   return (
-    <div className="glass-card min-w-0 overflow-hidden rounded-xl shadow-elevation-2">
+    <div className="glass-card shadow-elevation-2 min-w-0 overflow-hidden rounded-xl">
       <div className="border-surface-0 flex flex-col gap-2 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
         <h4 className="text-sm font-semibold">
           {t("monitoring.processes", { count: processes.length })}
@@ -66,6 +66,7 @@ export function ProcessTable({ processes }: ProcessTableProps) {
                 <button
                   onClick={() => handleSort("pid")}
                   className="ml-auto flex items-center justify-end gap-1"
+                  data-testid="process-sort-pid"
                 >
                   {t("monitoring.pid")} <ArrowUpDown className="h-3 w-3" />
                 </button>
@@ -75,6 +76,7 @@ export function ProcessTable({ processes }: ProcessTableProps) {
                 <button
                   onClick={() => handleSort("cpu_percent")}
                   className="ml-auto flex items-center justify-end gap-1"
+                  data-testid="process-sort-cpu"
                 >
                   {t("monitoring.cpuPercent")} <ArrowUpDown className="h-3 w-3" />
                 </button>
@@ -83,6 +85,7 @@ export function ProcessTable({ processes }: ProcessTableProps) {
                 <button
                   onClick={() => handleSort("mem_percent")}
                   className="ml-auto flex items-center justify-end gap-1"
+                  data-testid="process-sort-mem"
                 >
                   {t("monitoring.memPercent")} <ArrowUpDown className="h-3 w-3" />
                 </button>

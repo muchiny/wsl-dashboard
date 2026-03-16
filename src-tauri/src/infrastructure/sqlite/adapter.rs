@@ -55,6 +55,15 @@ impl SqliteDb {
             .execute(&pool)
             .await;
 
+        // Migration 005: extended metrics (disk I/O, TCP, context switches, GPU)
+        // Best-effort ALTER TABLE ADD COLUMN — each statement may fail if column already exists.
+        for stmt in include_str!("migrations/005_extended_metrics.sql")
+            .lines()
+            .filter(|l| !l.trim().is_empty() && !l.trim().starts_with("--"))
+        {
+            let _ = sqlx::query(stmt).execute(&pool).await;
+        }
+
         Ok(Self { pool })
     }
 }

@@ -41,7 +41,11 @@ export function DistroActions({
     <>
       <div className="flex gap-1">
         {!isRunning && (
-          <Tooltip content={pendingAction === "Starting" ? t("distros.pendingStarting") : t("distros.tipStart")}>
+          <Tooltip
+            content={
+              pendingAction === "Starting" ? t("distros.pendingStarting") : t("distros.tipStart")
+            }
+          >
             <ActionIconButton
               icon={Play}
               loading={pendingAction === "Starting"}
@@ -54,7 +58,13 @@ export function DistroActions({
         )}
         {isRunning && (
           <>
-            <Tooltip content={pendingAction === "Restarting" ? t("distros.pendingRestarting") : t("distros.tipRestart")}>
+            <Tooltip
+              content={
+                pendingAction === "Restarting"
+                  ? t("distros.pendingRestarting")
+                  : t("distros.tipRestart")
+              }
+            >
               <ActionIconButton
                 icon={RotateCw}
                 loading={pendingAction === "Restarting"}
@@ -64,7 +74,11 @@ export function DistroActions({
                 aria-label={t("distros.restartAction", { name: distroName })}
               />
             </Tooltip>
-            <Tooltip content={pendingAction === "Stopping" ? t("distros.pendingStopping") : t("distros.tipStop")}>
+            <Tooltip
+              content={
+                pendingAction === "Stopping" ? t("distros.pendingStopping") : t("distros.tipStop")
+              }
+            >
               <ActionIconButton
                 icon={Square}
                 loading={pendingAction === "Stopping"}

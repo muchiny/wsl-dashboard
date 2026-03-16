@@ -5,6 +5,27 @@ export interface SystemMetrics {
   memory: MemoryMetrics;
   disk: DiskMetrics;
   network: NetworkMetrics;
+  context_switches?: number;
+  disk_io?: DiskIoMetrics;
+  tcp_connections?: TcpConnectionMetrics;
+  gpu?: GpuMetrics;
+}
+
+export interface DiskIoMetrics {
+  read_bytes_per_sec: number;
+  write_bytes_per_sec: number;
+}
+
+export interface TcpConnectionMetrics {
+  established: number;
+  time_wait: number;
+  listen: number;
+}
+
+export interface GpuMetrics {
+  utilization_percent: number | null;
+  vram_used_bytes: number | null;
+  vram_total_bytes: number | null;
 }
 
 export interface CpuMetrics {
@@ -55,6 +76,17 @@ export interface MetricsHistoryPoint {
   disk_usage_percent: number;
   net_rx_rate: number;
   net_tx_rate: number;
+  swap_used_bytes?: number;
+  swap_total_bytes?: number;
+  context_switches?: number;
+  disk_io_read_bytes?: number;
+  disk_io_write_bytes?: number;
+  tcp_established?: number;
+  tcp_time_wait?: number;
+  tcp_listen?: number;
+  gpu_utilization?: number;
+  gpu_vram_used?: number;
+  gpu_vram_total?: number;
 }
 
 export interface MetricsHistoryResponse {

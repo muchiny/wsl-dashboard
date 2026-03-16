@@ -13,108 +13,23 @@ use crate::domain::ports::wsl_manager::WslManagerPort;
 use crate::domain::value_objects::DistroName;
 
 use super::encoding::decode_wsl_output;
-use super::parser::parse_distro_list;
-
-/// Convert a Linux /mnt/X/... path to Windows X:\... for wsl.exe commands.
-/// Also normalizes mixed-separator paths (e.g. `C:\Users\snapshots/file.tar`)
-/// to use consistent backslashes on Windows.
-fn linux_to_windows_path(path: &str) -> String {
-    // Match /mnt/c/Users/... -> C:\Users\...
-    if let Some(rest) = path.strip_prefix("/mnt/")
-        && let Some((drive, remainder)) = rest.split_once('/')
-        && drive.len() == 1
-    {
-        return format!(
-            "{}:\\{}",
-            drive.to_uppercase(),
-            remainder.replace('/', "\\")
-        );
-    }
-    // Normalize mixed separators: if the path already has backslashes (Windows)
-    // but also contains forward slashes, unify to backslashes.
-    // e.g. "C:\Users\snapshots/Ubuntu-xxx.tar" → "C:\Users\snapshots\Ubuntu-xxx.tar"
-    #[cfg(windows)]
-    if path.contains('\\') && path.contains('/') {
-        return path.replace('/', "\\");
-    }
-    path.to_string()
-}
-
-/// Convert a Windows X:\... path to Linux /mnt/x/... for WSL2 filesystem access.
-/// Passes through paths that are already Linux-style.
-fn windows_to_linux_path(path: &str) -> String {
-    let mut chars = path.chars();
-    if let Some(drive) = chars.next()
-        && drive.is_ascii_alphabetic()
-        && chars.next() == Some(':')
-        && matches!(chars.next(), Some('\\') | Some('/'))
-    {
-        let rest: String = chars.collect::<String>().replace('\\', "/");
-        return format!("/mnt/{}/{}", drive.to_ascii_lowercase(), rest);
-    }
-    path.to_string()
-}
-
-/// Extract a WSL-style Windows home directory from a path entry.
-/// Matches patterns like `/mnt/c/Users/username/...` and returns `/mnt/c/Users/username`.
-fn extract_wsl_user_home(path: &str) -> Option<String> {
-    let lower = path.to_lowercase();
-    let idx = lower.find("/mnt/")?;
-    let after_mnt = &path[idx + 5..]; // after "/mnt/" e.g. "c/Users/loicw/AppData/..."
-    let mut parts = after_mnt.splitn(4, '/');
-    let drive = parts.next()?; // "c"
-    let users_dir = parts.next()?; // "Users"
-    if users_dir.to_lowercase() != "users" {
-        return None;
-    }
-    let username = parts.next()?; // "loicw"
-    if username.is_empty() {
-        return None;
-    }
-    Some(format!("/mnt/{}/{}/{}", drive, users_dir, username))
-}
-
-/// Parse `reg.exe query HKCU\...\Lxss /s` output to find the BasePath
-/// for a given distribution name.
-///
-/// The output format is blocks separated by blank lines:
-/// ```text
-/// HKEY_CURRENT_USER\...\Lxss\{guid}
-///     DistributionName    REG_SZ    Ubuntu
-///     BasePath    REG_SZ    C:\Users\user\...\LocalState
-/// ```
+use super::parser::{parse_distro_list, parse_version_output};
 #[cfg(not(windows))]
-fn parse_reg_basepath(output: &str, distro_name: &str) -> Option<String> {
-    let mut in_matching_block = false;
-
-    for line in output.lines() {
-        let trimmed = line.trim();
-        // A line starting with HKEY_ marks a new registry key block
-        if trimmed.starts_with("HKEY_") {
-            in_matching_block = false;
-            continue;
-        }
-
-        // Parse value lines: "    Name    REG_SZ    Value"
-        let parts: Vec<&str> = trimmed.splitn(3, "    ").collect();
-        if parts.len() == 3 && parts[1] == "REG_SZ" {
-            if parts[0] == "DistributionName" && parts[2] == distro_name {
-                in_matching_block = true;
-            } else if in_matching_block && parts[0] == "BasePath" {
-                // Strip \\?\ extended-length path prefix if present
-                let base = parts[2].strip_prefix(r"\\?\").unwrap_or(parts[2]);
-                return Some(base.to_string());
-            }
-        }
-    }
-    None
-}
+use super::path_utils::parse_reg_basepath;
+use super::path_utils::{extract_wsl_user_home, linux_to_windows_path};
+use crate::application::path_utils::windows_to_linux_path;
 
 pub struct WslCliAdapter {
     wsl_exe: String,
     /// PIDs of `wsl.exe -d <name> -- sleep infinity` keeper processes.
     /// Killed during terminate to prevent auto-restart.
     keeper_pids: std::sync::Mutex<std::collections::HashMap<String, u32>>,
+    /// Distros currently being terminated. Prevents metrics collection from
+    /// accidentally restarting a distro via `wsl -d <name> -e ...`.
+    terminating: std::sync::Mutex<std::collections::HashSet<String>>,
+    /// Serializes `wsl --terminate` calls — concurrent invocations deadlock
+    /// on WSL kernel locks, causing timeouts.
+    terminate_lock: tokio::sync::Mutex<()>,
 }
 
 impl WslCliAdapter {
@@ -137,6 +52,8 @@ impl WslCliAdapter {
         Self {
             wsl_exe: "wsl.exe".to_string(),
             keeper_pids: std::sync::Mutex::new(std::collections::HashMap::new()),
+            terminating: std::sync::Mutex::new(std::collections::HashSet::new()),
+            terminate_lock: tokio::sync::Mutex::new(()),
         }
     }
 
@@ -149,12 +66,15 @@ impl WslCliAdapter {
         // Use WMIC to find wsl.exe PIDs with matching command line
         let output = std::process::Command::new("wmic")
             .args([
-                "process", "where",
+                "process",
+                "where",
                 &format!(
                     "Name='wsl.exe' AND CommandLine LIKE '%-d {}%'",
                     name.as_str()
                 ),
-                "get", "ProcessId", "/format:list",
+                "get",
+                "ProcessId",
+                "/format:list",
             ])
             .creation_flags(crate::infrastructure::CREATE_NO_WINDOW)
             .output();
@@ -427,62 +347,6 @@ impl Default for WslCliAdapter {
     }
 }
 
-/// Parse `wsl --version` output into structured version info.
-///
-/// Uses product-name keyword matching ("WSL", "WSLg", "Windows") which are
-/// universal across all locales. The kernel line — whose label varies by
-/// locale (English "Kernel", French "noyau", etc.) — is identified as the
-/// first unmatched line containing a version number.
-///
-/// Keywords are only matched in the label portion (before the first digit)
-/// to avoid false positives from version values like
-/// `6.6.87.2-microsoft-standard-WSL2` which contain "WSL".
-fn parse_version_output(text: &str) -> WslVersionInfo {
-    fn extract_version(line: &str) -> Option<String> {
-        if let Some((_, after)) = line.rsplit_once(':') {
-            let val = after.trim();
-            if !val.is_empty() {
-                return Some(val.to_string());
-            }
-        }
-        line.split_whitespace()
-            .rev()
-            .find(|tok| tok.starts_with(|c: char| c.is_ascii_digit()))
-            .map(|s| s.to_string())
-    }
-
-    let mut info = WslVersionInfo::default();
-    let mut unmatched_versions: Vec<String> = Vec::new();
-
-    for line in text.lines() {
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-
-        let label_end = line
-            .find(|c: char| c.is_ascii_digit())
-            .unwrap_or(line.len());
-        let label = line[..label_end].to_lowercase();
-
-        if label.contains("wslg") {
-            info.wslg_version = extract_version(line);
-        } else if label.contains("wsl") {
-            info.wsl_version = extract_version(line);
-        } else if label.contains("windows") {
-            info.windows_version = extract_version(line);
-        } else if let Some(ver) = extract_version(line) {
-            unmatched_versions.push(ver);
-        }
-    }
-
-    if info.kernel_version.is_none() {
-        info.kernel_version = unmatched_versions.into_iter().next();
-    }
-
-    info
-}
-
 #[async_trait]
 impl WslManagerPort for WslCliAdapter {
     #[tracing::instrument(skip(self))]
@@ -509,7 +373,8 @@ impl WslManagerPort for WslCliAdapter {
         // process alive as a foreground session, which prevents WSL from
         // shutting down the distro. The process is cleaned up automatically
         // when terminate_distro calls `wsl --terminate`.
-        let child = self.wsl_command()
+        let child = self
+            .wsl_command()
             .args(["-d", name.as_str(), "--", "sleep", "infinity"])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -518,10 +383,10 @@ impl WslManagerPort for WslCliAdapter {
             .map_err(|e| DomainError::WslCliError(format!("Failed to start distro: {}", e)))?;
 
         // Store the keeper process PID so terminate_distro can kill it
-        if let Some(pid) = child.id() {
-            if let Ok(mut pids) = self.keeper_pids.lock() {
-                pids.insert(name.to_string(), pid);
-            }
+        if let Some(pid) = child.id()
+            && let Ok(mut pids) = self.keeper_pids.lock()
+        {
+            pids.insert(name.to_string(), pid);
         }
 
         // Poll until the distro reports Running (max 15s, 500ms intervals).
@@ -564,11 +429,21 @@ impl WslManagerPort for WslCliAdapter {
 
     #[tracing::instrument(skip(self), fields(distro = %name))]
     async fn terminate_distro(&self, name: &DistroName) -> Result<(), DomainError> {
-        // Kill ALL wsl.exe processes connected to this distro FIRST.
+        // Serialize terminate calls — concurrent `wsl --terminate` invocations
+        // deadlock on WSL kernel locks, causing all of them to timeout.
+        let _guard = self.terminate_lock.lock().await;
+
+        // Mark distro as terminating FIRST — this prevents the MetricsCollector
+        // from restarting the distro via `wsl -d <name> -e ...` during the gap
+        // between terminate and the next distro-list refresh.
+        if let Ok(mut set) = self.terminating.lock() {
+            set.insert(name.to_string());
+        }
+
+        // Kill ALL wsl.exe processes connected to this distro.
         // `start_distro` spawns `wsl -d <name> -- sleep infinity` as a keeper.
         // If we don't kill it, `wsl --terminate` kills the distro but the
         // keeper's wsl.exe process immediately restarts it.
-        // We also remove the stored PID.
         if let Ok(mut pids) = self.keeper_pids.lock() {
             pids.remove(name.as_str());
         }
@@ -576,21 +451,28 @@ impl WslManagerPort for WslCliAdapter {
 
         tracing::debug!("running wsl --terminate");
 
-        // Wrap terminate in a timeout — wsl.exe can hang when multiple
-        // distros are terminated concurrently due to kernel-level locks.
+        // Timeout as safety net — with serialization, a single terminate
+        // should complete well within 30s.
         let args = ["--terminate", name.as_str()];
         let terminate_fut = self.run_wsl_raw(&args);
-        match tokio::time::timeout(std::time::Duration::from_secs(15), terminate_fut).await {
-            Ok(result) => { result?; }
-            Err(_) => {
-                tracing::warn!("wsl --terminate timed out for '{}'", name);
-                return Err(DomainError::WslCliError(format!(
-                    "Timed out waiting for '{}' to stop",
-                    name
-                )));
-            }
+        let result =
+            match tokio::time::timeout(std::time::Duration::from_secs(30), terminate_fut).await {
+                Ok(result) => result,
+                Err(_) => {
+                    tracing::warn!("wsl --terminate timed out for '{}'", name);
+                    Err(DomainError::WslCliError(format!(
+                        "Timed out waiting for '{}' to stop",
+                        name
+                    )))
+                }
+            };
+
+        // Clear terminating flag — by now the next list_distros will show Stopped
+        if let Ok(mut set) = self.terminating.lock() {
+            set.remove(name.as_str());
         }
 
+        result?;
         Ok(())
     }
 
@@ -680,6 +562,14 @@ impl WslManagerPort for WslCliAdapter {
         name: &DistroName,
         command: &str,
     ) -> Result<String, DomainError> {
+        // Refuse to execute commands on distros being terminated — spawning
+        // `wsl -d <name>` would restart the distro immediately.
+        if let Ok(set) = self.terminating.lock()
+            && set.contains(name.as_str())
+        {
+            return Err(DomainError::DistroNotRunning(name.to_string()));
+        }
+
         tracing::debug!(cmd = %command, "executing command in distro");
         let result = self.exec_in_distro_raw(name.as_str(), command).await;
         match &result {
@@ -1107,118 +997,6 @@ mod tests {
     }
 
     #[test]
-    fn test_windows_to_linux_path_basic() {
-        assert_eq!(windows_to_linux_path(r"C:\Users\foo"), "/mnt/c/Users/foo");
-    }
-
-    #[test]
-    fn test_windows_to_linux_path_forward_slash() {
-        assert_eq!(
-            windows_to_linux_path("D:/Projects/bar"),
-            "/mnt/d/Projects/bar"
-        );
-    }
-
-    #[test]
-    fn test_windows_to_linux_path_passthrough() {
-        assert_eq!(
-            windows_to_linux_path("/mnt/c/Users/foo"),
-            "/mnt/c/Users/foo"
-        );
-    }
-
-    #[test]
-    fn test_extract_wsl_user_home_basic() {
-        assert_eq!(
-            extract_wsl_user_home("/mnt/c/Users/loicw/AppData/Local/Microsoft/WindowsApps"),
-            Some("/mnt/c/Users/loicw".to_string()),
-        );
-    }
-
-    #[test]
-    fn test_extract_wsl_user_home_exact_path() {
-        // Minimal path with just /mnt/c/Users/name (no trailing components)
-        // splitn(4, '/') gives ["c", "Users", "name"] - username is present
-        assert_eq!(
-            extract_wsl_user_home("/mnt/c/Users/name"),
-            Some("/mnt/c/Users/name".to_string()),
-        );
-    }
-
-    #[test]
-    fn test_extract_wsl_user_home_no_match() {
-        assert_eq!(extract_wsl_user_home("/usr/bin/something"), None);
-    }
-
-    #[test]
-    fn test_extract_wsl_user_home_no_username() {
-        assert_eq!(extract_wsl_user_home("/mnt/c/Users/"), None);
-    }
-
-    #[test]
-    fn test_extract_wsl_user_home_not_users_dir() {
-        assert_eq!(extract_wsl_user_home("/mnt/c/Program Files/app"), None);
-    }
-
-    #[test]
-    fn test_extract_wsl_user_home_case_insensitive_users() {
-        assert_eq!(
-            extract_wsl_user_home("/mnt/c/users/john/AppData"),
-            Some("/mnt/c/users/john".to_string()),
-        );
-    }
-
-    #[test]
-    fn test_parse_version_english() {
-        let output = "WSL version: 2.6.3.0\nKernel version: 6.6.87.2-microsoft-standard-WSL2\nWSLg version: 1.0.71\nWindows version: 10.0.26200.7922\n";
-        let info = parse_version_output(output);
-        assert_eq!(info.wsl_version.as_deref(), Some("2.6.3.0"));
-        assert_eq!(
-            info.kernel_version.as_deref(),
-            Some("6.6.87.2-microsoft-standard-WSL2")
-        );
-        assert_eq!(info.wslg_version.as_deref(), Some("1.0.71"));
-        assert_eq!(info.windows_version.as_deref(), Some("10.0.26200.7922"));
-    }
-
-    #[test]
-    fn test_parse_version_french() {
-        let output = "Version WSL : 2.6.3.0\nVersion du noyau : 6.6.87.2-microsoft-standard-WSL2\nVersion WSLg : 1.0.71\nVersion de Windows : 10.0.26200.7922\n";
-        let info = parse_version_output(output);
-        assert_eq!(info.wsl_version.as_deref(), Some("2.6.3.0"));
-        assert_eq!(
-            info.kernel_version.as_deref(),
-            Some("6.6.87.2-microsoft-standard-WSL2")
-        );
-        assert_eq!(info.wslg_version.as_deref(), Some("1.0.71"));
-        assert_eq!(info.windows_version.as_deref(), Some("10.0.26200.7922"));
-    }
-
-    #[test]
-    fn test_parse_version_with_extra_lines() {
-        // Newer wsl --version includes MSRDC, Direct3D, DXCore lines
-        let output = "WSL version: 2.6.3.0\nKernel version: 6.6.87.2-microsoft-standard-WSL2\nWSLg version: 1.0.71\nMSRDC version: 1.2.5620\nDirect3D version: 1.611.1-81528511\nDXCore version: 10.0.26100.1\nWindows version: 10.0.26200.7922\n";
-        let info = parse_version_output(output);
-        assert_eq!(info.wsl_version.as_deref(), Some("2.6.3.0"));
-        assert_eq!(
-            info.kernel_version.as_deref(),
-            Some("6.6.87.2-microsoft-standard-WSL2")
-        );
-        assert_eq!(info.wslg_version.as_deref(), Some("1.0.71"));
-        assert_eq!(info.windows_version.as_deref(), Some("10.0.26200.7922"));
-    }
-
-    #[test]
-    fn test_parse_version_no_colon_format() {
-        let output = "WSL version 2.6.3.0\nKernel version 5.15.133.1\nWSLg version 1.0.71\nWindows version 10.0.22631\n";
-        let info = parse_version_output(output);
-        assert_eq!(info.wsl_version.as_deref(), Some("2.6.3.0"));
-        assert_eq!(info.kernel_version.as_deref(), Some("5.15.133.1"));
-        assert_eq!(info.wslg_version.as_deref(), Some("1.0.71"));
-        assert_eq!(info.windows_version.as_deref(), Some("10.0.22631"));
-    }
-
-    #[test]
     fn test_lines_outside_sections_preserves_other_sections() {
         let ini = "[wsl2]\nmemory=4GB\n[boot]\ncommand=echo hi\n[experimental]\nautoMemoryReclaim=dropCache\n";
         let preserved = WslCliAdapter::lines_outside_sections(ini, &["wsl2", "experimental"]);
@@ -1284,51 +1062,6 @@ mod tests {
                     prop_assert_eq!(key, &key.to_lowercase());
                 }
             }
-
-            #[test]
-            fn extract_wsl_user_home_never_panics(s in "\\PC{0,200}") {
-                let _ = extract_wsl_user_home(&s);
-            }
         }
-    }
-
-    #[cfg(not(windows))]
-    #[test]
-    fn test_parse_reg_basepath_finds_distro() {
-        let output = "\
-HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Lxss\\{aaa-bbb}
-    DistributionName    REG_SZ    Ubuntu
-    BasePath    REG_SZ    C:\\Users\\user\\AppData\\Local\\Packages\\Ubuntu\\LocalState
-    Version    REG_DWORD    0x2
-
-HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Lxss\\{ccc-ddd}
-    DistributionName    REG_SZ    Debian
-    BasePath    REG_SZ    C:\\Users\\user\\AppData\\Local\\Packages\\Debian\\LocalState
-";
-        assert_eq!(
-            parse_reg_basepath(output, "Ubuntu"),
-            Some("C:\\Users\\user\\AppData\\Local\\Packages\\Ubuntu\\LocalState".into())
-        );
-        assert_eq!(
-            parse_reg_basepath(output, "Debian"),
-            Some("C:\\Users\\user\\AppData\\Local\\Packages\\Debian\\LocalState".into())
-        );
-    }
-
-    #[cfg(not(windows))]
-    #[test]
-    fn test_parse_reg_basepath_not_found() {
-        let output = "\
-HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Lxss\\{aaa-bbb}
-    DistributionName    REG_SZ    Ubuntu
-    BasePath    REG_SZ    C:\\somewhere
-";
-        assert_eq!(parse_reg_basepath(output, "Fedora"), None);
-    }
-
-    #[cfg(not(windows))]
-    #[test]
-    fn test_parse_reg_basepath_empty_output() {
-        assert_eq!(parse_reg_basepath("", "Ubuntu"), None);
     }
 }

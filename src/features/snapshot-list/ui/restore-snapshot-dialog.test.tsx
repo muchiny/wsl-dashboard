@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "@/test/test-utils";
 import { RestoreSnapshotDialog } from "./restore-snapshot-dialog";
 
@@ -111,5 +111,94 @@ describe("RestoreSnapshotDialog", () => {
     expect(
       screen.getByText("Directory where the distribution's virtual disk will be stored."),
     ).toBeInTheDocument();
+  });
+
+  it("calls onClose when X button is clicked", () => {
+    const onClose = vi.fn();
+    renderWithProviders(<RestoreSnapshotDialog {...defaultProps} onClose={onClose} />);
+    fireEvent.click(screen.getByTestId("restore-snapshot-close"));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("submits clone form with valid name", () => {
+    renderWithProviders(<RestoreSnapshotDialog {...defaultProps} />);
+    const nameInput = screen.getByPlaceholderText("e.g. Ubuntu-restored");
+    fireEvent.change(nameInput, { target: { value: "Ubuntu-clone" } });
+
+    fireEvent.click(screen.getByTestId("restore-snapshot-submit"));
+    expect(mockMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        snapshot_id: "snap-123",
+        mode: "clone",
+        new_name: "Ubuntu-clone",
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it("does not submit clone form without name", () => {
+    renderWithProviders(<RestoreSnapshotDialog {...defaultProps} />);
+    fireEvent.click(screen.getByTestId("restore-snapshot-submit"));
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  it("does not submit clone form with invalid name", () => {
+    renderWithProviders(<RestoreSnapshotDialog {...defaultProps} />);
+    const nameInput = screen.getByPlaceholderText("e.g. Ubuntu-restored");
+    fireEvent.change(nameInput, { target: { value: "bad name!" } });
+    fireEvent.click(screen.getByTestId("restore-snapshot-submit"));
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  it("switches to overwrite mode and renders overwrite form", () => {
+    renderWithProviders(<RestoreSnapshotDialog {...defaultProps} />);
+    fireEvent.click(screen.getByTestId("restore-mode-overwrite"));
+    // Should no longer show the new name field
+    expect(screen.queryByPlaceholderText("e.g. Ubuntu-restored")).not.toBeInTheDocument();
+    // Should show overwrite-specific content
+    expect(screen.getByText(/This will terminate and replace/)).toBeInTheDocument();
+  });
+
+  it("switches back to clone mode from overwrite", () => {
+    renderWithProviders(<RestoreSnapshotDialog {...defaultProps} />);
+    // Switch to overwrite
+    fireEvent.click(screen.getByTestId("restore-mode-overwrite"));
+    expect(screen.queryByPlaceholderText("e.g. Ubuntu-restored")).not.toBeInTheDocument();
+    // Switch back to clone
+    fireEvent.click(screen.getByTestId("restore-mode-clone"));
+    expect(screen.getByPlaceholderText("e.g. Ubuntu-restored")).toBeInTheDocument();
+  });
+
+  it("submits overwrite mode", async () => {
+    renderWithProviders(<RestoreSnapshotDialog {...defaultProps} />);
+    fireEvent.click(screen.getByTestId("restore-mode-overwrite"));
+
+    // Wait for the async path resolution from tauriInvoke
+    await waitFor(() => {
+      expect(screen.getByTestId("restore-snapshot-submit")).not.toBeDisabled();
+    });
+
+    fireEvent.click(screen.getByTestId("restore-snapshot-submit"));
+    expect(mockMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        snapshot_id: "snap-123",
+        mode: "overwrite",
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it("calls onClose and resets form on successful restore", () => {
+    mockMutate.mockImplementation((_data: unknown, opts: { onSuccess?: () => void }) => {
+      opts?.onSuccess?.();
+    });
+    const onClose = vi.fn();
+    renderWithProviders(<RestoreSnapshotDialog {...defaultProps} onClose={onClose} />);
+    const nameInput = screen.getByPlaceholderText("e.g. Ubuntu-restored");
+    fireEvent.change(nameInput, { target: { value: "Ubuntu-clone" } });
+    fireEvent.click(screen.getByTestId("restore-snapshot-submit"));
+
+    expect(mockMutate).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });

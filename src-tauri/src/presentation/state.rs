@@ -8,6 +8,8 @@ use crate::domain::ports::port_forwarding::{PortForwardRulesRepository, PortForw
 use crate::domain::ports::snapshot_repository::SnapshotRepositoryPort;
 use crate::domain::ports::wsl_manager::WslManagerPort;
 
+use crate::domain::errors::DomainError;
+
 /// Composition root: holds all hexagonal port implementations.
 /// Injected into Tauri as managed state.
 pub struct AppState {
@@ -20,4 +22,11 @@ pub struct AppState {
     pub alert_thresholds: Arc<tokio::sync::RwLock<Vec<AlertThreshold>>>,
     pub port_forwarding: Arc<dyn PortForwardingPort>,
     pub port_rules_repo: Arc<dyn PortForwardRulesRepository>,
+}
+
+impl AppState {
+    /// Log an audit event. Centralizes the `audit_logger.log()` call.
+    pub async fn audit(&self, action: &str, detail: &str) -> Result<(), DomainError> {
+        self.audit_logger.log(action, detail).await
+    }
 }

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use crate::domain::entities::monitoring::{
-    CpuMetrics, DiskMetrics, MemoryMetrics, NetworkMetrics, ProcessInfo,
+    CpuMetrics, DiskMetrics, MemoryMetrics, NetworkMetrics, ProcessInfo, SystemMetrics,
 };
 use crate::domain::errors::DomainError;
 use crate::domain::value_objects::DistroName;
@@ -24,10 +24,9 @@ pub trait MonitoringProviderPort: Send + Sync {
     /// Get running processes in a distro
     async fn get_processes(&self, distro: &DistroName) -> Result<Vec<ProcessInfo>, DomainError>;
 
-    /// Get all system metrics (CPU, memory, disk, network) in a single call.
-    /// More efficient than calling each method separately.
+    /// Get all system metrics in a single batched call.
     async fn get_all_metrics(
         &self,
         distro: &DistroName,
-    ) -> Result<(CpuMetrics, MemoryMetrics, DiskMetrics, NetworkMetrics), DomainError>;
+    ) -> Result<SystemMetrics, DomainError>;
 }

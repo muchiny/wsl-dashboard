@@ -15,11 +15,10 @@ use crate::domain::value_objects::{DistroName, SnapshotId};
 use crate::infrastructure::terminal::adapter::TerminalSessionManager;
 use crate::presentation::state::AppState;
 
-#[tauri::command]
-#[instrument(skip(state), fields(cmd = "list_snapshots"))]
-pub async fn list_snapshots(
+/// Inner logic for list_snapshots, testable without Tauri runtime.
+pub(crate) async fn list_snapshots_inner(
     distro_name: Option<String>,
-    state: State<'_, AppState>,
+    state: &AppState,
 ) -> Result<Vec<SnapshotResponse>, DomainError> {
     let name = match distro_name {
         Some(n) => Some(DistroName::new(&n)?),
@@ -27,6 +26,15 @@ pub async fn list_snapshots(
     };
     let handler = ListSnapshotsHandler::new(state.snapshot_repo.clone());
     handler.handle(name).await
+}
+
+#[tauri::command]
+#[instrument(skip(state), fields(cmd = "list_snapshots"))]
+pub async fn list_snapshots(
+    distro_name: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<Vec<SnapshotResponse>, DomainError> {
+    list_snapshots_inner(distro_name, &state).await
 }
 
 #[derive(Debug, Deserialize)]
@@ -38,11 +46,10 @@ pub struct CreateSnapshotArgs {
     pub output_dir: String,
 }
 
-#[tauri::command]
-#[instrument(skip(state), fields(cmd = "create_snapshot", distro = %args.distro_name))]
-pub async fn create_snapshot(
+/// Inner logic for create_snapshot, testable without Tauri runtime.
+pub(crate) async fn create_snapshot_inner(
     args: CreateSnapshotArgs,
-    state: State<'_, AppState>,
+    state: &AppState,
 ) -> Result<SnapshotResponse, DomainError> {
     let format = match args.format.as_deref() {
         Some("vhdx") => ExportFormat::Vhd,
@@ -90,10 +97,18 @@ pub async fn create_snapshot(
 }
 
 #[tauri::command]
-#[instrument(skip(state), fields(cmd = "delete_snapshot", snapshot = %snapshot_id))]
-pub async fn delete_snapshot(
-    snapshot_id: String,
+#[instrument(skip(state), fields(cmd = "create_snapshot", distro = %args.distro_name))]
+pub async fn create_snapshot(
+    args: CreateSnapshotArgs,
     state: State<'_, AppState>,
+) -> Result<SnapshotResponse, DomainError> {
+    create_snapshot_inner(args, &state).await
+}
+
+/// Inner logic for delete_snapshot, testable without Tauri runtime.
+pub(crate) async fn delete_snapshot_inner(
+    snapshot_id: String,
+    state: &AppState,
 ) -> Result<(), DomainError> {
     let handler =
         DeleteSnapshotHandler::new(state.snapshot_repo.clone(), state.audit_logger.clone());
@@ -105,6 +120,15 @@ pub async fn delete_snapshot(
         .await
 }
 
+#[tauri::command]
+#[instrument(skip(state), fields(cmd = "delete_snapshot", snapshot = %snapshot_id))]
+pub async fn delete_snapshot(
+    snapshot_id: String,
+    state: State<'_, AppState>,
+) -> Result<(), DomainError> {
+    delete_snapshot_inner(snapshot_id, &state).await
+}
+
 #[derive(Debug, Deserialize)]
 pub struct RestoreSnapshotArgs {
     pub snapshot_id: String,
@@ -113,12 +137,11 @@ pub struct RestoreSnapshotArgs {
     pub install_location: Option<String>,
 }
 
-#[tauri::command]
-#[instrument(skip(state, terminal_mgr), fields(cmd = "restore_snapshot", snapshot = %args.snapshot_id))]
-pub async fn restore_snapshot(
+/// Inner logic for restore_snapshot, testable without Tauri runtime.
+pub(crate) async fn restore_snapshot_inner(
     args: RestoreSnapshotArgs,
-    state: State<'_, AppState>,
-    terminal_mgr: State<'_, TerminalSessionManager>,
+    state: &AppState,
+    terminal_mgr: &TerminalSessionManager,
 ) -> Result<(), DomainError> {
     let mode = if args.mode == "clone" {
         let new_name = args
@@ -176,4 +199,14 @@ pub async fn restore_snapshot(
             install_location,
         })
         .await
+}
+
+#[tauri::command]
+#[instrument(skip(state, terminal_mgr), fields(cmd = "restore_snapshot", snapshot = %args.snapshot_id))]
+pub async fn restore_snapshot(
+    args: RestoreSnapshotArgs,
+    state: State<'_, AppState>,
+    terminal_mgr: State<'_, TerminalSessionManager>,
+) -> Result<(), DomainError> {
+    restore_snapshot_inner(args, &state, &terminal_mgr).await
 }

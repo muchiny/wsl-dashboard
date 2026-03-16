@@ -53,7 +53,7 @@ export function ChartPanel({
   skeletonHeights = SKELETON_HEIGHTS,
 }: ChartPanelProps) {
   return (
-    <div className="glass-card min-w-0 overflow-hidden rounded-xl p-4 shadow-elevation-2">
+    <div className="glass-card shadow-elevation-2 min-w-0 overflow-hidden rounded-xl p-4">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="text-sm font-semibold">{title}</h4>
         {headerValue}

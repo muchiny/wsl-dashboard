@@ -12,14 +12,26 @@ import {
 } from "@/features/monitoring-dashboard/api/queries";
 import { useLiveMetrics } from "@/features/monitoring-dashboard/hooks/use-live-metrics";
 import { AlertBadge } from "@/features/monitoring-dashboard/ui/alert-badge";
+import { KpiBanner } from "@/features/monitoring-dashboard/ui/kpi-banner";
 import { CpuChart } from "@/features/monitoring-dashboard/ui/cpu-chart";
 import { MemoryChart } from "@/features/monitoring-dashboard/ui/memory-chart";
 import { NetworkChart } from "@/features/monitoring-dashboard/ui/network-chart";
 import { DiskGauge } from "@/features/monitoring-dashboard/ui/disk-gauge";
+import { DiskIoChart } from "@/features/monitoring-dashboard/ui/disk-io-chart";
 import { ProcessTable } from "@/features/monitoring-dashboard/ui/process-table";
 import { TimeRangePicker } from "@/features/monitoring-dashboard/ui/time-range-picker";
+import { PerCoreChart } from "@/features/monitoring-dashboard/ui/per-core-chart";
+import { GpuPanel } from "@/features/monitoring-dashboard/ui/gpu-panel";
 import type { TimeRange, MetricsHistoryPoint } from "@/shared/types/monitoring";
 import type { MetricsPoint } from "@/features/monitoring-dashboard/hooks/use-metrics-history";
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-subtext-0 border-surface-0 border-b pb-1 text-xs font-semibold tracking-wider uppercase">
+      {children}
+    </h3>
+  );
+}
 
 export function MonitoringPage() {
   const { t } = useTranslation();
@@ -34,7 +46,6 @@ export function MonitoringPage() {
   const [manualSelection, setManualSelection] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>("live");
 
-  // Derive selected distro: manual pick > URL param > first running
   const selectedDistro = useMemo(() => {
     if (manualSelection !== null && runningDistros.some((d) => d.name === manualSelection)) {
       return manualSelection;
@@ -51,18 +62,15 @@ export function MonitoringPage() {
     setTimeRange("live");
   }, []);
 
-  // Live metrics via Tauri events (push-based)
-  const { history: liveHistory, latestMetrics } = useLiveMetrics(
-    timeRange === "live" ? selectedDistro || null : null,
-  );
+  const {
+    history: liveHistory,
+    latestMetrics,
+    perCoreHistory,
+  } = useLiveMetrics(timeRange === "live" ? selectedDistro || null : null);
 
-  // Historical metrics via TanStack Query
   const { data: historyData } = useMetricsHistoryQuery(selectedDistro || null, timeRange);
-
-  // Processes (always polling-based)
   const { data: processes } = useProcesses(selectedDistro || null);
 
-  // Transform historical data into chart-compatible format
   const historicalChartData: MetricsPoint[] = useMemo(() => {
     if (timeRange === "live" || !historyData?.points) return [];
     return historyData.points.map((p: MetricsHistoryPoint) => ({
@@ -74,13 +82,29 @@ export function MonitoringPage() {
       diskPercent: p.disk_usage_percent,
       netRx: p.net_rx_rate,
       netTx: p.net_tx_rate,
+      swapPercent:
+        p.swap_total_bytes && p.swap_total_bytes > 0
+          ? ((p.swap_used_bytes ?? 0) / p.swap_total_bytes) * 100
+          : 0,
+      contextSwitches: p.context_switches,
+      diskReadRate: p.disk_io_read_bytes,
+      diskWriteRate: p.disk_io_write_bytes,
+      tcpEstablished: p.tcp_established,
+      tcpTimeWait: p.tcp_time_wait,
+      tcpListen: p.tcp_listen,
+      gpuPercent: p.gpu_utilization ?? undefined,
+      gpuVramPercent:
+        p.gpu_vram_total && p.gpu_vram_used
+          ? (p.gpu_vram_used / p.gpu_vram_total) * 100
+          : undefined,
     }));
   }, [timeRange, historyData]);
 
   const chartData = timeRange === "live" ? liveHistory : historicalChartData;
 
   return (
-    <div className="h-full min-w-0 space-y-6 overflow-y-auto">
+    <div className="h-full min-w-0 space-y-5 overflow-y-auto">
+      {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="bg-sapphire/25 relative flex h-9 w-9 items-center justify-center rounded-lg">
@@ -116,6 +140,7 @@ export function MonitoringPage() {
         </div>
       </div>
 
+      {/* Empty state */}
       {!selectedDistro && (
         <div className="glass-card flex flex-col items-center rounded-xl px-8 py-12 text-center">
           <BarChart3 className="text-surface-2 mb-3 h-10 w-10" />
@@ -132,7 +157,12 @@ export function MonitoringPage() {
 
       {selectedDistro && (
         <>
-          <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
+          {/* KPI Overview Banner */}
+          <KpiBanner data={chartData} latestMetrics={latestMetrics} />
+
+          {/* Section: CPU */}
+          <section className="space-y-3">
+            <SectionHeader>{t("monitoring.sectionCpu")}</SectionHeader>
             <CpuChart
               data={chartData}
               loadAverage={
@@ -141,18 +171,53 @@ export function MonitoringPage() {
                   : undefined
               }
             />
-            <MemoryChart data={chartData} />
-          </div>
+            {timeRange === "live" && perCoreHistory.length > 0 && (
+              <PerCoreChart
+                perCoreHistory={perCoreHistory}
+                currentValues={latestMetrics?.cpu.per_core ?? []}
+              />
+            )}
+          </section>
 
-          <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
-            <DiskGauge
-              disk={timeRange === "live" ? (latestMetrics?.disk ?? null) : null}
-              historicalData={timeRange !== "live" ? chartData : undefined}
-            />
-            <NetworkChart data={chartData} />
-          </div>
+          {/* Section: Memory */}
+          <section className="space-y-3">
+            <SectionHeader>{t("monitoring.sectionMemory")}</SectionHeader>
+            <MemoryChart data={chartData} showSwap />
+          </section>
 
-          {processes && <ProcessTable processes={processes} />}
+          {/* Section: Processes (moved up!) */}
+          {processes && processes.length > 0 && (
+            <section className="space-y-3">
+              <SectionHeader>{t("monitoring.sectionProcesses")}</SectionHeader>
+              <ProcessTable processes={processes} />
+            </section>
+          )}
+
+          {/* Section: Storage */}
+          <section className="space-y-3">
+            <SectionHeader>{t("monitoring.sectionStorage")}</SectionHeader>
+            <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
+              <DiskGauge
+                disk={timeRange === "live" ? (latestMetrics?.disk ?? null) : null}
+                historicalData={timeRange !== "live" ? chartData : undefined}
+              />
+              <DiskIoChart data={chartData} />
+            </div>
+          </section>
+
+          {/* Section: Network */}
+          <section className="space-y-3">
+            <SectionHeader>{t("monitoring.sectionNetwork")}</SectionHeader>
+            <NetworkChart data={chartData} showTcp />
+          </section>
+
+          {/* Section: GPU (conditional) */}
+          {latestMetrics?.gpu && (
+            <section className="space-y-3">
+              <SectionHeader>{t("monitoring.sectionGpu")}</SectionHeader>
+              <GpuPanel gpu={latestMetrics.gpu} />
+            </section>
+          )}
         </>
       )}
     </div>

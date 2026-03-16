@@ -1,23 +1,9 @@
 import { memo } from "react";
 import { Star, Archive, Loader2 } from "lucide-react";
-import type { Distro } from "@/shared/types/distro";
 import { cn } from "@/shared/lib/utils";
 import { formatBytes } from "@/shared/lib/formatters";
-import { useDistroActions } from "../hooks/use-distro-actions";
+import { useDistroActions, type DistroItemProps } from "../hooks/use-distro-actions";
 import { DistroActions } from "./distro-actions";
-
-interface DistroRowProps {
-  distro: Distro;
-  onStart: (name: string) => void;
-  onStop: (name: string) => void;
-  onRestart: (name: string) => void;
-  onSnapshot: (name: string) => void;
-  onDelete: (name: string) => void;
-  pendingAction?: string;
-  snapshotCount: number;
-  onSelect: (name: string) => void;
-  isSelected: boolean;
-}
 
 export const DistroRow = memo(function DistroRow({
   distro,
@@ -30,7 +16,7 @@ export const DistroRow = memo(function DistroRow({
   snapshotCount,
   onSelect,
   isSelected,
-}: DistroRowProps) {
+}: DistroItemProps) {
   const {
     t,
     isRunning,
@@ -66,8 +52,10 @@ export const DistroRow = memo(function DistroRow({
       aria-pressed={isSelected}
       aria-label={ariaLabel}
       className={cn(
-        "glass-card-lite focus-ring flex cursor-pointer items-center gap-4 rounded-xl px-4 py-3 shadow-elevation-1 transition-all duration-200",
-        isSelected ? "border-mauve/40 shadow-elevation-2" : "hover:border-blue/30 hover:shadow-elevation-2",
+        "glass-card-lite focus-ring shadow-elevation-1 flex cursor-pointer items-center gap-4 rounded-xl px-4 py-3 transition-all duration-200",
+        isSelected
+          ? "border-mauve/40 shadow-elevation-2"
+          : "hover:border-blue/30 hover:shadow-elevation-2",
       )}
     >
       {/* Name + status dot + default star */}
@@ -75,7 +63,9 @@ export const DistroRow = memo(function DistroRow({
         <div
           className={cn(
             "h-2.5 w-2.5 shrink-0 rounded-full transition-all",
-            isRunning ? "bg-green shadow-[0_0_12px_rgba(166,227,161,0.6)] animate-pulse" : "bg-surface-2",
+            isRunning
+              ? "bg-green animate-pulse shadow-[0_0_12px_rgba(166,227,161,0.6)]"
+              : "bg-surface-2",
           )}
           aria-hidden="true"
         />

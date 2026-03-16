@@ -1,9 +1,9 @@
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshots } from "../api/queries";
 import { useDeleteSnapshot } from "../api/mutations";
 import { SnapshotCard } from "./snapshot-card";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { useDialogState } from "@/shared/hooks/use-dialog-state";
 import { toast } from "@/shared/ui/toast-store";
 
 interface SnapshotListProps {
@@ -16,7 +16,7 @@ export function SnapshotList({ distroName, onRestore, hideDistroName }: Snapshot
   const { t } = useTranslation();
   const { data: snapshots, isLoading, error } = useSnapshots(distroName);
   const deleteSnapshot = useDeleteSnapshot();
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const deleteDialog = useDialogState<{ id: string; name: string }>();
 
   if (isLoading) {
     return (
@@ -49,7 +49,7 @@ export function SnapshotList({ distroName, onRestore, hideDistroName }: Snapshot
           <SnapshotCard
             key={snapshot.id}
             snapshot={snapshot}
-            onDelete={() => setDeleteTarget({ id: snapshot.id, name: snapshot.name })}
+            onDelete={() => deleteDialog.open({ id: snapshot.id, name: snapshot.name })}
             onRestore={() => onRestore(snapshot.id, snapshot.distro_name)}
             hideDistroName={hideDistroName}
           />
@@ -57,25 +57,25 @@ export function SnapshotList({ distroName, onRestore, hideDistroName }: Snapshot
       </div>
 
       <ConfirmDialog
-        open={!!deleteTarget}
+        open={deleteDialog.isOpen}
         title={t("snapshots.deleteTitle")}
-        description={t("snapshots.deleteDescription", { name: deleteTarget?.name })}
+        description={t("snapshots.deleteDescription", { name: deleteDialog.data?.name })}
         confirmLabel={t("common.delete")}
         variant="danger"
         isPending={deleteSnapshot.isPending}
         onConfirm={() => {
-          if (!deleteTarget) return;
-          deleteSnapshot.mutate(deleteTarget.id, {
+          if (!deleteDialog.data) return;
+          deleteSnapshot.mutate(deleteDialog.data.id, {
             onSuccess: () => {
-              toast.success(t("snapshots.deleteSuccess", { name: deleteTarget.name }));
-              setDeleteTarget(null);
+              toast.success(t("snapshots.deleteSuccess", { name: deleteDialog.data!.name }));
+              deleteDialog.close();
             },
             onError: (err) => {
               toast.error(t("snapshots.deleteFailed", { message: err.message }));
             },
           });
         }}
-        onCancel={() => setDeleteTarget(null)}
+        onCancel={deleteDialog.close}
       />
     </>
   );

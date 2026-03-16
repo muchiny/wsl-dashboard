@@ -170,17 +170,17 @@ pub fn run() {
                     AlertThreshold {
                         alert_type: domain::ports::alerting::AlertType::Cpu,
                         threshold_percent: 90.0,
-                        enabled: true,
+                        enabled: false,
                     },
                     AlertThreshold {
                         alert_type: domain::ports::alerting::AlertType::Memory,
                         threshold_percent: 85.0,
-                        enabled: true,
+                        enabled: false,
                     },
                     AlertThreshold {
                         alert_type: domain::ports::alerting::AlertType::Disk,
                         threshold_percent: 90.0,
-                        enabled: true,
+                        enabled: false,
                     },
                 ]));
 

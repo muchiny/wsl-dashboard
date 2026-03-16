@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Moon, Sun, Timer, Archive, FolderOpen, Bell, Code } from "lucide-react";
 import { Select } from "@/shared/ui/select";
@@ -9,10 +9,7 @@ import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
 import { useShallow } from "zustand/react/shallow";
 import { useLocaleStore } from "@/shared/stores/use-locale-store";
 import { supportedLocales, localeLabels, type Locale } from "@/shared/config/i18n";
-import {
-  useAlertThresholds,
-  useSetAlertThresholds,
-} from "@/features/monitoring-dashboard/api/queries";
+import { useSetAlertThresholds } from "@/features/monitoring-dashboard/api/queries";
 import type { AlertThreshold } from "@/shared/types/monitoring";
 import { cn } from "@/shared/lib/utils";
 
@@ -70,15 +67,16 @@ export function PreferencesPanel() {
     })),
   );
 
-  // Sync thresholds from backend on mount
-  const { data: backendThresholds } = useAlertThresholds();
+  // Push localStorage thresholds to backend on mount (localStorage is the source of truth)
   const setBackendThresholds = useSetAlertThresholds();
+  const hasSynced = useRef(false);
 
   useEffect(() => {
-    if (backendThresholds && backendThresholds.length > 0) {
-      setAlertThresholds(backendThresholds);
+    if (!hasSynced.current && alertThresholds.length > 0) {
+      hasSynced.current = true;
+      setBackendThresholds.mutate(alertThresholds);
     }
-  }, [backendThresholds, setAlertThresholds]);
+  }, [alertThresholds, setBackendThresholds]);
 
   const updateThreshold = (alertType: string, updates: Partial<AlertThreshold>) => {
     const next = alertThresholds.map((t) =>

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { mockInvoke } from "@/test/mocks/tauri";
 import { createWrapper } from "@/test/test-utils";
-import { configKeys, useWslConfig, type WslGlobalConfig } from "./queries";
+import { configKeys, useWslConfig, useWslVersion, type WslGlobalConfig } from "./queries";
 
 beforeEach(() => {
   mockInvoke.mockReset();
@@ -15,6 +15,10 @@ describe("configKeys", () => {
 
   it("global returns global key", () => {
     expect(configKeys.global()).toEqual(["wsl-config", "global"]);
+  });
+
+  it("version returns version key", () => {
+    expect(configKeys.version()).toEqual(["wsl-config", "version"]);
   });
 });
 
@@ -94,5 +98,53 @@ describe("useWslConfig", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error).toBeDefined();
     expect(result.current.error?.message).toContain("Config file not found");
+  });
+});
+
+describe("useWslVersion", () => {
+  it("fetches wsl version info", async () => {
+    const mockVersion = {
+      wsl_version: "2.0.14",
+      kernel_version: "5.15",
+      wslg_version: "1.0.60",
+      windows_version: "10.0.22631",
+    };
+    mockInvoke.mockResolvedValue(mockVersion);
+
+    const { result } = renderHook(() => useWslVersion(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockInvoke).toHaveBeenCalledWith("get_wsl_version", undefined);
+    expect(result.current.data).toEqual(mockVersion);
+  });
+
+  it("handles null version fields", async () => {
+    const mockVersion = {
+      wsl_version: null,
+      kernel_version: null,
+      wslg_version: null,
+      windows_version: null,
+    };
+    mockInvoke.mockResolvedValue(mockVersion);
+
+    const { result } = renderHook(() => useWslVersion(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual(mockVersion);
+  });
+
+  it("handles error from backend", async () => {
+    mockInvoke.mockRejectedValue(new Error("WSL not installed"));
+
+    const { result } = renderHook(() => useWslVersion(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.message).toContain("WSL not installed");
   });
 });

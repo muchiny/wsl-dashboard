@@ -9,6 +9,16 @@ use crate::domain::value_objects::DistroName;
 use crate::infrastructure::debug_log::buffer::{DebugLogBuffer, LogEntry};
 use crate::presentation::state::AppState;
 
+#[cfg(test)]
+fn get_debug_logs_inner(buffer: &DebugLogBuffer) -> Vec<LogEntry> {
+    buffer.get_all()
+}
+
+#[cfg(test)]
+fn clear_debug_logs_inner(buffer: &DebugLogBuffer) {
+    buffer.clear();
+}
+
 #[tauri::command]
 #[instrument(skip(buffer), fields(cmd = "get_debug_logs"))]
 pub async fn get_debug_logs(
@@ -52,13 +62,11 @@ pub async fn debug_test_restore(
 
     // Temp directory for test files
     let temp_dir = std::env::temp_dir().join(format!("nexus-restore-test-{}", uuid_short));
-    std::fs::create_dir_all(&temp_dir).map_err(|e| {
-        DomainError::Internal(format!("Cannot create temp dir: {}", e))
-    })?;
+    std::fs::create_dir_all(&temp_dir)
+        .map_err(|e| DomainError::Internal(format!("Cannot create temp dir: {}", e)))?;
     let clone_dir = temp_dir.join("clone");
-    std::fs::create_dir_all(&clone_dir).map_err(|e| {
-        DomainError::Internal(format!("Cannot create clone dir: {}", e))
-    })?;
+    std::fs::create_dir_all(&clone_dir)
+        .map_err(|e| DomainError::Internal(format!("Cannot create clone dir: {}", e)))?;
 
     // Cleanup helper — best-effort, runs on all exit paths
     let cleanup = |wsl: &Arc<dyn crate::domain::ports::wsl_manager::WslManagerPort>,
@@ -89,24 +97,27 @@ pub async fn debug_test_restore(
         cleanup(wsl, &clone_name, &temp_dir).await;
         // Restart source distro since we terminated it
         let _ = wsl.start_distro(&source).await;
-        return Err(DomainError::Internal(format!("Export source failed: {}", e)));
+        return Err(DomainError::Internal(format!(
+            "Export source failed: {}",
+            e
+        )));
     }
     // Restart source distro
     let _ = wsl.start_distro(&source).await;
 
-    let source_size = std::fs::metadata(&source_tar)
-        .map(|m| m.len())
-        .unwrap_or(0);
-    report.push_str(&format!(
-        "  Exported {} MB\n",
-        source_size / 1024 / 1024
-    ));
+    let source_size = std::fs::metadata(&source_tar).map(|m| m.len()).unwrap_or(0);
+    report.push_str(&format!("  Exported {} MB\n", source_size / 1024 / 1024));
 
     // ── Step 2: Create clone ───────────────────────────────────────
     report.push_str("[2/7] Creating test clone...\n");
     let clone_dir_str = clone_dir.to_string_lossy().to_string();
     if let Err(e) = wsl
-        .import_distro(&clone_name, &clone_dir_str, &source_tar_str, ExportFormat::Tar)
+        .import_distro(
+            &clone_name,
+            &clone_dir_str,
+            &source_tar_str,
+            ExportFormat::Tar,
+        )
         .await
     {
         cleanup(wsl, &clone_name, &temp_dir).await;
@@ -116,7 +127,10 @@ pub async fn debug_test_restore(
 
     // Check WSL version of clone
     match wsl.get_distro(&clone_name).await {
-        Ok(d) => report.push_str(&format!("  Clone '{}' created (WSL{})\n", clone_name, d.wsl_version)),
+        Ok(d) => report.push_str(&format!(
+            "  Clone '{}' created (WSL{})\n",
+            clone_name, d.wsl_version
+        )),
         Err(e) => {
             cleanup(wsl, &clone_name, &temp_dir).await;
             return Err(DomainError::Internal(format!("Clone not found: {}", e)));
@@ -186,22 +200,19 @@ pub async fn debug_test_restore(
     }
 
     // nuke install dir
-    if clone_dir.exists() {
-        if let Err(_) = std::fs::remove_dir_all(&clone_dir) {
-            let _ = wsl.shutdown_all().await;
-            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-            if let Err(e) = std::fs::remove_dir_all(&clone_dir) {
-                let _ = std::fs::remove_dir_all(&temp_dir);
-                return Err(DomainError::Internal(format!(
-                    "Cannot delete clone dir: {}",
-                    e
-                )));
-            }
+    if clone_dir.exists() && std::fs::remove_dir_all(&clone_dir).is_err() {
+        let _ = wsl.shutdown_all().await;
+        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+        if let Err(e) = std::fs::remove_dir_all(&clone_dir) {
+            let _ = std::fs::remove_dir_all(&temp_dir);
+            return Err(DomainError::Internal(format!(
+                "Cannot delete clone dir: {}",
+                e
+            )));
         }
     }
-    std::fs::create_dir_all(&clone_dir).map_err(|e| {
-        DomainError::Internal(format!("Cannot recreate clone dir: {}", e))
-    })?;
+    std::fs::create_dir_all(&clone_dir)
+        .map_err(|e| DomainError::Internal(format!("Cannot recreate clone dir: {}", e)))?;
 
     // final shutdown before import
     let _ = wsl.shutdown_all().await;
@@ -209,7 +220,12 @@ pub async fn debug_test_restore(
 
     // import from snapshot
     if let Err(e) = wsl
-        .import_distro(&clone_name, &clone_dir_str, &snapshot_tar_str, ExportFormat::Tar)
+        .import_distro(
+            &clone_name,
+            &clone_dir_str,
+            &snapshot_tar_str,
+            ExportFormat::Tar,
+        )
         .await
     {
         let _ = std::fs::remove_dir_all(&temp_dir);
@@ -242,10 +258,7 @@ pub async fn debug_test_restore(
 
     // Check snapshot marker
     let marker_check = wsl
-        .exec_in_distro(
-            &clone_name,
-            "cat /var/tmp/.snapshot-marker 2>/dev/null",
-        )
+        .exec_in_distro(&clone_name, "cat /var/tmp/.snapshot-marker 2>/dev/null")
         .await
         .unwrap_or_default();
     let marker_found = marker_check.contains("RESTORE-TEST-MARKER");
@@ -288,4 +301,32 @@ pub async fn debug_test_restore(
     }
 
     Ok(report)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn debug_log_buffer_get_all_returns_entries() {
+        let buffer = DebugLogBuffer::new();
+        buffer.push("INFO".into(), "test message".into(), "test".into());
+
+        let entries = get_debug_logs_inner(&buffer);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].message, "test message");
+    }
+
+    #[test]
+    fn debug_log_buffer_clear_empties_buffer() {
+        let buffer = DebugLogBuffer::new();
+        buffer.push("INFO".into(), "entry 1".into(), "test".into());
+        buffer.push("WARN".into(), "entry 2".into(), "test".into());
+
+        assert_eq!(get_debug_logs_inner(&buffer).len(), 2);
+
+        clear_debug_logs_inner(&buffer);
+
+        assert!(get_debug_logs_inner(&buffer).is_empty());
+    }
 }

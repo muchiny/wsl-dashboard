@@ -12,7 +12,11 @@ interface RestoreOverwriteFormProps {
 
 const inputClass = "focus-ring w-full rounded-lg glass-input px-3 py-2 text-sm text-text";
 
-export function RestoreOverwriteForm({ distroName, open, onPathResolved }: RestoreOverwriteFormProps) {
+export function RestoreOverwriteForm({
+  distroName,
+  open,
+  onPathResolved,
+}: RestoreOverwriteFormProps) {
   const { t } = useTranslation();
   const [overwritePath, setOverwritePath] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -85,9 +89,7 @@ export function RestoreOverwriteForm({ distroName, open, onPathResolved }: Resto
           </p>
         ) : (
           <div>
-            <p className="text-yellow mb-1 text-xs">
-              {t("snapshots.restore.manualPathRequired")}
-            </p>
+            <p className="text-yellow mb-1 text-xs">{t("snapshots.restore.manualPathRequired")}</p>
             <div className="flex gap-1">
               <input
                 type="text"

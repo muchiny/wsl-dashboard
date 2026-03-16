@@ -7,4 +7,14 @@ export interface MetricsPoint {
   diskPercent: number;
   netRx: number;
   netTx: number;
+  perCore?: number[];
+  swapPercent?: number;
+  contextSwitches?: number;
+  diskReadRate?: number;
+  diskWriteRate?: number;
+  tcpEstablished?: number;
+  tcpTimeWait?: number;
+  tcpListen?: number;
+  gpuPercent?: number;
+  gpuVramPercent?: number;
 }

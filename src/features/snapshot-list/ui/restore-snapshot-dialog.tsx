@@ -39,8 +39,7 @@ export function RestoreSnapshotDialog({
       ? t("snapshots.restore.nameError")
       : null;
 
-  const effectiveInstallLocation =
-    mode === "overwrite" ? overwritePath : installLocation;
+  const effectiveInstallLocation = mode === "overwrite" ? overwritePath : installLocation;
 
   const handlePathResolved = useCallback((path: string | null, loading: boolean) => {
     setOverwritePath(path);

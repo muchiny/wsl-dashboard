@@ -103,4 +103,11 @@ describe("PortForwardingPanel", () => {
     fireEvent.click(screen.getByText("Add Rule"));
     expect(screen.getByTestId("add-rule-dialog")).toBeInTheDocument();
   });
+
+  it("calls remove mutation when delete button is clicked", () => {
+    renderWithProviders(<PortForwardingPanel />);
+    const deleteButton = screen.getByLabelText("Remove rule");
+    fireEvent.click(deleteButton);
+    expect(mockRemoveMutate).toHaveBeenCalledWith("rule-1");
+  });
 });

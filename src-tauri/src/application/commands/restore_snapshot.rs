@@ -160,7 +160,10 @@ impl RestoreSnapshotHandler {
                     }
                 }
             } else {
-                tracing::warn!("ext4.vhdx not found at {}, skipping backup", vhdx_path.display());
+                tracing::warn!(
+                    "ext4.vhdx not found at {}, skipping backup",
+                    vhdx_path.display()
+                );
                 None
             }
         } else {
@@ -288,12 +291,16 @@ impl RestoreSnapshotHandler {
         // If wsl --import defaulted to WSL 1 (no --version 2 flag, or system
         // default is 1), the filesystem model is completely different and
         // snapshot restore cannot work.
-        let imported_distro = self.wsl_manager.get_distro(&target_name).await.map_err(|_| {
-            DomainError::SnapshotError(format!(
-                "Import claimed success but '{}' was not found afterwards",
-                target_name
-            ))
-        })?;
+        let imported_distro = self
+            .wsl_manager
+            .get_distro(&target_name)
+            .await
+            .map_err(|_| {
+                DomainError::SnapshotError(format!(
+                    "Import claimed success but '{}' was not found afterwards",
+                    target_name
+                ))
+            })?;
         if matches!(
             imported_distro.wsl_version,
             crate::domain::value_objects::WslVersion::V1
@@ -389,10 +396,7 @@ impl RestoreSnapshotHandler {
         if matches!(cmd.mode, RestoreMode::Overwrite) {
             match self
                 .wsl_manager
-                .exec_in_distro(
-                    &target_name,
-                    &format!("cat {} 2>/dev/null", canary_path),
-                )
+                .exec_in_distro(&target_name, &format!("cat {} 2>/dev/null", canary_path))
                 .await
             {
                 Ok(content) if !content.trim().is_empty() => {

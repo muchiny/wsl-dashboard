@@ -13,31 +13,9 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-// Mock mutation hooks (still used internally by DistroList)
-const mockStartMutate = vi.fn();
-const mockStopMutate = vi.fn();
-const mockRestartMutate = vi.fn();
-
-vi.mock("../api/mutations", () => ({
-  useStartDistro: () => ({
-    mutate: mockStartMutate,
-    isPending: false,
-    variables: undefined,
-  }),
-  useStopDistro: () => ({
-    mutate: mockStopMutate,
-    isPending: false,
-    variables: undefined,
-  }),
-  useRestartDistro: () => ({
-    mutate: mockRestartMutate,
-    isPending: false,
-    variables: undefined,
-  }),
-  useDeleteDistro: () => ({
-    mutate: vi.fn(),
-    isPending: false,
-  }),
+// Mock tauri invoke used directly by DistroList handlers
+vi.mock("@/shared/api/tauri-client", () => ({
+  tauriInvoke: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock("@/features/terminal/api/mutations", () => ({
@@ -188,5 +166,87 @@ describe("DistroList", () => {
 
     const debianCard = screen.getByText("Debian").closest('[role="button"]')!;
     expect(debianCard.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("calls tauriInvoke with stop_distro when stop button is clicked", async () => {
+    const { tauriInvoke } = await import("@/shared/api/tauri-client");
+    const distros = [makeDistro({ name: "Ubuntu", state: "Running" })];
+
+    renderWithProviders(<DistroList {...defaultProps} distros={distros} />);
+    fireEvent.click(screen.getByLabelText("Stop Ubuntu"));
+    expect(tauriInvoke).toHaveBeenCalledWith("stop_distro", { name: "Ubuntu" });
+  });
+
+  it("calls tauriInvoke with start_distro when start button is clicked", async () => {
+    const { tauriInvoke } = await import("@/shared/api/tauri-client");
+    const distros = [makeDistro({ name: "Debian", state: "Stopped" })];
+
+    renderWithProviders(<DistroList {...defaultProps} distros={distros} />);
+    fireEvent.click(screen.getByLabelText("Start Debian"));
+    expect(tauriInvoke).toHaveBeenCalledWith("start_distro", { name: "Debian" });
+  });
+
+  it("can start/stop multiple distros concurrently", async () => {
+    const { tauriInvoke } = await import("@/shared/api/tauri-client");
+    const distros = [
+      makeDistro({ name: "Ubuntu", state: "Running" }),
+      makeDistro({ name: "Fedora", state: "Running" }),
+      makeDistro({ name: "Debian", state: "Stopped" }),
+    ];
+
+    renderWithProviders(<DistroList {...defaultProps} distros={distros} />);
+
+    // Stop Ubuntu
+    fireEvent.click(screen.getByLabelText("Stop Ubuntu"));
+    // Stop Fedora
+    fireEvent.click(screen.getByLabelText("Stop Fedora"));
+    // Start Debian
+    fireEvent.click(screen.getByLabelText("Start Debian"));
+
+    expect(tauriInvoke).toHaveBeenCalledWith("stop_distro", { name: "Ubuntu" });
+    expect(tauriInvoke).toHaveBeenCalledWith("stop_distro", { name: "Fedora" });
+    expect(tauriInvoke).toHaveBeenCalledWith("start_distro", { name: "Debian" });
+  });
+
+  it("disables buttons only on the pending distro, not others", async () => {
+    const { tauriInvoke } = await import("@/shared/api/tauri-client");
+    // Make tauriInvoke hang (never resolve) to keep the pending state
+    vi.mocked(tauriInvoke).mockReturnValue(new Promise(() => {}));
+
+    const distros = [
+      makeDistro({ name: "Ubuntu", state: "Running" }),
+      makeDistro({ name: "Fedora", state: "Running" }),
+    ];
+
+    renderWithProviders(<DistroList {...defaultProps} distros={distros} />);
+
+    // Stop Ubuntu — its buttons become disabled
+    fireEvent.click(screen.getByLabelText("Stop Ubuntu"));
+
+    // Ubuntu's stop button should be disabled
+    const ubuntuStop = screen.getByLabelText("Stop Ubuntu");
+    expect(ubuntuStop).toBeDisabled();
+
+    // Fedora's stop button should still be enabled
+    const fedoraStop = screen.getByLabelText("Stop Fedora");
+    expect(fedoraStop).not.toBeDisabled();
+  });
+
+  it("calls tauriInvoke with restart_distro when restart button is clicked", async () => {
+    const { tauriInvoke } = await import("@/shared/api/tauri-client");
+    const distros = [makeDistro({ name: "Ubuntu", state: "Running" })];
+
+    renderWithProviders(<DistroList {...defaultProps} distros={distros} />);
+    fireEvent.click(screen.getByLabelText("Restart Ubuntu"));
+    expect(tauriInvoke).toHaveBeenCalledWith("restart_distro", { name: "Ubuntu" });
+  });
+
+  it("calls onDelete callback when delete button is clicked", () => {
+    const onDelete = vi.fn();
+    const distros = [makeDistro({ name: "Ubuntu" })];
+
+    renderWithProviders(<DistroList {...defaultProps} distros={distros} onDelete={onDelete} />);
+    fireEvent.click(screen.getByLabelText("Delete Ubuntu"));
+    expect(onDelete).toHaveBeenCalledWith("Ubuntu");
   });
 });

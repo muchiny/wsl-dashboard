@@ -56,7 +56,6 @@ describe("NetworkChart", () => {
       makePoint({ time: "12:01", netRx: 2048, netTx: 1024 }),
     ];
     renderWithProviders(<NetworkChart data={data} />);
-    // Should show rates, not "calculating"
     expect(screen.queryByText("Calculating...")).not.toBeInTheDocument();
   });
 
@@ -74,5 +73,60 @@ describe("NetworkChart", () => {
   it("has accessible chart label", () => {
     renderWithProviders(<NetworkChart data={[]} />);
     expect(screen.getByLabelText("Network I/O chart")).toBeInTheDocument();
+  });
+
+  it("shows rates for single point with non-zero values", () => {
+    const data = [makePoint({ netRx: 1048576, netTx: 524288 })];
+    renderWithProviders(<NetworkChart data={data} />);
+    expect(screen.queryByText("Calculating...")).not.toBeInTheDocument();
+  });
+
+  // ── TCP inline tests ──
+
+  it("does not show TCP badges when showTcp is false", () => {
+    const data = [makePoint({ tcpEstablished: 10, tcpTimeWait: 5, tcpListen: 3 })];
+    renderWithProviders(<NetworkChart data={data} />);
+    expect(screen.queryByText("Established")).not.toBeInTheDocument();
+  });
+
+  it("does not show TCP badges when showTcp is true but all values are zero", () => {
+    const data = [makePoint({ tcpEstablished: 0, tcpTimeWait: 0, tcpListen: 0 })];
+    renderWithProviders(<NetworkChart data={data} showTcp />);
+    expect(screen.queryByText("Established")).not.toBeInTheDocument();
+  });
+
+  it("shows TCP badges when showTcp is true and values are non-zero", () => {
+    const data = [makePoint({ tcpEstablished: 42, tcpTimeWait: 7, tcpListen: 3 })];
+    renderWithProviders(<NetworkChart data={data} showTcp />);
+    expect(screen.getByText(/42/)).toBeInTheDocument();
+    expect(screen.getByText(/Established/)).toBeInTheDocument();
+    expect(screen.getByText(/7/)).toBeInTheDocument();
+    expect(screen.getByText(/TIME_WAIT/)).toBeInTheDocument();
+    expect(screen.getByText(/3/)).toBeInTheDocument();
+    expect(screen.getByText(/Listen/)).toBeInTheDocument();
+  });
+
+  it("shows TCP badges from the latest data point", () => {
+    const data = [
+      makePoint({ tcpEstablished: 10, tcpTimeWait: 2, tcpListen: 1 }),
+      makePoint({ time: "12:01", tcpEstablished: 20, tcpTimeWait: 5, tcpListen: 3 }),
+    ];
+    renderWithProviders(<NetworkChart data={data} showTcp />);
+    // Should use latest (second) point — check for the combined badge text
+    expect(screen.getByText(/20\s+Established/)).toBeInTheDocument();
+    expect(screen.getByText(/5\s+TIME_WAIT/)).toBeInTheDocument();
+  });
+
+  it("handles missing TCP data gracefully with showTcp", () => {
+    const data = [makePoint()]; // No TCP fields
+    renderWithProviders(<NetworkChart data={data} showTcp />);
+    // Should not crash, TCP badges should not appear (defaults to 0)
+    expect(screen.queryByText("Established")).not.toBeInTheDocument();
+  });
+
+  it("shows TCP badges when only one TCP field is non-zero", () => {
+    const data = [makePoint({ tcpEstablished: 5, tcpTimeWait: 0, tcpListen: 0 })];
+    renderWithProviders(<NetworkChart data={data} showTcp />);
+    expect(screen.getByText(/Established/)).toBeInTheDocument();
   });
 });

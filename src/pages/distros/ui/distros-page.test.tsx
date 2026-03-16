@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
 import { renderWithProviders } from "@/test/test-utils";
 import { useDistros } from "@/shared/api/distro-queries";
 import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
@@ -16,9 +16,28 @@ vi.mock("@/features/distro-list/api/mutations", () => ({
   useStartAllDistros: vi.fn(),
 }));
 vi.mock("@/features/distro-list/ui/distro-list", () => ({
-  DistroList: (props: Record<string, unknown>) => (
-    <div data-testid="distro-list" data-view={props.viewMode as string} />
-  ),
+  DistroList: (props: Record<string, unknown>) => {
+    const onSelectDistro = props.onSelectDistro as ((name: string) => void) | undefined;
+    return (
+      <div
+        data-testid="distro-list"
+        data-view={props.viewMode as string}
+        data-loading={String(props.isLoading)}
+        data-error={props.error ? "true" : "false"}
+      >
+        {onSelectDistro && (
+          <>
+            <button data-testid="select-Ubuntu" onClick={() => onSelectDistro("Ubuntu")}>
+              Select Ubuntu
+            </button>
+            <button data-testid="select-Debian" onClick={() => onSelectDistro("Debian")}>
+              Select Debian
+            </button>
+          </>
+        )}
+      </div>
+    );
+  },
 }));
 vi.mock("@/features/distro-list/ui/distros-toolbar", () => ({
   DistrosToolbar: (props: Record<string, unknown>) => (
@@ -182,5 +201,54 @@ describe("DistrosPage", () => {
     expect(toolbar.dataset.running).toBe("2");
     expect(toolbar.dataset.stopped).toBe("3");
     expect(toolbar.dataset.total).toBe("5");
+  });
+
+  it("does not render detail drawer initially", () => {
+    setup();
+    renderWithProviders(<DistrosPage />);
+    expect(screen.queryByTestId("detail-drawer")).not.toBeInTheDocument();
+  });
+
+  it("clicking a distro shows the detail drawer", () => {
+    setup();
+    renderWithProviders(<DistrosPage />);
+
+    fireEvent.click(screen.getByTestId("select-Ubuntu"));
+    expect(screen.getByTestId("detail-drawer")).toBeInTheDocument();
+  });
+
+  it("clicking the same distro again hides the drawer (toggle behavior)", () => {
+    setup();
+    renderWithProviders(<DistrosPage />);
+
+    fireEvent.click(screen.getByTestId("select-Ubuntu"));
+    expect(screen.getByTestId("detail-drawer")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("select-Ubuntu"));
+    expect(screen.queryByTestId("detail-drawer")).not.toBeInTheDocument();
+  });
+
+  it("passes loading state through to distro list", () => {
+    vi.mocked(useDistros).mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    } as ReturnType<typeof useDistros>);
+
+    renderWithProviders(<DistrosPage />);
+    const list = screen.getByTestId("distro-list");
+    expect(list.dataset.loading).toBe("true");
+  });
+
+  it("passes error state through to distro list", () => {
+    vi.mocked(useDistros).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error("Network error"),
+    } as ReturnType<typeof useDistros>);
+
+    renderWithProviders(<DistrosPage />);
+    const list = screen.getByTestId("distro-list");
+    expect(list.dataset.error).toBe("true");
   });
 });

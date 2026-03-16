@@ -1,5 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { tauriInvoke } from "@/shared/api/tauri-client";
+import { useTauriMutation } from "@/shared/api/use-tauri-mutation";
 import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
 import type { TimeRange, MetricsHistoryResponse, AlertThreshold } from "@/shared/types/monitoring";
 
@@ -20,8 +21,8 @@ export const monitoringKeys = {
   processes: (distro: string) => [...monitoringKeys.all, "processes", distro] as const,
   history: (distro: string, range: string) =>
     [...monitoringKeys.all, "history", distro, range] as const,
-  alertThresholds: [...["monitoring"], "alertThresholds"] as const,
-  alerts: (distro: string) => [...["monitoring"], "alerts", distro] as const,
+  alertThresholds: () => [...monitoringKeys.all, "alertThresholds"] as const,
+  alerts: (distro: string) => [...monitoringKeys.all, "alerts", distro] as const,
 };
 
 export function useProcesses(distroName: string | null, enabled = true) {
@@ -73,20 +74,14 @@ export function useMetricsHistory(distroName: string | null, timeRange: TimeRang
 
 export function useAlertThresholds() {
   return useQuery({
-    queryKey: monitoringKeys.alertThresholds,
+    queryKey: monitoringKeys.alertThresholds(),
     queryFn: () => tauriInvoke<AlertThreshold[]>("get_alert_thresholds", {}),
   });
 }
 
 export function useSetAlertThresholds() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (thresholds: AlertThreshold[]) =>
-      tauriInvoke("set_alert_thresholds", { thresholds }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: monitoringKeys.alertThresholds,
-      });
-    },
+  return useTauriMutation<void, AlertThreshold[]>({
+    mutationFn: (thresholds) => tauriInvoke("set_alert_thresholds", { thresholds }),
+    invalidateKeys: [monitoringKeys.alertThresholds()],
   });
 }

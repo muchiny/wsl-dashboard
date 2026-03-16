@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useThemeStore } from "./use-theme";
+import { renderHook } from "@testing-library/react";
+import { useThemeStore, useThemeSync } from "./use-theme";
 
 describe("useThemeStore", () => {
   beforeEach(() => {
@@ -27,5 +28,22 @@ describe("useThemeStore", () => {
     expect(useThemeStore.getState().theme).toBe("light");
     useThemeStore.getState().toggleTheme(); // -> dark
     expect(useThemeStore.getState().theme).toBe("dark");
+  });
+});
+
+describe("useThemeSync", () => {
+  beforeEach(() => {
+    useThemeStore.setState({ theme: "dark" });
+  });
+
+  it("applies theme to document element", () => {
+    renderHook(() => useThemeSync());
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  });
+
+  it("applies light theme to document element", () => {
+    useThemeStore.setState({ theme: "light" });
+    renderHook(() => useThemeSync());
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
   });
 });

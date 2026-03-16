@@ -108,7 +108,7 @@ export function DebugConsole() {
               <Tooltip content={t("debug.close")} position="top">
                 <button
                   onClick={toggle}
-                  className="text-subtext-0 hover:text-text hover:bg-white/8 rounded p-1 transition-colors"
+                  className="text-subtext-0 hover:text-text rounded p-1 transition-colors hover:bg-white/8"
                   aria-label={t("debug.close")}
                 >
                   <X className="h-3.5 w-3.5" />

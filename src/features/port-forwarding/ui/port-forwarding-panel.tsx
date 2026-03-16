@@ -7,13 +7,14 @@ import { Tooltip } from "@/shared/ui/tooltip";
 import { useDistros } from "@/shared/api/distro-queries";
 import { useListeningPorts, usePortForwardingRules } from "../api/queries";
 import { useRemovePortForwarding } from "../api/mutations";
+import { useDialogState } from "@/shared/hooks/use-dialog-state";
 import { AddRuleDialog } from "./add-rule-dialog";
 
 export function PortForwardingPanel() {
   const { t } = useTranslation();
   const { data: distros } = useDistros();
   const [selectedDistro, setSelectedDistro] = useState("");
-  const [showAddDialog, setShowAddDialog] = useState(false);
+  const addRuleDialog = useDialogState();
 
   const runningDistros = distros?.filter((d) => d.state === "Running") ?? [];
   const { data: listeningPorts, isLoading: loadingPorts } = useListeningPorts(selectedDistro);
@@ -57,7 +58,7 @@ export function PortForwardingPanel() {
         <div className="mb-4 flex items-center justify-between">
           <h4 className="text-text font-semibold">{t("portForwarding.activeRules")}</h4>
           <button
-            onClick={() => setShowAddDialog(true)}
+            onClick={() => addRuleDialog.open()}
             className="bg-blue text-crust hover:bg-blue/90 hover:neon-glow-blue flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -154,8 +155,8 @@ export function PortForwardingPanel() {
       )}
 
       <AddRuleDialog
-        open={showAddDialog}
-        onClose={() => setShowAddDialog(false)}
+        open={addRuleDialog.isOpen}
+        onClose={addRuleDialog.close}
         defaultDistro={selectedDistro}
       />
     </div>

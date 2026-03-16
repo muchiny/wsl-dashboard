@@ -1,9 +1,20 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { mockInvoke } from "@/test/mocks/tauri";
-import { createTerminal, writeTerminal, resizeTerminal, closeTerminal } from "./mutations";
+import { createWrapper } from "@/test/test-utils";
+import {
+  createTerminal,
+  writeTerminal,
+  resizeTerminal,
+  closeTerminal,
+  isTerminalAlive,
+  useCreateTerminalSession,
+} from "./mutations";
+import { useTerminalStore } from "../model/use-terminal-store";
 
 beforeEach(() => {
   mockInvoke.mockReset();
+  useTerminalStore.getState().sessions.length = 0;
 });
 
 describe("createTerminal", () => {
@@ -62,5 +73,43 @@ describe("closeTerminal", () => {
     expect(mockInvoke).toHaveBeenCalledWith("terminal_close", {
       sessionId: "session-1",
     });
+  });
+});
+
+describe("isTerminalAlive", () => {
+  it("invokes terminal_is_alive and returns boolean", async () => {
+    mockInvoke.mockResolvedValue(true);
+    const result = await isTerminalAlive("session-1");
+    expect(mockInvoke).toHaveBeenCalledWith("terminal_is_alive", {
+      sessionId: "session-1",
+    });
+    expect(result).toBe(true);
+  });
+
+  it("returns false when session is dead", async () => {
+    mockInvoke.mockResolvedValue(false);
+    const result = await isTerminalAlive("session-1");
+    expect(result).toBe(false);
+  });
+});
+
+describe("useCreateTerminalSession", () => {
+  it("adds session to store on success", async () => {
+    mockInvoke.mockResolvedValue("session-xyz");
+
+    const { result } = renderHook(() => useCreateTerminalSession(), {
+      wrapper: createWrapper(),
+    });
+
+    act(() => {
+      result.current.mutate("Ubuntu");
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const sessions = useTerminalStore.getState().sessions;
+    const added = sessions.find((s) => s.id === "session-xyz");
+    expect(added).toBeDefined();
+    expect(added!.distroName).toBe("Ubuntu");
   });
 });

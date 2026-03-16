@@ -57,9 +57,7 @@ export function DeleteDistroDialog({ open, distroName, onClose }: DeleteDistroDi
       <form onSubmit={handleSubmit} className="mt-4 space-y-4">
         <div className="border-red/30 bg-red/10 flex items-start gap-2 rounded-lg border p-3">
           <AlertTriangle className="text-red mt-0.5 h-4 w-4 shrink-0" />
-          <p className="text-red text-sm">
-            {t("distros.deleteWarning", { name: distroName })}
-          </p>
+          <p className="text-red text-sm">{t("distros.deleteWarning", { name: distroName })}</p>
         </div>
 
         <label className="flex cursor-pointer items-center gap-2">
@@ -96,9 +94,7 @@ export function DeleteDistroDialog({ open, distroName, onClose }: DeleteDistroDi
           </button>
         </div>
 
-        {deleteDistro.isError && (
-          <p className="text-red text-sm">{deleteDistro.error.message}</p>
-        )}
+        {deleteDistro.isError && <p className="text-red text-sm">{deleteDistro.error.message}</p>}
       </form>
     </DialogShell>
   );

@@ -1,4 +1,5 @@
 use crate::domain::entities::distro::Distro;
+use crate::domain::entities::wsl_version::WslVersionInfo;
 use crate::domain::errors::DomainError;
 use crate::domain::value_objects::{DistroName, DistroState, WslVersion};
 
@@ -49,6 +50,62 @@ pub fn parse_distro_list(text: &str) -> Result<Vec<Distro>, DomainError> {
     }
 
     Ok(distros)
+}
+
+/// Parse `wsl --version` output into structured version info.
+///
+/// Uses product-name keyword matching ("WSL", "WSLg", "Windows") which are
+/// universal across all locales. The kernel line — whose label varies by
+/// locale (English "Kernel", French "noyau", etc.) — is identified as the
+/// first unmatched line containing a version number.
+///
+/// Keywords are only matched in the label portion (before the first digit)
+/// to avoid false positives from version values like
+/// `6.6.87.2-microsoft-standard-WSL2` which contain "WSL".
+pub fn parse_version_output(text: &str) -> WslVersionInfo {
+    fn extract_version(line: &str) -> Option<String> {
+        if let Some((_, after)) = line.rsplit_once(':') {
+            let val = after.trim();
+            if !val.is_empty() {
+                return Some(val.to_string());
+            }
+        }
+        line.split_whitespace()
+            .rev()
+            .find(|tok| tok.starts_with(|c: char| c.is_ascii_digit()))
+            .map(|s| s.to_string())
+    }
+
+    let mut info = WslVersionInfo::default();
+    let mut unmatched_versions: Vec<String> = Vec::new();
+
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+
+        let label_end = line
+            .find(|c: char| c.is_ascii_digit())
+            .unwrap_or(line.len());
+        let label = line[..label_end].to_lowercase();
+
+        if label.contains("wslg") {
+            info.wslg_version = extract_version(line);
+        } else if label.contains("wsl") {
+            info.wsl_version = extract_version(line);
+        } else if label.contains("windows") {
+            info.windows_version = extract_version(line);
+        } else if let Some(ver) = extract_version(line) {
+            unmatched_versions.push(ver);
+        }
+    }
+
+    if info.kernel_version.is_none() {
+        info.kernel_version = unmatched_versions.into_iter().next();
+    }
+
+    info
 }
 
 #[cfg(test)]
@@ -120,5 +177,54 @@ mod tests {
         let distros = parse_distro_list(input).unwrap();
         assert_eq!(distros.len(), 1);
         assert_eq!(distros[0].name.as_str(), "Ubuntu");
+    }
+
+    #[test]
+    fn test_parse_version_english() {
+        let output = "WSL version: 2.6.3.0\nKernel version: 6.6.87.2-microsoft-standard-WSL2\nWSLg version: 1.0.71\nWindows version: 10.0.26200.7922\n";
+        let info = parse_version_output(output);
+        assert_eq!(info.wsl_version.as_deref(), Some("2.6.3.0"));
+        assert_eq!(
+            info.kernel_version.as_deref(),
+            Some("6.6.87.2-microsoft-standard-WSL2")
+        );
+        assert_eq!(info.wslg_version.as_deref(), Some("1.0.71"));
+        assert_eq!(info.windows_version.as_deref(), Some("10.0.26200.7922"));
+    }
+
+    #[test]
+    fn test_parse_version_french() {
+        let output = "Version WSL : 2.6.3.0\nVersion du noyau : 6.6.87.2-microsoft-standard-WSL2\nVersion WSLg : 1.0.71\nVersion de Windows : 10.0.26200.7922\n";
+        let info = parse_version_output(output);
+        assert_eq!(info.wsl_version.as_deref(), Some("2.6.3.0"));
+        assert_eq!(
+            info.kernel_version.as_deref(),
+            Some("6.6.87.2-microsoft-standard-WSL2")
+        );
+        assert_eq!(info.wslg_version.as_deref(), Some("1.0.71"));
+        assert_eq!(info.windows_version.as_deref(), Some("10.0.26200.7922"));
+    }
+
+    #[test]
+    fn test_parse_version_with_extra_lines() {
+        let output = "WSL version: 2.6.3.0\nKernel version: 6.6.87.2-microsoft-standard-WSL2\nWSLg version: 1.0.71\nMSRDC version: 1.2.5620\nDirect3D version: 1.611.1-81528511\nDXCore version: 10.0.26100.1\nWindows version: 10.0.26200.7922\n";
+        let info = parse_version_output(output);
+        assert_eq!(info.wsl_version.as_deref(), Some("2.6.3.0"));
+        assert_eq!(
+            info.kernel_version.as_deref(),
+            Some("6.6.87.2-microsoft-standard-WSL2")
+        );
+        assert_eq!(info.wslg_version.as_deref(), Some("1.0.71"));
+        assert_eq!(info.windows_version.as_deref(), Some("10.0.26200.7922"));
+    }
+
+    #[test]
+    fn test_parse_version_no_colon_format() {
+        let output = "WSL version 2.6.3.0\nKernel version 5.15.133.1\nWSLg version 1.0.71\nWindows version 10.0.22631\n";
+        let info = parse_version_output(output);
+        assert_eq!(info.wsl_version.as_deref(), Some("2.6.3.0"));
+        assert_eq!(info.kernel_version.as_deref(), Some("5.15.133.1"));
+        assert_eq!(info.wslg_version.as_deref(), Some("1.0.71"));
+        assert_eq!(info.windows_version.as_deref(), Some("10.0.22631"));
     }
 }

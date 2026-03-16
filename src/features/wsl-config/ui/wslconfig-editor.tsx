@@ -36,7 +36,7 @@ export function WslConfigEditor() {
     sparse_vhd: null,
   });
 
-  // Sync form when fetched config changes (React-recommended adjust-state-during-render)
+  // Sync form when fetched config changes (state-during-render pattern)
   const [prevConfig, setPrevConfig] = useState(config);
   if (config && config !== prevConfig) {
     setPrevConfig(config);

@@ -13,6 +13,20 @@ interface UseDistroActionsProps {
   onDelete: (name: string) => void;
 }
 
+/** Shared props for both DistroCard and DistroRow components. */
+export interface DistroItemProps {
+  distro: Distro;
+  onStart: (name: string) => void;
+  onStop: (name: string) => void;
+  onRestart: (name: string) => void;
+  onSnapshot: (name: string) => void;
+  onDelete: (name: string) => void;
+  pendingAction?: string;
+  snapshotCount: number;
+  onSelect: (name: string) => void;
+  isSelected: boolean;
+}
+
 export function useDistroActions({
   distro,
   pendingAction,

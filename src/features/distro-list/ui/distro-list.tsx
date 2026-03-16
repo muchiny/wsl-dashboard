@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 import { useTranslation, Trans } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { Server, Search } from "lucide-react";
-import { useStartDistro, useStopDistro, useRestartDistro } from "../api/mutations";
+import { tauriInvoke } from "@/shared/api/tauri-client";
+import { distroKeys, useDistros } from "@/shared/api/distro-queries";
+import { toast } from "@/shared/ui/toast-store";
 import { useSnapshotCounts } from "@/features/snapshot-list/api/queries";
+import { usePendingActions } from "../hooks/use-pending-actions";
 import { DistroCard } from "./distro-card";
 import { DistroRow } from "./distro-row";
 import type { Distro } from "@/shared/types/distro";
@@ -32,77 +36,59 @@ export function DistroList({
   onSelectDistro,
 }: DistroListProps) {
   const { t } = useTranslation();
-  const startDistro = useStartDistro();
-  const stopDistro = useStopDistro();
-  const restartDistro = useRestartDistro();
+  const queryClient = useQueryClient();
   const snapshotCounts = useSnapshotCounts();
+  const { hasPending, markPending, clearPending, getPending } = usePendingActions(distros);
 
-  const [pendingActions, setPendingActions] = useState<Map<string, string>>(new Map());
-
-  const markPending = useCallback((name: string, action: string) => {
-    setPendingActions((prev) => new Map(prev).set(name, action));
-  }, []);
-
-  const clearPending = useCallback((name: string) => {
-    setPendingActions((prev) => {
-      const next = new Map(prev);
-      next.delete(name);
-      return next;
-    });
-  }, []);
-
-  // Expected target state for each pending action
-  const expectedStates = useRef<Map<string, Distro["state"]>>(new Map());
-
-  // Safety net: auto-clear pending actions when the real distro state
-  // matches the expected target, OR after 30s as a fallback.
-  useEffect(() => {
-    if (pendingActions.size === 0) return;
-    for (const [name] of pendingActions) {
-      const target = expectedStates.current.get(name);
-      const actual = distros.find((d) => d.name === name)?.state;
-      if (target && actual === target) {
-        clearPending(name);
-        expectedStates.current.delete(name);
-      }
-    }
-  }, [distros, pendingActions, clearPending]);
-
-  // Fallback timeout: clear stuck pending actions after 30s
-  useEffect(() => {
-    if (pendingActions.size === 0) return;
-    const timer = setTimeout(() => {
-      setPendingActions(new Map());
-      expectedStates.current.clear();
-    }, 30_000);
-    return () => clearTimeout(timer);
-  }, [pendingActions]);
+  // Fast-poll (2s) while any action is pending so the UI updates as soon as state changes
+  useDistros(hasPending);
 
   const handleStart = useCallback(
     (name: string) => {
-      markPending(name, t("distros.pendingStarting"));
-      expectedStates.current.set(name, "Running");
-      startDistro.mutate(name, { onSettled: () => clearPending(name) });
+      markPending(name, "Starting", "Running");
+      tauriInvoke("start_distro", { name })
+        .then(() => toast.success(t("distros.toastStarted", { name })))
+        .catch((err: Error) => {
+          toast.error(t("distros.toastStartFailed", { name, message: err.message }));
+          clearPending(name);
+        })
+        .finally(() => {
+          queryClient.invalidateQueries({ queryKey: distroKeys.list() });
+        });
     },
-    [startDistro.mutate, t, markPending, clearPending],
+    [t, markPending, clearPending, queryClient],
   );
 
   const handleStop = useCallback(
     (name: string) => {
-      markPending(name, t("distros.pendingStopping"));
-      expectedStates.current.set(name, "Stopped");
-      stopDistro.mutate(name, { onSettled: () => clearPending(name) });
+      markPending(name, "Stopping", "Stopped");
+      tauriInvoke("stop_distro", { name })
+        .then(() => toast.success(t("distros.toastStopped", { name })))
+        .catch((err: Error) => {
+          toast.error(t("distros.toastStopFailed", { name, message: err.message }));
+          clearPending(name);
+        })
+        .finally(() => {
+          queryClient.invalidateQueries({ queryKey: distroKeys.list() });
+        });
     },
-    [stopDistro.mutate, t, markPending, clearPending],
+    [t, markPending, clearPending, queryClient],
   );
 
   const handleRestart = useCallback(
     (name: string) => {
-      markPending(name, t("distros.pendingRestarting"));
-      expectedStates.current.set(name, "Running");
-      restartDistro.mutate(name, { onSettled: () => clearPending(name) });
+      markPending(name, "Restarting", "Running");
+      tauriInvoke("restart_distro", { name })
+        .then(() => toast.success(t("distros.toastRestarted", { name })))
+        .catch((err: Error) => {
+          toast.error(t("distros.toastRestartFailed", { name, message: err.message }));
+          clearPending(name);
+        })
+        .finally(() => {
+          queryClient.invalidateQueries({ queryKey: distroKeys.list() });
+        });
     },
-    [restartDistro.mutate, t, markPending, clearPending],
+    [t, markPending, clearPending, queryClient],
   );
 
   if (isLoading) {
@@ -162,7 +148,7 @@ export function DistroList({
             onRestart={handleRestart}
             onSnapshot={onSnapshot}
             onDelete={onDelete}
-            pendingAction={pendingActions.get(distro.name)}
+            pendingAction={getPending(distro.name)}
             snapshotCount={snapshotCounts[distro.name] ?? 0}
             onSelect={onSelectDistro}
             isSelected={selectedDistro === distro.name}
@@ -183,7 +169,7 @@ export function DistroList({
           onRestart={handleRestart}
           onSnapshot={onSnapshot}
           onDelete={onDelete}
-          pendingAction={pendingActions.get(distro.name)}
+          pendingAction={getPending(distro.name)}
           onSelect={onSelectDistro}
           isSelected={selectedDistro === distro.name}
           snapshotCount={snapshotCounts[distro.name] ?? 0}

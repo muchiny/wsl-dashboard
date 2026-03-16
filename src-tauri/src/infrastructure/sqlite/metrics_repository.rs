@@ -34,8 +34,11 @@ impl MetricsRepositoryPort for SqliteMetricsRepository {
                 mem_total_bytes, mem_used_bytes, mem_available_bytes, mem_cached_bytes,
                 swap_total_bytes, swap_used_bytes,
                 disk_total_bytes, disk_used_bytes, disk_available_bytes, disk_usage_percent,
-                net_rx_bytes, net_tx_bytes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                net_rx_bytes, net_tx_bytes,
+                context_switches, disk_io_read_bytes, disk_io_write_bytes,
+                tcp_established, tcp_time_wait, tcp_listen,
+                gpu_utilization, gpu_vram_used, gpu_vram_total
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&metrics.distro_name)
         .bind(metrics.timestamp.to_rfc3339())
@@ -55,6 +58,15 @@ impl MetricsRepositoryPort for SqliteMetricsRepository {
         .bind(metrics.disk.usage_percent)
         .bind(net_rx as i64)
         .bind(net_tx as i64)
+        .bind(metrics.context_switches.map(|v| v as i64))
+        .bind(metrics.disk_io.as_ref().map(|d| d.read_bytes_per_sec as i64))
+        .bind(metrics.disk_io.as_ref().map(|d| d.write_bytes_per_sec as i64))
+        .bind(metrics.tcp_connections.as_ref().map(|t| t.established as i32))
+        .bind(metrics.tcp_connections.as_ref().map(|t| t.time_wait as i32))
+        .bind(metrics.tcp_connections.as_ref().map(|t| t.listen as i32))
+        .bind(metrics.gpu.as_ref().and_then(|g| g.utilization_percent))
+        .bind(metrics.gpu.as_ref().and_then(|g| g.vram_used_bytes.map(|v| v as i64)))
+        .bind(metrics.gpu.as_ref().and_then(|g| g.vram_total_bytes.map(|v| v as i64)))
         .execute(&self.db.pool)
         .await
         .db_err()?;
@@ -106,6 +118,15 @@ impl MetricsRepositoryPort for SqliteMetricsRepository {
                     disk_usage_percent: row.get("disk_usage_percent"),
                     net_rx_bytes: row.get::<i64, _>("net_rx_bytes") as u64,
                     net_tx_bytes: row.get::<i64, _>("net_tx_bytes") as u64,
+                    context_switches: row.try_get::<Option<i64>, _>("context_switches").ok().flatten().map(|v| v as u64),
+                    disk_io_read_bytes: row.try_get::<Option<i64>, _>("disk_io_read_bytes").ok().flatten().map(|v| v as u64),
+                    disk_io_write_bytes: row.try_get::<Option<i64>, _>("disk_io_write_bytes").ok().flatten().map(|v| v as u64),
+                    tcp_established: row.try_get::<Option<i32>, _>("tcp_established").ok().flatten().map(|v| v as u32),
+                    tcp_time_wait: row.try_get::<Option<i32>, _>("tcp_time_wait").ok().flatten().map(|v| v as u32),
+                    tcp_listen: row.try_get::<Option<i32>, _>("tcp_listen").ok().flatten().map(|v| v as u32),
+                    gpu_utilization: row.try_get::<Option<f64>, _>("gpu_utilization").ok().flatten(),
+                    gpu_vram_used: row.try_get::<Option<i64>, _>("gpu_vram_used").ok().flatten().map(|v| v as u64),
+                    gpu_vram_total: row.try_get::<Option<i64>, _>("gpu_vram_total").ok().flatten().map(|v| v as u64),
                 })
             })
             .collect()
@@ -282,6 +303,10 @@ mod tests {
                     tx_packets: 500,
                 }],
             },
+            context_switches: None,
+            disk_io: None,
+            tcp_connections: None,
+            gpu: None,
         }
     }
 

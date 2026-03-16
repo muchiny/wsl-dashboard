@@ -34,7 +34,8 @@ const sortOptions: { value: SortKey; key: string }[] = [
   { value: "vhdx-size", key: "distros.sortDiskSize" },
 ];
 
-const pill = "rounded-full px-2.5 py-1 text-xs font-medium transition-all cursor-pointer select-none";
+const pill =
+  "rounded-full px-2.5 py-1 text-xs font-medium transition-all cursor-pointer select-none";
 
 const statusPillActive: Record<StatusFilter, string> = {
   all: "bg-blue text-crust shadow-elevation-1",

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { lazy } from "react";
 import { createRouter, createRoute, createRootRoute } from "@tanstack/react-router";
 import { RootLayout } from "@/shared/ui/root-layout";

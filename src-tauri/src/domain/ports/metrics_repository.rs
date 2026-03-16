@@ -49,6 +49,15 @@ pub struct RawMetricsRow {
     pub disk_usage_percent: f64,
     pub net_rx_bytes: u64,
     pub net_tx_bytes: u64,
+    pub context_switches: Option<u64>,
+    pub disk_io_read_bytes: Option<u64>,
+    pub disk_io_write_bytes: Option<u64>,
+    pub tcp_established: Option<u32>,
+    pub tcp_time_wait: Option<u32>,
+    pub tcp_listen: Option<u32>,
+    pub gpu_utilization: Option<f64>,
+    pub gpu_vram_used: Option<u64>,
+    pub gpu_vram_total: Option<u64>,
 }
 
 #[cfg_attr(test, mockall::automock)]

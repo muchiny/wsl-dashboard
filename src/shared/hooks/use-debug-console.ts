@@ -51,6 +51,12 @@ export const useDebugConsoleStore = create<DebugConsoleState>((set) => ({
   },
 }));
 
+// Expose store for E2E testing
+if (import.meta.env.DEV) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).__ZUSTAND_DEBUG_CONSOLE_STORE__ = useDebugConsoleStore;
+}
+
 // ── Setup hook (call once at app root) ──
 
 let jsIdCounter = 100_000;

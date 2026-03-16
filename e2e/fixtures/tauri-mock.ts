@@ -55,6 +55,32 @@ const MOCK_SNAPSHOTS = [
     created_at: "2026-02-25T15:00:00Z",
     status: "completed",
   },
+  {
+    id: "snap-002",
+    distro_name: "Ubuntu",
+    name: "Weekly backup",
+    description: null,
+    snapshot_type: "full",
+    format: "vhdx",
+    file_path: "C:\\snapshots\\ubuntu-weekly.vhdx",
+    file_size_bytes: 4_294_967_296,
+    parent_id: null,
+    created_at: "2026-02-20T12:00:00Z",
+    status: "completed",
+  },
+  {
+    id: "snap-003",
+    distro_name: "Debian",
+    name: "Before config",
+    description: "Before changing config",
+    snapshot_type: "full",
+    format: "tar",
+    file_path: "C:\\snapshots\\debian-snap.tar",
+    file_size_bytes: 1_073_741_824,
+    parent_id: null,
+    created_at: "2026-02-18T08:00:00Z",
+    status: "completed",
+  },
 ];
 
 const MOCK_WSL_CONFIG = {
@@ -94,12 +120,37 @@ const MOCK_AUDIT_LOG = [
     target: "Ubuntu",
     details: null,
   },
+  {
+    id: 2,
+    timestamp: "2026-02-28T09:30:00Z",
+    action: "stop_distro",
+    target: "Fedora",
+    details: null,
+  },
 ];
 
 const MOCK_ALERT_THRESHOLDS = [
   { alert_type: "cpu", threshold_percent: 90, enabled: false },
   { alert_type: "memory", threshold_percent: 85, enabled: false },
   { alert_type: "disk", threshold_percent: 90, enabled: false },
+];
+
+const MOCK_PROCESSES = [
+  { pid: 1, user: "root", command: "/sbin/init", cpu_percent: 0.1, mem_percent: 0.5, rss_bytes: 1_048_576, state: "S" },
+  { pid: 42, user: "user", command: "node server.js", cpu_percent: 15.3, mem_percent: 4.2, rss_bytes: 67_108_864, state: "R" },
+  { pid: 100, user: "user", command: "python app.py", cpu_percent: 8.7, mem_percent: 2.1, rss_bytes: 33_554_432, state: "S" },
+  { pid: 200, user: "root", command: "dockerd", cpu_percent: 3.2, mem_percent: 6.8, rss_bytes: 134_217_728, state: "S" },
+  { pid: 300, user: "user", command: "nginx", cpu_percent: 0.5, mem_percent: 1.0, rss_bytes: 8_388_608, state: "S" },
+];
+
+const MOCK_PORT_FORWARDING_RULES = [
+  { id: "rule-1", distro_name: "Ubuntu", wsl_port: 3000, host_port: 3000, protocol: "tcp", enabled: true, created_at: "2026-02-28T10:00:00Z" },
+  { id: "rule-2", distro_name: "Fedora", wsl_port: 8080, host_port: 8080, protocol: "tcp", enabled: true, created_at: "2026-02-28T09:00:00Z" },
+];
+
+const MOCK_LISTENING_PORTS = [
+  { port: 3000, protocol: "tcp", process: "node", pid: 42 },
+  { port: 5432, protocol: "tcp", process: "postgres", pid: 150 },
 ];
 
 // ── Fixture ────────────────────────────────────────────────────────
@@ -115,6 +166,9 @@ export const test = base.extend<{ tauriPage: Page }>({
           wslVersion: ${JSON.stringify(MOCK_WSL_VERSION)},
           auditLog: ${JSON.stringify(MOCK_AUDIT_LOG)},
           alertThresholds: ${JSON.stringify(MOCK_ALERT_THRESHOLDS)},
+          processes: ${JSON.stringify(MOCK_PROCESSES)},
+          portForwardingRules: ${JSON.stringify(MOCK_PORT_FORWARDING_RULES)},
+          listeningPorts: ${JSON.stringify(MOCK_LISTENING_PORTS)},
         };
 
         // ── __TAURI_INTERNALS__ setup ──
@@ -184,6 +238,9 @@ export const test = base.extend<{ tauriPage: Page }>({
           window.__TAURI_INTERNALS__.unregisterCallback(id);
         };
 
+        // Terminal session counter
+        let terminalCounter = 0;
+
         // ── IPC handler ──
         window.__TAURI_INTERNALS__.invoke = async function (cmd, args) {
           // Event plugin
@@ -208,18 +265,41 @@ export const test = base.extend<{ tauriPage: Page }>({
             return null;
           }
 
+          // Store plugin
+          if (cmd.startsWith("plugin:store|")) {
+            return null;
+          }
+
           // Application commands
           switch (cmd) {
-            case "list_distros":             return MOCK_DATA.distros;
-            case "list_snapshots":           return MOCK_DATA.snapshots;
+            case "list_distros":
+              if (window.__MOCK_DISTRO_ERROR) throw new Error("Mock distro error");
+              return MOCK_DATA.distros;
+            case "list_snapshots": {
+              const distro = args?.distroName || args?.distro_name;
+              if (distro) return MOCK_DATA.snapshots.filter(s => s.distro_name === distro);
+              return MOCK_DATA.snapshots;
+            }
             case "get_wsl_config":           return MOCK_DATA.wslConfig;
             case "get_wsl_version":          return MOCK_DATA.wslVersion;
-            case "search_audit_log":         return MOCK_DATA.auditLog;
-            case "get_port_forwarding_rules": return [];
-            case "list_listening_ports":     return [];
+            case "search_audit_log": {
+              let entries = MOCK_DATA.auditLog;
+              const af = args?.args?.action_filter;
+              const tf = args?.args?.target_filter;
+              if (af) entries = entries.filter(e => e.action.toLowerCase().includes(af.toLowerCase()));
+              if (tf) entries = entries.filter(e => e.target.toLowerCase().includes(tf.toLowerCase()));
+              return entries;
+            }
+            case "get_port_forwarding_rules": return MOCK_DATA.portForwardingRules;
+            case "list_listening_ports": {
+              // Only return ports for distros that have them (Ubuntu/Debian/Fedora = running)
+              const lpDistro = args?.distroName || args?.distro_name;
+              if (lpDistro === "Alpine") return [];
+              return MOCK_DATA.listeningPorts;
+            }
             case "get_alert_thresholds":     return MOCK_DATA.alertThresholds;
             case "get_debug_logs":           return [];
-            case "get_processes":            return [];
+            case "get_processes":            return MOCK_DATA.processes;
             case "get_system_metrics":
               return {
                 distro_name: args?.distroName || "",
@@ -237,10 +317,12 @@ export const test = base.extend<{ tauriPage: Page }>({
             case "stop_distro":
             case "restart_distro":
             case "shutdown_all":
+            case "start_all":
             case "set_default_distro":
             case "resize_vhd":
             case "compact_vhdx":
             case "update_wsl_config":
+            case "delete_distro":
             case "delete_snapshot":
             case "restore_snapshot":
             case "clear_debug_logs":
@@ -258,7 +340,7 @@ export const test = base.extend<{ tauriPage: Page }>({
             case "get_distro_install_path":
               return "C:\\\\Users\\\\user\\\\wsl\\\\" + (args?.name || "distro");
             case "terminal_create":
-              return "session-mock-001";
+              return "session-mock-" + String(++terminalCounter).padStart(3, "0");
             case "terminal_is_alive":
               return true;
 

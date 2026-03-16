@@ -73,21 +73,18 @@ export function useShutdownAll() {
   });
 }
 
+// Uses raw useMutation instead of useTauriMutation because of batch
+// Promise.allSettled logic with per-result success/failure counting.
 export function useStartAll() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (names: string[]) => {
-      let succeeded = 0;
-      let failed = 0;
-      for (const name of names) {
-        try {
-          await tauriInvoke("start_distro", { name });
-          succeeded++;
-        } catch {
-          failed++;
-        }
-        await queryClient.refetchQueries({ queryKey: distroKeys.list() });
-      }
+      const results = await Promise.allSettled(
+        names.map((name) => tauriInvoke("start_distro", { name })),
+      );
+      const succeeded = results.filter((r) => r.status === "fulfilled").length;
+      const failed = results.filter((r) => r.status === "rejected").length;
+      await queryClient.refetchQueries({ queryKey: distroKeys.list() });
       return { succeeded, failed };
     },
     onSuccess: ({ succeeded, failed }) => {

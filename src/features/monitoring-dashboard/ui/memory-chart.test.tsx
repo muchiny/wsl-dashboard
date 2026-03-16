@@ -71,4 +71,59 @@ describe("MemoryChart", () => {
     renderWithProviders(<MemoryChart data={[]} />);
     expect(screen.getByLabelText("Memory usage chart")).toBeInTheDocument();
   });
+
+  // ── Swap inline tests ──
+
+  it("does not show swap bar when showSwap is false", () => {
+    const data = [makePoint({ swapPercent: 25 })];
+    renderWithProviders(<MemoryChart data={data} />);
+    expect(screen.queryByText("Swap")).not.toBeInTheDocument();
+  });
+
+  it("does not show swap bar when showSwap is true but swap is 0%", () => {
+    const data = [makePoint({ swapPercent: 0 })];
+    renderWithProviders(<MemoryChart data={data} showSwap />);
+    expect(screen.queryByText("Swap")).not.toBeInTheDocument();
+  });
+
+  it("shows swap bar when showSwap is true and swap > 0%", () => {
+    const data = [makePoint({ swapPercent: 25.3 })];
+    renderWithProviders(<MemoryChart data={data} showSwap />);
+    expect(screen.getByText("Swap")).toBeInTheDocument();
+    expect(screen.getByText("25.3%")).toBeInTheDocument();
+  });
+
+  it("applies mauve color for low swap usage", () => {
+    const data = [makePoint({ swapPercent: 15 })];
+    renderWithProviders(<MemoryChart data={data} showSwap />);
+    const swapValue = screen.getByText("15.0%");
+    expect(swapValue.className).toContain("text-mauve");
+  });
+
+  it("applies yellow color for medium swap usage (50-79%)", () => {
+    const data = [makePoint({ swapPercent: 65 })];
+    renderWithProviders(<MemoryChart data={data} showSwap />);
+    const swapValue = screen.getByText("65.0%");
+    expect(swapValue.className).toContain("text-yellow");
+  });
+
+  it("applies red color for high swap usage (80%+)", () => {
+    const data = [makePoint({ swapPercent: 85 })];
+    renderWithProviders(<MemoryChart data={data} showSwap />);
+    const swapValue = screen.getByText("85.0%");
+    expect(swapValue.className).toContain("text-red");
+  });
+
+  it("uses latest data point for swap value", () => {
+    const data = [makePoint({ swapPercent: 10 }), makePoint({ time: "12:01", swapPercent: 30 })];
+    renderWithProviders(<MemoryChart data={data} showSwap />);
+    expect(screen.getByText("30.0%")).toBeInTheDocument();
+  });
+
+  it("handles undefined swapPercent gracefully with showSwap", () => {
+    const data = [makePoint({ swapPercent: undefined })];
+    renderWithProviders(<MemoryChart data={data} showSwap />);
+    // swapPercent defaults to 0, so no swap bar
+    expect(screen.queryByText("Swap")).not.toBeInTheDocument();
+  });
 });

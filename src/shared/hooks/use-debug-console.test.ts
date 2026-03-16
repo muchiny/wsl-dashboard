@@ -1,10 +1,23 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { renderHook } from "@testing-library/react";
 import {
   useDebugConsoleStore,
+  useDebugConsoleSetup,
   type LogEntry,
   type LogLevel,
   type LogFilter,
 } from "./use-debug-console";
+
+// ── Mocks ──
+
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn().mockResolvedValue(vi.fn()),
+}));
+
+vi.mock("@/shared/api/tauri-client", () => ({
+  tauriInvoke: vi.fn().mockResolvedValue([]),
+  onIpcTiming: vi.fn(),
+}));
 
 // ── Helpers ──
 
@@ -205,5 +218,251 @@ describe("LogFilter type", () => {
     const filters: LogFilter[] = ["ALL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"];
     expect(filters).toHaveLength(6);
     expect(filters).toContain("ALL");
+  });
+});
+
+// ── useDebugConsoleSetup hook tests ──
+
+describe("useDebugConsoleSetup", () => {
+  let origError: typeof console.error;
+  let origWarn: typeof console.warn;
+
+  beforeEach(() => {
+    // Save the real console methods before the hook replaces them
+    origError = console.error;
+    origWarn = console.warn;
+
+    useDebugConsoleStore.setState({ isOpen: false, logs: [], filter: "ALL" });
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    // Restore console methods in case the hook cleanup didn't run
+    console.error = origError;
+    console.warn = origWarn;
+  });
+
+  it("fetches existing logs on mount via tauriInvoke", async () => {
+    const { tauriInvoke } = await import("@/shared/api/tauri-client");
+
+    renderHook(() => useDebugConsoleSetup());
+
+    expect(tauriInvoke).toHaveBeenCalledWith("get_debug_logs");
+  });
+
+  it("listens for debug-log-entry events", async () => {
+    const { listen } = await import("@tauri-apps/api/event");
+
+    renderHook(() => useDebugConsoleSetup());
+
+    expect(listen).toHaveBeenCalledWith("debug-log-entry", expect.any(Function));
+  });
+
+  it("populates store with fetched logs", async () => {
+    const { tauriInvoke } = await import("@/shared/api/tauri-client");
+    const mockLogs: LogEntry[] = [
+      makeEntry({ id: 1, message: "backend log 1" }),
+      makeEntry({ id: 2, message: "backend log 2" }),
+    ];
+    vi.mocked(tauriInvoke).mockResolvedValueOnce(mockLogs);
+
+    renderHook(() => useDebugConsoleSetup());
+
+    // Wait for the async tauriInvoke promise to resolve
+    await vi.waitFor(() => {
+      expect(useDebugConsoleStore.getState().logs).toEqual(mockLogs);
+    });
+  });
+
+  it("console.error intercept adds an ERROR log entry to the store", () => {
+    renderHook(() => useDebugConsoleSetup());
+
+    // Silence the original console.error output during test
+    const currentError = console.error;
+    // The intercepted console.error calls origError internally,
+    // which is the pre-hook console.error. We can't silence that easily,
+    // but we can verify the store gets the entry.
+
+    currentError("test error message");
+
+    const logs = useDebugConsoleStore.getState().logs;
+    expect(logs.length).toBeGreaterThanOrEqual(1);
+    const errorLog = logs.find((l) => l.message.includes("test error message"));
+    expect(errorLog).toBeDefined();
+    expect(errorLog!.level).toBe("ERROR");
+    expect(errorLog!.target).toBe("frontend");
+  });
+
+  it("console.warn intercept adds a WARN log entry to the store", () => {
+    renderHook(() => useDebugConsoleSetup());
+
+    console.warn("test warning message");
+
+    const logs = useDebugConsoleStore.getState().logs;
+    const warnLog = logs.find((l) => l.message.includes("test warning message"));
+    expect(warnLog).toBeDefined();
+    expect(warnLog!.level).toBe("WARN");
+  });
+
+  it("console.warn filters out noisy 'should be greater than 0' warnings", () => {
+    renderHook(() => useDebugConsoleSetup());
+
+    console.warn("The width should be greater than 0");
+
+    const logs = useDebugConsoleStore.getState().logs;
+    const noisyLog = logs.find((l) => l.message.includes("should be greater than 0"));
+    expect(noisyLog).toBeUndefined();
+  });
+
+  it("console.warn filters out noisy 'RedrawEventsCleared' warnings", () => {
+    renderHook(() => useDebugConsoleSetup());
+
+    console.warn("RedrawEventsCleared something");
+
+    const logs = useDebugConsoleStore.getState().logs;
+    const noisyLog = logs.find((l) => l.message.includes("RedrawEventsCleared"));
+    expect(noisyLog).toBeUndefined();
+  });
+
+  it("Ctrl+Shift+D keyboard shortcut toggles the console", () => {
+    renderHook(() => useDebugConsoleSetup());
+
+    expect(useDebugConsoleStore.getState().isOpen).toBe(false);
+
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "D",
+        ctrlKey: true,
+        shiftKey: true,
+        bubbles: true,
+      }),
+    );
+
+    expect(useDebugConsoleStore.getState().isOpen).toBe(true);
+
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "D",
+        ctrlKey: true,
+        shiftKey: true,
+        bubbles: true,
+      }),
+    );
+
+    expect(useDebugConsoleStore.getState().isOpen).toBe(false);
+  });
+
+  it("does not toggle console for other keyboard shortcuts", () => {
+    renderHook(() => useDebugConsoleSetup());
+
+    // Ctrl+D without Shift
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "D",
+        ctrlKey: true,
+        shiftKey: false,
+        bubbles: true,
+      }),
+    );
+    expect(useDebugConsoleStore.getState().isOpen).toBe(false);
+
+    // Shift+D without Ctrl
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "D",
+        ctrlKey: false,
+        shiftKey: true,
+        bubbles: true,
+      }),
+    );
+    expect(useDebugConsoleStore.getState().isOpen).toBe(false);
+  });
+
+  it("cleanup restores console.error and console.warn", () => {
+    const preHookError = console.error;
+    const preHookWarn = console.warn;
+
+    const { unmount } = renderHook(() => useDebugConsoleSetup());
+
+    // After hook mounts, console methods should be replaced
+    expect(console.error).not.toBe(preHookError);
+    expect(console.warn).not.toBe(preHookWarn);
+
+    unmount();
+
+    // After unmount, console methods should be restored to what they were before the hook
+    expect(console.error).toBe(preHookError);
+    expect(console.warn).toBe(preHookWarn);
+  });
+
+  it("console.error intercept handles objects via safeStringify", () => {
+    renderHook(() => useDebugConsoleSetup());
+
+    console.error("error with object:", { key: "value" });
+
+    const logs = useDebugConsoleStore.getState().logs;
+    const errorLog = logs.find((l) => l.level === "ERROR");
+    expect(errorLog).toBeDefined();
+    expect(errorLog!.message).toContain("error with object:");
+    expect(errorLog!.message).toContain('"key":"value"');
+  });
+
+  it("console.error intercept handles non-serializable values", () => {
+    renderHook(() => useDebugConsoleSetup());
+
+    const circular: Record<string, unknown> = {};
+    circular["self"] = circular;
+    console.error("circular:", circular);
+
+    const logs = useDebugConsoleStore.getState().logs;
+    const errorLog = logs.find((l) => l.level === "ERROR");
+    expect(errorLog).toBeDefined();
+    // safeStringify falls back to String() for circular references
+    expect(errorLog!.message).toContain("circular:");
+  });
+
+  it("catches unhandled promise rejections and logs them", () => {
+    renderHook(() => useDebugConsoleSetup());
+
+    const event = new Event("unhandledrejection") as PromiseRejectionEvent;
+    Object.defineProperty(event, "reason", {
+      value: new Error("async failure"),
+    });
+    window.dispatchEvent(event);
+
+    const logs = useDebugConsoleStore.getState().logs;
+    const rejectionLog = logs.find((l) => l.message.includes("Unhandled: async failure"));
+    expect(rejectionLog).toBeDefined();
+    expect(rejectionLog!.level).toBe("ERROR");
+  });
+
+  it("catches unhandled promise rejections with non-Error reason", () => {
+    renderHook(() => useDebugConsoleSetup());
+
+    const event = new Event("unhandledrejection") as PromiseRejectionEvent;
+    Object.defineProperty(event, "reason", { value: "string rejection" });
+    window.dispatchEvent(event);
+
+    const logs = useDebugConsoleStore.getState().logs;
+    const rejectionLog = logs.find((l) => l.message.includes("Unhandled: string rejection"));
+    expect(rejectionLog).toBeDefined();
+    expect(rejectionLog!.level).toBe("ERROR");
+  });
+
+  it("catches global error events and logs them", () => {
+    renderHook(() => useDebugConsoleSetup());
+
+    const event = new ErrorEvent("error", {
+      message: "Uncaught TypeError",
+      filename: "app.js",
+      lineno: 42,
+    });
+    window.dispatchEvent(event);
+
+    const logs = useDebugConsoleStore.getState().logs;
+    const errorLog = logs.find((l) => l.message.includes("Uncaught TypeError"));
+    expect(errorLog).toBeDefined();
+    expect(errorLog!.level).toBe("ERROR");
+    expect(errorLog!.message).toContain("app.js:42");
   });
 });

@@ -171,7 +171,7 @@ export function Select({
         <div
           ref={listboxRef}
           role="listbox"
-          className="glass-dropdown animate-scale-in absolute top-full left-0 z-50 mt-1 max-h-60 w-full min-w-[160px] overflow-y-auto rounded-lg py-1 shadow-elevation-3"
+          className="glass-dropdown animate-scale-in shadow-elevation-3 absolute top-full left-0 z-50 mt-1 max-h-60 w-full min-w-[160px] overflow-y-auto rounded-lg py-1"
         >
           {allItems.map((item, index) => {
             const isSelected = item.value === value || (!item.value && !value);

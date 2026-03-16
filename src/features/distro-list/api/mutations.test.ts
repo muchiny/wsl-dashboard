@@ -8,6 +8,9 @@ import {
   useRestartDistro,
   useShutdownAll,
   useStartAll,
+  useSetDefaultDistro,
+  useResizeVhd,
+  useDeleteDistro,
 } from "./mutations";
 
 beforeEach(() => {
@@ -118,5 +121,82 @@ describe("useStartAll", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({ succeeded: 1, failed: 1 });
+  });
+});
+
+describe("useSetDefaultDistro", () => {
+  it("invokes set_default_distro with name", async () => {
+    mockInvoke.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useSetDefaultDistro(), {
+      wrapper: createWrapper(),
+    });
+
+    act(() => {
+      result.current.mutate("Ubuntu");
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockInvoke).toHaveBeenCalledWith("set_default_distro", {
+      name: "Ubuntu",
+    });
+  });
+});
+
+describe("useResizeVhd", () => {
+  it("invokes resize_vhd with name and size", async () => {
+    mockInvoke.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useResizeVhd(), {
+      wrapper: createWrapper(),
+    });
+
+    act(() => {
+      result.current.mutate({ name: "Ubuntu", size: "100GB" });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockInvoke).toHaveBeenCalledWith("resize_vhd", {
+      name: "Ubuntu",
+      size: "100GB",
+    });
+  });
+});
+
+describe("useDeleteDistro", () => {
+  it("invokes delete_distro with name and deleteSnapshots flag", async () => {
+    mockInvoke.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useDeleteDistro(), {
+      wrapper: createWrapper(),
+    });
+
+    act(() => {
+      result.current.mutate({ name: "Ubuntu", deleteSnapshots: true });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockInvoke).toHaveBeenCalledWith("delete_distro", {
+      name: "Ubuntu",
+      deleteSnapshots: true,
+    });
+  });
+
+  it("invokes delete_distro without deleting snapshots", async () => {
+    mockInvoke.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useDeleteDistro(), {
+      wrapper: createWrapper(),
+    });
+
+    act(() => {
+      result.current.mutate({ name: "Debian", deleteSnapshots: false });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockInvoke).toHaveBeenCalledWith("delete_distro", {
+      name: "Debian",
+      deleteSnapshots: false,
+    });
   });
 });

@@ -77,14 +77,15 @@ describe("DebugConsole", () => {
     renderWithProviders(<DebugConsole />);
     expect(screen.getByText("Debug Console")).toBeInTheDocument();
     // The expanded panel (with filter buttons) should not be visible
-    expect(screen.queryByTitle("Clear logs")).not.toBeInTheDocument();
+    expect(screen.queryByText("All")).not.toBeInTheDocument();
   });
 
   it("expands on toggle click and shows toolbar", () => {
     mockState.isOpen = true;
     renderWithProviders(<DebugConsole />);
-    expect(screen.getByTitle("Clear logs")).toBeInTheDocument();
-    expect(screen.getByTitle("Close")).toBeInTheDocument();
+    // Filter buttons and action buttons should be visible
+    expect(screen.getByText("All")).toBeInTheDocument();
+    expect(screen.getByText("Error")).toBeInTheDocument();
   });
 
   it("shows error badge count", () => {
@@ -111,14 +112,17 @@ describe("DebugConsole", () => {
   it("shows clear button when expanded", () => {
     mockState.isOpen = true;
     renderWithProviders(<DebugConsole />);
-    expect(screen.getByTitle("Clear logs")).toBeInTheDocument();
+    // The clear button has a red background style
+    const clearBtn = document.querySelector("button.bg-red\\/15");
+    expect(clearBtn).toBeInTheDocument();
   });
 
   it("calls clear when clear button is clicked", () => {
     mockState.isOpen = true;
     renderWithProviders(<DebugConsole />);
 
-    fireEvent.click(screen.getByTitle("Clear logs"));
+    const clearBtn = document.querySelector("button.bg-red\\/15") as HTMLElement;
+    fireEvent.click(clearBtn);
     expect(mockClear).toHaveBeenCalled();
   });
 

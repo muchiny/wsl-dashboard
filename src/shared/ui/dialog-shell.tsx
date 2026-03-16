@@ -76,7 +76,7 @@ export function DialogShell({
         aria-labelledby={ariaLabelledby}
         aria-describedby={ariaDescribedby}
         className={cn(
-          "glass-card animate-in zoom-in-95 fade-in relative z-10 mx-4 w-full rounded-2xl p-6 shadow-elevation-4",
+          "glass-card animate-in zoom-in-95 fade-in shadow-elevation-4 relative z-10 mx-4 w-full rounded-2xl p-6",
           maxWidth,
           className,
         )}

@@ -92,7 +92,7 @@ export function Header() {
 
         {/* Navigation Tabs */}
         <nav
-          className="glass-surface flex items-center gap-1 rounded-xl p-1 shadow-elevation-1"
+          className="glass-surface shadow-elevation-1 flex items-center gap-1 rounded-xl p-1"
           onMouseDown={(e) => e.stopPropagation()}
         >
           {navTabs.map((tab) => {

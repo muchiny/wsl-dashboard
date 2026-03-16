@@ -38,6 +38,7 @@ export function DistroSearchBar({ searchQuery, onSearchChange }: DistroSearchBar
         {searchQuery && (
           <button
             onClick={() => onSearchChange("")}
+            data-testid="search-clear"
             className="text-overlay-0 hover:text-text absolute top-1/2 right-2.5 -translate-y-1/2"
           >
             <X className="h-3.5 w-3.5" />

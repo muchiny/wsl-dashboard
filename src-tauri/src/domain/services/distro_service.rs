@@ -88,4 +88,66 @@ mod tests {
         let name = DistroName::new("Ubuntu").unwrap();
         assert!(service.stop(&name).await.is_ok());
     }
+
+    #[tokio::test]
+    async fn test_stop_propagates_terminate_error() {
+        let mut mock = MockWslManagerPort::new();
+        mock.expect_terminate_distro()
+            .returning(|_| Err(DomainError::WslCliError("Timed out".into())));
+
+        let service = DistroService::new(Arc::new(mock));
+        let name = DistroName::new("Ubuntu").unwrap();
+        let result = service.stop(&name).await;
+        assert!(matches!(result, Err(DomainError::WslCliError(_))));
+    }
+
+    #[tokio::test]
+    async fn test_restart_running_distro_terminates_then_starts() {
+        let mut mock = MockWslManagerPort::new();
+        let distro = make_distro("Ubuntu", DistroState::Running);
+
+        mock.expect_get_distro()
+            .returning(move |_| Ok(distro.clone()));
+        mock.expect_terminate_distro()
+            .times(1)
+            .returning(|_| Ok(()));
+        mock.expect_start_distro().times(1).returning(|_| Ok(()));
+
+        let service = DistroService::new(Arc::new(mock));
+        let name = DistroName::new("Ubuntu").unwrap();
+        assert!(service.restart(&name).await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_restart_stopped_distro_skips_terminate() {
+        let mut mock = MockWslManagerPort::new();
+        let distro = make_distro("Ubuntu", DistroState::Stopped);
+
+        mock.expect_get_distro()
+            .returning(move |_| Ok(distro.clone()));
+        // terminate should NOT be called
+        mock.expect_terminate_distro().times(0);
+        mock.expect_start_distro().times(1).returning(|_| Ok(()));
+
+        let service = DistroService::new(Arc::new(mock));
+        let name = DistroName::new("Ubuntu").unwrap();
+        assert!(service.restart(&name).await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_restart_fails_if_terminate_fails() {
+        let mut mock = MockWslManagerPort::new();
+        let distro = make_distro("Ubuntu", DistroState::Running);
+
+        mock.expect_get_distro()
+            .returning(move |_| Ok(distro.clone()));
+        mock.expect_terminate_distro()
+            .returning(|_| Err(DomainError::WslCliError("timeout".into())));
+        // start should NOT be called after terminate failure
+        mock.expect_start_distro().times(0);
+
+        let service = DistroService::new(Arc::new(mock));
+        let name = DistroName::new("Ubuntu").unwrap();
+        assert!(service.restart(&name).await.is_err());
+    }
 }

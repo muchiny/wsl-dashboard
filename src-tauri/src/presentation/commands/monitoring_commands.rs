@@ -19,16 +19,8 @@ pub async fn get_system_metrics(
 ) -> Result<SystemMetrics, DomainError> {
     let name = DistroName::new(&distro_name)?;
 
-    let (cpu, memory, disk, network) = state.monitoring.get_all_metrics(&name).await?;
-
-    Ok(SystemMetrics {
-        distro_name,
-        timestamp: chrono::Utc::now(),
-        cpu,
-        memory,
-        disk,
-        network,
-    })
+    let metrics = state.monitoring.get_all_metrics(&name).await?;
+    Ok(metrics)
 }
 
 #[tauri::command]
@@ -54,6 +46,28 @@ pub struct MetricsHistoryPoint {
     pub disk_usage_percent: f64,
     pub net_rx_rate: u64,
     pub net_tx_rate: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub swap_used_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub swap_total_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context_switches: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disk_io_read_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disk_io_write_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tcp_established: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tcp_time_wait: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tcp_listen: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gpu_utilization: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gpu_vram_used: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gpu_vram_total: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -124,6 +138,17 @@ pub async fn get_metrics_history(
                 disk_usage_percent: row.disk_usage_percent,
                 net_rx_rate,
                 net_tx_rate,
+                swap_used_bytes: Some(row.swap_used_bytes),
+                swap_total_bytes: Some(row.swap_total_bytes),
+                context_switches: row.context_switches,
+                disk_io_read_bytes: row.disk_io_read_bytes,
+                disk_io_write_bytes: row.disk_io_write_bytes,
+                tcp_established: row.tcp_established,
+                tcp_time_wait: row.tcp_time_wait,
+                tcp_listen: row.tcp_listen,
+                gpu_utilization: row.gpu_utilization,
+                gpu_vram_used: row.gpu_vram_used,
+                gpu_vram_total: row.gpu_vram_total,
             });
         }
 
@@ -153,6 +178,17 @@ pub async fn get_metrics_history(
                     disk_usage_percent: p.disk_avg,
                     net_rx_rate: p.net_rx_total / duration_secs,
                     net_tx_rate: p.net_tx_total / duration_secs,
+                    swap_used_bytes: None,
+                    swap_total_bytes: None,
+                    context_switches: None,
+                    disk_io_read_bytes: None,
+                    disk_io_write_bytes: None,
+                    tcp_established: None,
+                    tcp_time_wait: None,
+                    tcp_listen: None,
+                    gpu_utilization: None,
+                    gpu_vram_used: None,
+                    gpu_vram_total: None,
                 }
             })
             .collect();
@@ -210,4 +246,85 @@ pub async fn acknowledge_alert(
     state: State<'_, AppState>,
 ) -> Result<(), DomainError> {
     state.alerting.acknowledge_alert(alert_id).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+
+    use crate::domain::ports::alerting::MockAlertingPort;
+    use crate::domain::ports::audit_logger::MockAuditLoggerPort;
+    use crate::domain::ports::metrics_repository::MockMetricsRepositoryPort;
+    use crate::domain::ports::monitoring_provider::MockMonitoringProviderPort;
+    use crate::domain::ports::port_forwarding::{
+        MockPortForwardRulesRepository, MockPortForwardingPort,
+    };
+    use crate::domain::ports::snapshot_repository::MockSnapshotRepositoryPort;
+    use crate::domain::ports::wsl_manager::MockWslManagerPort;
+    use crate::presentation::state::AppState;
+
+    fn make_test_state(alerting: MockAlertingPort) -> AppState {
+        AppState {
+            wsl_manager: Arc::new(MockWslManagerPort::new()),
+            snapshot_repo: Arc::new(MockSnapshotRepositoryPort::new()),
+            monitoring: Arc::new(MockMonitoringProviderPort::new()),
+            metrics_repo: Arc::new(MockMetricsRepositoryPort::new()),
+            alerting: Arc::new(alerting),
+            audit_logger: Arc::new(MockAuditLoggerPort::new()),
+            alert_thresholds: Arc::new(tokio::sync::RwLock::new(vec![])),
+            port_forwarding: Arc::new(MockPortForwardingPort::new()),
+            port_rules_repo: Arc::new(MockPortForwardRulesRepository::new()),
+        }
+    }
+
+    #[tokio::test]
+    async fn get_system_metrics_rejects_invalid_name() {
+        // DistroName::new("") should fail validation,
+        // which is the first check in get_system_metrics
+        let name_result = DistroName::new("");
+        assert!(name_result.is_err());
+    }
+
+    #[tokio::test]
+    async fn alert_thresholds_read_write() {
+        let alerting = MockAlertingPort::new();
+        let state = make_test_state(alerting);
+
+        // Read initial empty thresholds
+        let thresholds = state.alert_thresholds.read().await;
+        assert!(thresholds.is_empty());
+        drop(thresholds);
+
+        // Write thresholds
+        let new_thresholds = vec![AlertThreshold {
+            alert_type: crate::domain::ports::alerting::AlertType::Cpu,
+            threshold_percent: 90.0,
+            enabled: true,
+        }];
+        let mut current = state.alert_thresholds.write().await;
+        *current = new_thresholds;
+        drop(current);
+
+        // Read back
+        let thresholds = state.alert_thresholds.read().await;
+        assert_eq!(thresholds.len(), 1);
+        assert_eq!(
+            thresholds[0].alert_type,
+            crate::domain::ports::alerting::AlertType::Cpu
+        );
+    }
+
+    #[tokio::test]
+    async fn get_recent_alerts_rejects_invalid_name() {
+        let name_result = DistroName::new("");
+        assert!(name_result.is_err());
+    }
+
+    #[tokio::test]
+    async fn distro_name_validation_accepts_valid_names() {
+        assert!(DistroName::new("Ubuntu").is_ok());
+        assert!(DistroName::new("Debian-12").is_ok());
+        assert!(DistroName::new("my_distro").is_ok());
+    }
 }

@@ -2,7 +2,8 @@ use async_trait::async_trait;
 use std::sync::Arc;
 
 use crate::domain::entities::monitoring::{
-    CpuMetrics, DiskMetrics, MemoryMetrics, NetworkMetrics, ProcessInfo,
+    CpuMetrics, DiskMetrics, GpuMetrics, MemoryMetrics, NetworkMetrics, ProcessInfo,
+    SystemMetrics, TcpConnectionMetrics,
 };
 use crate::domain::errors::DomainError;
 use crate::domain::ports::monitoring_provider::MonitoringProviderPort;
@@ -113,6 +114,76 @@ pub fn parse_ps_aux(text: &str) -> Vec<ProcessInfo> {
         }
     }
     processes
+}
+
+/// Parse the "ctxt" line from /proc/stat to get total context switches.
+pub fn parse_context_switches(stat_text: &str) -> Option<u64> {
+    for line in stat_text.lines() {
+        if let Some(rest) = line.strip_prefix("ctxt ") {
+            return rest.trim().parse().ok();
+        }
+    }
+    None
+}
+
+/// Parse /proc/diskstats output into cumulative (read_bytes, write_bytes).
+/// Sums sectors across all real block devices (skipping loop/ram/dm devices).
+/// Sector size is 512 bytes.
+pub fn parse_diskstats(text: &str) -> (u64, u64) {
+    let mut read_bytes = 0u64;
+    let mut write_bytes = 0u64;
+    for line in text.lines() {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        // /proc/diskstats format: major minor name rd_ios rd_merges rd_sectors rd_ticks
+        //                         wr_ios wr_merges wr_sectors wr_ticks ...
+        if parts.len() >= 10 {
+            let name = parts[2];
+            // Skip loop, ram, and dm devices
+            if name.starts_with("loop") || name.starts_with("ram") || name.starts_with("dm-") {
+                continue;
+            }
+            let rd_sectors: u64 = parts[5].parse().unwrap_or(0);
+            let wr_sectors: u64 = parts[9].parse().unwrap_or(0);
+            read_bytes = read_bytes.saturating_add(rd_sectors.saturating_mul(512));
+            write_bytes = write_bytes.saturating_add(wr_sectors.saturating_mul(512));
+        }
+    }
+    (read_bytes, write_bytes)
+}
+
+/// Parse TCP connection state counts from awk output: "established time_wait listen".
+pub fn parse_tcp_connections(text: &str) -> TcpConnectionMetrics {
+    let parts: Vec<&str> = text.split_whitespace().collect();
+    TcpConnectionMetrics {
+        established: parts.first().and_then(|s| s.parse().ok()).unwrap_or(0),
+        time_wait: parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(0),
+        listen: parts.get(2).and_then(|s| s.parse().ok()).unwrap_or(0),
+    }
+}
+
+/// Parse nvidia-smi CSV output into GpuMetrics.
+pub fn parse_nvidia_smi(text: &str) -> Option<GpuMetrics> {
+    let line = text.lines().next()?.trim();
+    if line.is_empty() {
+        return None;
+    }
+    let parts: Vec<&str> = line.split(',').map(|s| s.trim()).collect();
+    if parts.len() >= 3 {
+        Some(GpuMetrics {
+            utilization_percent: parts[0].parse().ok(),
+            // nvidia-smi reports memory in MiB
+            vram_used_bytes: parts[1]
+                .parse::<u64>()
+                .ok()
+                .map(|v| v.saturating_mul(1024 * 1024)),
+            vram_total_bytes: parts[2]
+                .parse::<u64>()
+                .ok()
+                .map(|v| v.saturating_mul(1024 * 1024)),
+        })
+    } else {
+        None
+    }
 }
 
 impl ProcFsMonitoringAdapter {
@@ -273,9 +344,8 @@ impl MonitoringProviderPort for ProcFsMonitoringAdapter {
     async fn get_all_metrics(
         &self,
         distro: &DistroName,
-    ) -> Result<(CpuMetrics, MemoryMetrics, DiskMetrics, NetworkMetrics), DomainError> {
-        // Single wsl.exe call: two /proc/stat snapshots 200ms apart + loadavg + meminfo + df + net/dev.
-        // Reduces 4 process spawns to 1.
+    ) -> Result<SystemMetrics, DomainError> {
+        // Single wsl.exe call: two /proc/stat snapshots 200ms apart + loadavg + meminfo + df + net/dev + diskstats + tcp.
         let output = self
             .wsl_manager
             .exec_in_distro(
@@ -293,6 +363,10 @@ impl MonitoringProviderPort for ProcFsMonitoringAdapter {
                     " && df -B1 / | tail -1",
                     " && echo __NEXUS_SEP__",
                     " && cat /proc/net/dev",
+                    " && echo __NEXUS_SEP__",
+                    " && cat /proc/diskstats 2>/dev/null || echo ''",
+                    " && echo __NEXUS_SEP__",
+                    " && awk '/^ *[0-9]/{s=substr($4,1,2); e+=(s==\"01\"); t+=(s==\"06\"); l+=(s==\"0A\")} END{print e,t,l}' /proc/net/tcp 2>/dev/null || echo '0 0 0'",
                 ),
             )
             .await?;
@@ -310,6 +384,8 @@ impl MonitoringProviderPort for ProcFsMonitoringAdapter {
         // Section 3: /proc/meminfo
         // Section 4: df output
         // Section 5: /proc/net/dev
+        // Section 6: /proc/diskstats (optional)
+        // Section 7: TCP connection counts (optional)
 
         let stat1 = sections[0];
         let stat2 = sections[1];
@@ -361,6 +437,9 @@ impl MonitoringProviderPort for ProcFsMonitoringAdapter {
             load_average,
         };
 
+        // Context switches from /proc/stat (section 1, the more recent sample)
+        let context_switches = parse_context_switches(stat2);
+
         // Memory metrics
         let memory = parse_meminfo(sections[3]);
 
@@ -372,7 +451,27 @@ impl MonitoringProviderPort for ProcFsMonitoringAdapter {
             interfaces: parse_proc_net_dev(sections[5]),
         };
 
-        Ok((cpu, memory, disk, network))
+        // Disk I/O (cumulative bytes — rates computed by the collector from deltas)
+        let disk_io_raw = sections.get(6).map(|s| parse_diskstats(s));
+
+        // TCP connections
+        let tcp_connections = sections.get(7).map(|s| parse_tcp_connections(s));
+
+        Ok(SystemMetrics {
+            distro_name: distro.as_str().to_string(),
+            timestamp: chrono::Utc::now(),
+            cpu,
+            memory,
+            disk,
+            network,
+            context_switches,
+            disk_io: disk_io_raw.map(|(r, w)| crate::domain::entities::monitoring::DiskIoMetrics {
+                read_bytes_per_sec: r,
+                write_bytes_per_sec: w,
+            }),
+            tcp_connections,
+            gpu: None, // GPU probe is separate
+        })
     }
 }
 

@@ -78,18 +78,18 @@ impl DeleteDistroHandler {
         // 5. Remove install directory (best-effort)
         if let Some(ref path) = install_path {
             let install = std::path::Path::new(path);
-            if install.exists() {
+            if install.exists()
+                && let Err(e) = std::fs::remove_dir_all(install)
+            {
+                tracing::warn!(
+                    path = %path,
+                    error = %e,
+                    "failed to remove install directory, retrying after shutdown"
+                );
+                let _ = self.wsl_manager.shutdown_all().await;
+                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
                 if let Err(e) = std::fs::remove_dir_all(install) {
-                    tracing::warn!(
-                        path = %path,
-                        error = %e,
-                        "failed to remove install directory, retrying after shutdown"
-                    );
-                    let _ = self.wsl_manager.shutdown_all().await;
-                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-                    if let Err(e) = std::fs::remove_dir_all(install) {
-                        tracing::error!(path = %path, error = %e, "install directory cleanup failed");
-                    }
+                    tracing::error!(path = %path, error = %e, "install directory cleanup failed");
                 }
             }
         }
@@ -310,8 +310,7 @@ mod tests {
         wsl.expect_unregister_distro().returning(|_| Ok(()));
 
         let mut snap = MockSnapshotRepositoryPort::new();
-        snap.expect_delete_by_distro()
-            .returning(|_| Ok(Vec::new()));
+        snap.expect_delete_by_distro().returning(|_| Ok(Vec::new()));
 
         let mut metrics = MockMetricsRepositoryPort::new();
         metrics.expect_delete_by_distro().returning(|_| Ok(()));

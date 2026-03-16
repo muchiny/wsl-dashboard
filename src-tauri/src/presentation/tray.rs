@@ -16,7 +16,11 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let menu = build_static_menu(app)?;
 
     TrayIconBuilder::new()
-        .icon(app.default_window_icon().cloned().unwrap())
+        .icon(
+            app.default_window_icon()
+                .cloned()
+                .ok_or("No default window icon configured")?,
+        )
         .tooltip("WSL Nexus")
         .menu(&menu)
         .on_menu_event(handle_menu_event)
@@ -46,7 +50,13 @@ fn build_static_menu(app: &tauri::App) -> Result<Menu<tauri::Wry>, tauri::Error>
 /// Rebuild the tray menu with live distro information.
 pub async fn update_tray_menu(app_handle: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let state = app_handle.state::<AppState>();
-    let distros = state.wsl_manager.list_distros().await.unwrap_or_default();
+    let distros = match state.wsl_manager.list_distros().await {
+        Ok(d) => d,
+        Err(e) => {
+            tracing::warn!("Failed to list distros for tray menu: {e}");
+            vec![]
+        }
+    };
 
     let tray = app_handle.tray_by_id("main").or_else(|| {
         // Tauri v2 default tray id is the first one built
@@ -142,7 +152,7 @@ fn handle_menu_event(app_handle: &AppHandle, event: MenuEvent) {
                 if let Err(e) = state.wsl_manager.shutdown_all().await {
                     tracing::error!("Tray shutdown_all failed: {e}");
                 } else {
-                    let _ = state.audit_logger.log("wsl.shutdown_all", "all").await;
+                    let _ = state.audit("wsl.shutdown_all", "all").await;
                     let _ = update_tray_menu(&handle).await;
                 }
             });
@@ -158,7 +168,7 @@ fn handle_menu_event(app_handle: &AppHandle, event: MenuEvent) {
                         if let Err(e) = state.wsl_manager.start_distro(&dn).await {
                             tracing::error!("Tray start {name} failed: {e}");
                         } else {
-                            let _ = state.audit_logger.log("distro.start", &name).await;
+                            let _ = state.audit("distro.start", &name).await;
                             let _ = update_tray_menu(&handle).await;
                         }
                     }
@@ -172,7 +182,7 @@ fn handle_menu_event(app_handle: &AppHandle, event: MenuEvent) {
                         if let Err(e) = state.wsl_manager.terminate_distro(&dn).await {
                             tracing::error!("Tray stop {name} failed: {e}");
                         } else {
-                            let _ = state.audit_logger.log("distro.stop", &name).await;
+                            let _ = state.audit("distro.stop", &name).await;
                             let _ = update_tray_menu(&handle).await;
                         }
                     }

@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { useLocaleStore } from "./use-locale-store";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { renderHook } from "@testing-library/react";
+import { useLocaleStore, useLocaleSync } from "./use-locale-store";
 
 describe("useLocaleStore", () => {
   beforeEach(() => {
@@ -42,6 +43,20 @@ describe("useLocaleStore", () => {
         useLocaleStore.getState().setLocale(loc);
         expect(useLocaleStore.getState().locale).toBe(loc);
       }
+    });
+  });
+});
+
+describe("useLocaleSync", () => {
+  beforeEach(() => {
+    useLocaleStore.setState({ locale: "en" });
+  });
+
+  it("sets lang attribute on document element", async () => {
+    renderHook(() => useLocaleSync());
+    // applyLocale is async, wait for it
+    await vi.waitFor(() => {
+      expect(document.documentElement.getAttribute("lang")).toBe("en");
     });
   });
 });

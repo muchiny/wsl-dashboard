@@ -80,7 +80,10 @@ export function TerminalPanel() {
   return (
     <div
       ref={panelRef}
-      className={cn("glass-panel flex flex-col border-t transition-[height] duration-200 ease-out", !isOpen && "h-8")}
+      className={cn(
+        "glass-panel flex flex-col border-t transition-[height] duration-200 ease-out",
+        !isOpen && "h-8",
+      )}
       style={isOpen ? { height: panelHeight } : undefined}
     >
       {/* Resize handle with grip indicator */}
@@ -108,7 +111,11 @@ export function TerminalPanel() {
             aria-label={isOpen ? t("terminal.minimize") : t("terminal.expand")}
             data-testid="terminal-toggle"
           >
-            {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            {isOpen ? (
+              <ChevronDown className="h-3.5 w-3.5" />
+            ) : (
+              <Maximize2 className="h-3.5 w-3.5" />
+            )}
           </button>
         </div>
       </div>

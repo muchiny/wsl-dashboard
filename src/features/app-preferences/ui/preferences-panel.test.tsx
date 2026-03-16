@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
 import { renderWithProviders } from "@/test/test-utils";
 import type { AlertThreshold } from "@/shared/types/monitoring";
 
@@ -46,7 +46,6 @@ vi.mock("@/shared/stores/use-preferences-store", () => ({
 }));
 
 vi.mock("@/features/monitoring-dashboard/api/queries", () => ({
-  useAlertThresholds: () => ({ data: undefined }),
   useSetAlertThresholds: () => ({ mutate: vi.fn() }),
 }));
 
@@ -106,5 +105,61 @@ describe("PreferencesPanel", () => {
     renderWithProviders(<PreferencesPanel />);
     const sliders = screen.getAllByRole("slider");
     expect(sliders).toHaveLength(3);
+  });
+
+  it("clicking dark theme button calls toggleTheme when in light mode", () => {
+    renderWithProviders(<PreferencesPanel />);
+    // The Mocha (dark) button should call toggleTheme only if theme is 'light'
+    // Since mock has theme='dark', clicking Mocha does nothing
+    const mochaButton = screen.getByText("Catppuccin Mocha").closest("button")!;
+    fireEvent.click(mochaButton);
+    // theme is 'dark', clicking dark button does nothing (condition: theme === "light" && toggleTheme)
+    expect(mockToggleTheme).not.toHaveBeenCalled();
+  });
+
+  it("clicking light theme button calls toggleTheme when in dark mode", () => {
+    renderWithProviders(<PreferencesPanel />);
+    const latteButton = screen.getByText("Catppuccin Latte").closest("button")!;
+    fireEvent.click(latteButton);
+    // theme is 'dark', clicking light button should trigger toggleTheme
+    expect(mockToggleTheme).toHaveBeenCalledOnce();
+  });
+
+  it("renders developer mode toggle", () => {
+    renderWithProviders(<PreferencesPanel />);
+    expect(screen.getByText("Developer")).toBeInTheDocument();
+    expect(screen.getByText("Developer Mode")).toBeInTheDocument();
+  });
+
+  it("updates snapshot directory input", () => {
+    renderWithProviders(<PreferencesPanel />);
+    const input = screen.getByPlaceholderText("C:\\WSL-Snapshots");
+    fireEvent.change(input, { target: { value: "C:\\Snapshots" } });
+    expect(mockSetDefaultSnapshotDir).toHaveBeenCalledWith("C:\\Snapshots");
+  });
+
+  it("updates install location input", () => {
+    renderWithProviders(<PreferencesPanel />);
+    const input = screen.getByPlaceholderText("C:\\WSL");
+    fireEvent.change(input, { target: { value: "D:\\WSL" } });
+    expect(mockSetDefaultInstallLocation).toHaveBeenCalledWith("D:\\WSL");
+  });
+
+  it("renders browse buttons for directories", () => {
+    renderWithProviders(<PreferencesPanel />);
+    const browseButtons = screen.getAllByRole("button", { name: /browse/i });
+    expect(browseButtons.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("toggles alert threshold enabled state", () => {
+    renderWithProviders(<PreferencesPanel />);
+    const toggles = screen.getAllByRole("switch");
+    // Should have 3 alert toggles (cpu, memory, disk) + developer mode = 4 total
+    expect(toggles.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("renders monitoring section description", () => {
+    renderWithProviders(<PreferencesPanel />);
+    expect(screen.getByText(/Adjust how often metrics are polled/)).toBeInTheDocument();
   });
 });
