@@ -14,6 +14,30 @@ pub struct RestoreSnapshotCommand {
     pub install_location: String,
 }
 
+/// Remove `path` (and contents) by polling until it is gone or `timeout` elapses.
+/// On Windows the directory's `ext4.vhdx` may be briefly held by `wslservice.exe`
+/// after `wsl --shutdown`; retrying on an interval is more reliable than a single
+/// fixed sleep.
+async fn remove_install_dir_until_gone(
+    path: &std::path::Path,
+    timeout: std::time::Duration,
+    interval: std::time::Duration,
+) -> std::io::Result<()> {
+    let start = std::time::Instant::now();
+    loop {
+        match std::fs::remove_dir_all(path) {
+            Ok(()) => return Ok(()),
+            Err(_) if !path.exists() => return Ok(()),
+            Err(e) => {
+                if start.elapsed() >= timeout {
+                    return Err(e);
+                }
+                tokio::time::sleep(interval).await;
+            }
+        }
+    }
+}
+
 pub struct RestoreSnapshotHandler {
     wsl_manager: Arc<dyn WslManagerPort>,
     snapshot_repo: Arc<dyn SnapshotRepositoryPort>,
@@ -141,7 +165,10 @@ impl RestoreSnapshotHandler {
             // post-import "canary gone" signal is meaningless.
             match self
                 .wsl_manager
-                .exec_in_distro(&snapshot.distro_name, &format!("cat {} 2>/dev/null", canary_path))
+                .exec_in_distro(
+                    &snapshot.distro_name,
+                    &format!("cat {} 2>/dev/null", canary_path),
+                )
                 .await
             {
                 Ok(c) if c.trim() == canary_id => {
@@ -226,26 +253,30 @@ impl RestoreSnapshotHandler {
                     "removing install directory before import: {}",
                     install_location
                 );
-                if let Err(e) = std::fs::remove_dir_all(install_path) {
-                    // VHDX still locked — try another full shutdown and retry
-                    tracing::warn!(
-                        "remove_dir_all failed ({}), forcing WSL shutdown and retrying",
-                        e
-                    );
+                if let Err(e) = remove_install_dir_until_gone(
+                    install_path,
+                    std::time::Duration::from_secs(30),
+                    std::time::Duration::from_secs(2),
+                )
+                .await
+                {
+                    tracing::warn!("dir removal failed ({}); forcing shutdown and retrying", e);
                     let _ = self.wsl_manager.shutdown_all().await;
-                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-                    std::fs::remove_dir_all(install_path).map_err(|e| {
+                    remove_install_dir_until_gone(
+                        install_path,
+                        std::time::Duration::from_secs(30),
+                        std::time::Duration::from_secs(2),
+                    )
+                    .await
+                    .map_err(|e| {
                         DomainError::SnapshotError(format!(
                             "Cannot delete install directory '{}': {}. \
-                             Close all WSL sessions and try again.",
+                             Close all WSL sessions (and Docker Desktop) and try again.",
                             install_location, e
                         ))
                     })?;
-                    tracing::warn!(
-                        "install directory removed after WSL shutdown: {}",
-                        install_location
-                    );
                 }
+                tracing::warn!("install directory removed: {}", install_location);
             }
 
             // Recreate empty directory for wsl --import
@@ -466,7 +497,10 @@ impl RestoreSnapshotHandler {
                     ));
                 }
                 _ => {
-                    tracing::warn!("canary gone (good): {} absent — filesystem replaced", canary_path);
+                    tracing::warn!(
+                        "canary gone (good): {} absent — filesystem replaced",
+                        canary_path
+                    );
                 }
             }
         }
@@ -679,11 +713,15 @@ mod tests {
             .returning(move |_| Ok(snap.clone()));
 
         let mut wsl_mock = MockWslManagerPort::new();
-        wsl_mock.expect_get_distro_install_path().returning(|_| Ok(String::new()));
+        wsl_mock
+            .expect_get_distro_install_path()
+            .returning(|_| Ok(String::new()));
         wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
         wsl_mock.expect_shutdown_all().returning(|| Ok(()));
         wsl_mock.expect_unregister_distro().returning(|_| Ok(()));
-        wsl_mock.expect_import_distro().returning(|_, _, _, _| Ok(()));
+        wsl_mock
+            .expect_import_distro()
+            .returning(|_, _, _, _| Ok(()));
         wsl_mock.expect_get_distro().returning(|name| {
             Ok(crate::domain::entities::distro::Distro::new(
                 name.clone(),
@@ -735,14 +773,20 @@ mod tests {
 
         let mut repo_mock = MockSnapshotRepositoryPort::new();
         let snap = make_snapshot(tar.to_str().unwrap());
-        repo_mock.expect_get_by_id().returning(move |_| Ok(snap.clone()));
+        repo_mock
+            .expect_get_by_id()
+            .returning(move |_| Ok(snap.clone()));
 
         let mut wsl_mock = MockWslManagerPort::new();
-        wsl_mock.expect_get_distro_install_path().returning(|_| Ok(String::new()));
+        wsl_mock
+            .expect_get_distro_install_path()
+            .returning(|_| Ok(String::new()));
         wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
         wsl_mock.expect_shutdown_all().returning(|| Ok(()));
         wsl_mock.expect_unregister_distro().returning(|_| Ok(()));
-        wsl_mock.expect_import_distro().returning(|_, _, _, _| Ok(()));
+        wsl_mock
+            .expect_import_distro()
+            .returning(|_, _, _, _| Ok(()));
         wsl_mock.expect_get_distro().returning(|name| {
             Ok(crate::domain::entities::distro::Distro::new(
                 name.clone(),
@@ -794,7 +838,9 @@ mod tests {
 
         let mut repo_mock = MockSnapshotRepositoryPort::new();
         let snap = make_snapshot(tar.to_str().unwrap());
-        repo_mock.expect_get_by_id().returning(move |_| Ok(snap.clone()));
+        repo_mock
+            .expect_get_by_id()
+            .returning(move |_| Ok(snap.clone()));
 
         let mut wsl_mock = MockWslManagerPort::new();
         let resolved = real_dir_str.clone();
@@ -848,6 +894,23 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_remove_install_dir_until_gone_succeeds_immediately() {
+        let dir = std::env::temp_dir().join("restore_remove_helper_dir");
+        std::fs::create_dir_all(dir.join("sub")).unwrap();
+        std::fs::write(dir.join("sub/f"), b"x").unwrap();
+
+        let res = remove_install_dir_until_gone(
+            &dir,
+            std::time::Duration::from_secs(5),
+            std::time::Duration::from_millis(50),
+        )
+        .await;
+
+        assert!(res.is_ok(), "removable dir should be removed: {res:?}");
+        assert!(!dir.exists());
+    }
+
+    #[tokio::test]
     async fn test_restore_overwrite_unregister_failure_propagates() {
         let tmp = std::env::temp_dir().join("test_restore_unreg_fail.tar");
         std::fs::write(&tmp, b"test").unwrap();
@@ -859,7 +922,9 @@ mod tests {
             .returning(move |_| Ok(snap.clone()));
 
         let mut wsl_mock = MockWslManagerPort::new();
-        wsl_mock.expect_get_distro_install_path().returning(|_| Ok(String::new()));
+        wsl_mock
+            .expect_get_distro_install_path()
+            .returning(|_| Ok(String::new()));
         wsl_mock
             .expect_exec_in_distro()
             .returning(|_, _| Ok(String::new()));
