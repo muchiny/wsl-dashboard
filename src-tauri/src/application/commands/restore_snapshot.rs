@@ -800,9 +800,8 @@ mod tests {
         wsl_mock.expect_exec_in_distro().returning(|_name, cmd| {
             if cmd.contains("cat /var/tmp/.snapshot-marker") {
                 Ok("snapshot-marker-snap-001".to_string())
-            } else if cmd.contains(".restore-canary-") {
-                Ok(String::new())
             } else {
+                // Canary write read-back returns empty => never confirmed.
                 Ok(String::new())
             }
         });
