@@ -367,27 +367,38 @@ impl RestoreSnapshotHandler {
             );
         }
 
-        // Verify snapshot marker to prove the imported filesystem is from the
-        // snapshot tar/vhdx. Marker lives in /var/tmp/ (persists across reboots).
-        // In overwrite mode, a missing marker is a fatal error — it means the
-        // imported filesystem contains stale data, not the snapshot.
+        // Verify the snapshot marker EQUALS this snapshot's marker. The marker is
+        // written at snapshot time as `snapshot-marker-{id}` (create_snapshot.rs).
+        // A stale (un-replaced) filesystem from a *previously* snapshotted distro
+        // still carries an OLD marker, so a non-empty check is not enough — we must
+        // compare the exact value.
+        let expected_marker = format!("snapshot-marker-{}", snapshot.id);
         match self
             .wsl_manager
             .exec_in_distro(&target_name, "cat /var/tmp/.snapshot-marker 2>/dev/null")
             .await
         {
-            Ok(marker) if !marker.trim().is_empty() => {
+            Ok(marker) if marker.trim() == expected_marker => {
                 tracing::info!("snapshot marker verified: {}", marker.trim());
             }
+            Ok(marker) if matches!(cmd.mode, RestoreMode::Overwrite) => {
+                return Err(DomainError::SnapshotError(format!(
+                    "Restore verification failed: snapshot marker mismatch \
+                     (expected '{}', found '{}'). The imported filesystem is stale, \
+                     not from this snapshot. Run 'wsl --shutdown' and retry.",
+                    expected_marker,
+                    marker.trim()
+                )));
+            }
             _ if matches!(cmd.mode, RestoreMode::Overwrite) => {
-                return Err(DomainError::SnapshotError(
-                    "Restore verification failed: snapshot marker not found in \
-                     imported filesystem. The restore may have used stale data."
-                        .into(),
-                ));
+                return Err(DomainError::SnapshotError(format!(
+                    "Restore verification failed: snapshot marker '{}' not found in \
+                     the imported filesystem. The restore may have used stale data.",
+                    expected_marker
+                )));
             }
             _ => {
-                tracing::warn!("snapshot marker not found (clone mode, non-fatal)");
+                tracing::warn!("snapshot marker absent or mismatched (clone mode, non-fatal)");
             }
         }
 
@@ -614,6 +625,66 @@ mod tests {
 
         let _ = std::fs::remove_file(&tmp);
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_overwrite_rejects_stale_marker_mismatch() {
+        let dir = std::env::temp_dir().join("restore_stale_marker_dir");
+        std::fs::create_dir_all(&dir).unwrap();
+        let tar = std::env::temp_dir().join("restore_stale_marker.tar");
+        std::fs::write(&tar, b"SNAPSHOT-DATA").unwrap();
+
+        let mut repo_mock = MockSnapshotRepositoryPort::new();
+        let snap = make_snapshot(tar.to_str().unwrap());
+        repo_mock
+            .expect_get_by_id()
+            .returning(move |_| Ok(snap.clone()));
+
+        let mut wsl_mock = MockWslManagerPort::new();
+        wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
+        wsl_mock.expect_shutdown_all().returning(|| Ok(()));
+        wsl_mock.expect_unregister_distro().returning(|_| Ok(()));
+        wsl_mock.expect_import_distro().returning(|_, _, _, _| Ok(()));
+        wsl_mock.expect_get_distro().returning(|name| {
+            Ok(crate::domain::entities::distro::Distro::new(
+                name.clone(),
+                crate::domain::value_objects::DistroState::from_wsl_output("Running").unwrap(),
+                crate::domain::value_objects::WslVersion::V2,
+                false,
+            ))
+        });
+        wsl_mock.expect_exec_in_distro().returning(|_name, cmd| {
+            if cmd.contains("cat /var/tmp/.snapshot-marker") {
+                Ok("snapshot-marker-OLD-999".to_string())
+            } else {
+                Ok(String::new())
+            }
+        });
+
+        let audit_mock = MockAuditLoggerPort::new();
+
+        let handler = RestoreSnapshotHandler::new(
+            Arc::new(wsl_mock),
+            Arc::new(repo_mock),
+            Arc::new(audit_mock),
+        );
+        let result = handler
+            .handle(RestoreSnapshotCommand {
+                snapshot_id: SnapshotId::from_string("snap-001".into()),
+                mode: RestoreMode::Overwrite,
+                install_location: dir.to_str().unwrap().to_string(),
+            })
+            .await;
+
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_file(&tar);
+
+        let err = result.expect_err("stale marker must be rejected");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("marker") && (msg.contains("mismatch") || msg.contains("stale")),
+            "expected marker-mismatch error, got: {msg}"
+        );
     }
 
     #[tokio::test]
