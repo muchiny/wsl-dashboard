@@ -42,6 +42,13 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_display_outputs_version_digit() {
+        // Kills mutant replacing Display::fmt body with Ok(Default::default()) (empty output).
+        assert_eq!(WslVersion::V1.to_string(), "1");
+        assert_eq!(WslVersion::V2.to_string(), "2");
+    }
+
+    #[test]
     fn test_parse_v1() {
         assert_eq!(WslVersion::from_str_version("1").unwrap(), WslVersion::V1);
     }

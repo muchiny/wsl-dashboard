@@ -38,6 +38,14 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_as_ref_returns_inner_str() {
+        // Kills mutants replacing AsRef::as_ref body with "" / "xyzzy".
+        let name = DistroName::new("Ubuntu").unwrap();
+        let r: &str = name.as_ref();
+        assert_eq!(r, "Ubuntu");
+    }
+
+    #[test]
     fn test_valid_distro_name() {
         let name = DistroName::new("Ubuntu-24.04").unwrap();
         assert_eq!(name.as_str(), "Ubuntu-24.04");

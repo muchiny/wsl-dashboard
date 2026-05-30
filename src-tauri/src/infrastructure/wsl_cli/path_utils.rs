@@ -84,6 +84,13 @@ mod tests {
     use crate::application::path_utils::windows_to_linux_path;
 
     #[test]
+    fn test_linux_to_windows_path_mnt() {
+        // Kills mutants: empty/"xyzzy" return body, and drive.len() == 1 -> != 1
+        // (the != mutant skips the /mnt branch and returns the path unchanged).
+        assert_eq!(linux_to_windows_path("/mnt/c/Users/foo"), r"C:\Users\foo");
+    }
+
+    #[test]
     fn test_windows_to_linux_path_basic() {
         assert_eq!(windows_to_linux_path(r"C:\Users\foo"), "/mnt/c/Users/foo");
     }
