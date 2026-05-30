@@ -1,0 +1,37 @@
+# Normalize all text files to LF in the repo and working tree.
+# Critical: Rust parsers (parse_meminfo, parse_reg_basepath, parse_df, ...) split
+# on "\n". A CRLF injected by a Windows checkout (core.autocrlf=true) would break
+# line-oriented parsing and test fixtures. Force LF everywhere, on every OS.
+* text=auto eol=lf
+
+# Explicit source/text types (LF)
+*.rs       text eol=lf
+*.toml     text eol=lf
+*.ts       text eol=lf
+*.tsx      text eol=lf
+*.js       text eol=lf
+*.jsx      text eol=lf
+*.json     text eol=lf
+*.css      text eol=lf
+*.html     text eol=lf
+*.md       text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.sh       text eol=lf
+*.lock     text eol=lf
+
+# Binary assets — never touch
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.ico      binary
+*.icns     binary
+*.woff     binary
+*.woff2    binary
+*.ttf      binary
+*.otf      binary
+*.wasm     binary
+*.msi      binary
+*.exe      binary
+*.dll      binary
