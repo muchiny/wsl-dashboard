@@ -104,17 +104,27 @@ impl RestoreSnapshotHandler {
         // survive the import. If it's still present after, the filesystem wasn't replaced.
         let canary_id = uuid::Uuid::new_v4().to_string();
         let canary_path = format!("/var/tmp/.restore-canary-{}", canary_id);
+        let mut canary_verified = false;
         if matches!(cmd.mode, RestoreMode::Overwrite) {
-            match self
+            let _ = self
                 .wsl_manager
                 .exec_in_distro(
                     &snapshot.distro_name,
                     &format!("echo '{}' > {}", canary_id, canary_path),
                 )
+                .await;
+            // Read back to confirm the canary actually landed; otherwise the
+            // post-import "canary gone" signal is meaningless.
+            match self
+                .wsl_manager
+                .exec_in_distro(&snapshot.distro_name, &format!("cat {} 2>/dev/null", canary_path))
                 .await
             {
-                Ok(_) => tracing::info!("canary written to {}", canary_path),
-                Err(e) => tracing::warn!("canary write failed: {}", e),
+                Ok(c) if c.trim() == canary_id => {
+                    canary_verified = true;
+                    tracing::info!("canary written and verified at {}", canary_path);
+                }
+                other => tracing::warn!("canary write could not be confirmed: {:?}", other),
             }
         }
 
@@ -410,25 +420,29 @@ impl RestoreSnapshotHandler {
                 .exec_in_distro(&target_name, &format!("cat {} 2>/dev/null", canary_path))
                 .await
             {
-                Ok(content) if !content.trim().is_empty() => {
+                Ok(content) if content.trim() == canary_id => {
                     tracing::error!(
-                        "CANARY SURVIVED RESTORE! File {} still contains '{}'. \
-                         The filesystem was NOT replaced by the snapshot.",
+                        "CANARY SURVIVED RESTORE! {} still contains '{}'. Filesystem NOT replaced.",
                         canary_path,
                         content.trim()
                     );
                     return Err(DomainError::SnapshotError(
-                        "Restore verification failed: canary file written before restore \
-                         survived the import. The filesystem was not replaced. \
-                         This is a WSL bug — try: wsl --shutdown, then retry."
+                        "Restore verification failed: canary written before restore survived \
+                         the import. The filesystem was not replaced. Run 'wsl --shutdown' \
+                         and retry."
+                            .into(),
+                    ));
+                }
+                _ if !canary_verified => {
+                    return Err(DomainError::SnapshotError(
+                        "Restore verification failed: canary could not be established before \
+                         restore, so a clean replacement cannot be confirmed. Run \
+                         'wsl --shutdown' and retry."
                             .into(),
                     ));
                 }
                 _ => {
-                    tracing::warn!(
-                        "CANARY GONE (good): {} not found after import — filesystem was replaced",
-                        canary_path
-                    );
+                    tracing::warn!("canary gone (good): {} absent — filesystem replaced", canary_path);
                 }
             }
         }
@@ -685,6 +699,63 @@ mod tests {
             msg.contains("marker") && (msg.contains("mismatch") || msg.contains("stale")),
             "expected marker-mismatch error, got: {msg}"
         );
+    }
+
+    #[tokio::test]
+    async fn test_overwrite_errors_when_canary_write_unverified_and_marker_ok() {
+        let dir = std::env::temp_dir().join("restore_canary_dir");
+        std::fs::create_dir_all(&dir).unwrap();
+        let tar = std::env::temp_dir().join("restore_canary.tar");
+        std::fs::write(&tar, b"DATA").unwrap();
+
+        let mut repo_mock = MockSnapshotRepositoryPort::new();
+        let snap = make_snapshot(tar.to_str().unwrap());
+        repo_mock.expect_get_by_id().returning(move |_| Ok(snap.clone()));
+
+        let mut wsl_mock = MockWslManagerPort::new();
+        wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
+        wsl_mock.expect_shutdown_all().returning(|| Ok(()));
+        wsl_mock.expect_unregister_distro().returning(|_| Ok(()));
+        wsl_mock.expect_import_distro().returning(|_, _, _, _| Ok(()));
+        wsl_mock.expect_get_distro().returning(|name| {
+            Ok(crate::domain::entities::distro::Distro::new(
+                name.clone(),
+                crate::domain::value_objects::DistroState::from_wsl_output("Running").unwrap(),
+                crate::domain::value_objects::WslVersion::V2,
+                false,
+            ))
+        });
+        // marker matches (Task-1 gate passes), but every canary command returns empty
+        // => the write read-back cannot confirm the canary landed.
+        wsl_mock.expect_exec_in_distro().returning(|_name, cmd| {
+            if cmd.contains("cat /var/tmp/.snapshot-marker") {
+                Ok("snapshot-marker-snap-001".to_string())
+            } else if cmd.contains(".restore-canary-") {
+                Ok(String::new())
+            } else {
+                Ok(String::new())
+            }
+        });
+
+        let audit_mock = MockAuditLoggerPort::new();
+        let handler = RestoreSnapshotHandler::new(
+            Arc::new(wsl_mock),
+            Arc::new(repo_mock),
+            Arc::new(audit_mock),
+        );
+        let result = handler
+            .handle(RestoreSnapshotCommand {
+                snapshot_id: SnapshotId::from_string("snap-001".into()),
+                mode: RestoreMode::Overwrite,
+                install_location: dir.to_str().unwrap().to_string(),
+            })
+            .await;
+
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_file(&tar);
+
+        let err = result.expect_err("unverified canary must not yield silent success");
+        assert!(err.to_string().contains("canary"), "got: {}", err);
     }
 
     #[tokio::test]
