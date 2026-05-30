@@ -20,7 +20,7 @@ export function SnapshotList({ distroName, onRestore, hideDistroName }: Snapshot
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3">
         {[1, 2, 3].map((i) => (
           <div key={i} className="glass-card-lite h-32 animate-pulse rounded-xl" />
         ))}
@@ -44,7 +44,7 @@ export function SnapshotList({ distroName, onRestore, hideDistroName }: Snapshot
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3">
         {snapshots.map((snapshot) => (
           <SnapshotCard
             key={snapshot.id}
