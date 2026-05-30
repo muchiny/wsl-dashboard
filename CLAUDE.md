@@ -50,7 +50,7 @@ npm run e2e:wdio               # WebdriverIO full-stack tests (Windows only, use
 
 ### Fuzz Testing
 ```bash
-cd src-tauri && cargo fuzz list           # List all 13 fuzz targets
+cd src-tauri && cargo fuzz list           # List all 9 fuzz targets
 cd src-tauri && cargo fuzz run <target>   # Run a specific fuzz target
 ```
 
@@ -116,7 +116,7 @@ Backend emits these events to frontend: `system-metrics`, `alert-triggered`, `te
 - **Frontend tests**: All component tests use `renderWithProviders` from `@/test/test-utils` (wraps QueryClientProvider + I18nextProvider). DistroCard/DistroRow tests need mocks for `@/features/terminal/api/mutations` and `@tanstack/react-router`.
 - **i18n side effect**: `formatters.ts` imports `@/shared/config/i18n` which triggers i18n initialization.
 - **Catppuccin theming**: Mocha (dark) / Latte (light), toggled via `data-theme` attribute. Color vars + glassmorphism utilities + neon glows defined in `app.css`. Includes `prefers-reduced-motion` and `prefers-contrast: high` support.
-- **`cfg(fuzzing)`**: lib.rs gates most imports/run() behind `#[cfg(not(fuzzing))]`. 13 fuzz targets in `src-tauri/fuzz/` targeting parsers (INI, ports, meminfo, distro list, CPU, docker, k8s, etc.).
+- **`cfg(fuzzing)`**: lib.rs gates most imports/run() behind `#[cfg(not(fuzzing))]`. 9 fuzz targets in `src-tauri/fuzz/` targeting parsers (INI, ports, meminfo, distro list, CPU, df, proc_net_dev, ps_aux, wsl output decode).
 - **Alert cooldown**: 5-minute cooldown per (distro, alert_type) to prevent spam. Default thresholds: CPU 90%, Memory 85%, Disk 90%.
 - **Metrics pipeline**: Raw samples (2s) retained ~1h, aggregated 1-min buckets retained ~24h. Query handler auto-selects granularity based on time range.
 - **CREATE_NO_WINDOW**: `0x0800_0000` flag on Windows prevents console popups when spawning wsl.exe/netsh.exe.

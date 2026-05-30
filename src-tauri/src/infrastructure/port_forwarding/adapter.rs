@@ -148,7 +148,7 @@ impl PortForwardingPort for NetshAdapter {
 }
 
 /// Parse `ss -tlnp` output into ListeningPort entries.
-fn parse_ss_output(output: &str) -> Vec<ListeningPort> {
+pub fn parse_ss_output(output: &str) -> Vec<ListeningPort> {
     let mut ports = Vec::new();
 
     for line in output.lines().skip(1) {

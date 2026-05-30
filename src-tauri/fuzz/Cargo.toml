@@ -32,11 +32,6 @@ path = "fuzz_targets/fuzz_parse_ports.rs"
 doc = false
 
 [[bin]]
-name = "fuzz_parse_docker_size"
-path = "fuzz_targets/fuzz_parse_docker_size.rs"
-doc = false
-
-[[bin]]
 name = "fuzz_decode_wsl_output"
 path = "fuzz_targets/fuzz_decode_wsl_output.rs"
 doc = false
@@ -69,19 +64,4 @@ doc = false
 [[bin]]
 name = "fuzz_parse_cpu_line"
 path = "fuzz_targets/fuzz_parse_cpu_line.rs"
-doc = false
-
-[[bin]]
-name = "fuzz_parse_k8s_pods"
-path = "fuzz_targets/fuzz_parse_k8s_pods.rs"
-doc = false
-
-[[bin]]
-name = "fuzz_parse_k8s_nodes"
-path = "fuzz_targets/fuzz_parse_k8s_nodes.rs"
-doc = false
-
-[[bin]]
-name = "fuzz_parse_container_state"
-path = "fuzz_targets/fuzz_parse_container_state.rs"
 doc = false
