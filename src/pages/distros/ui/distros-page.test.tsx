@@ -59,8 +59,11 @@ vi.mock("@/features/distro-list/hooks/use-distro-dialogs", () => ({
     openShutdownConfirm: vi.fn(),
     openDelete: vi.fn(),
     shutdownAllPending: false,
-    DialogsRenderer: () => null,
+    dialogs: {},
   }),
+}));
+vi.mock("@/features/distro-list/ui/distro-dialogs", () => ({
+  DistroDialogs: () => null,
 }));
 vi.mock("@/shared/hooks/use-debounce", () => ({
   useDebounce: <T,>(v: T) => v,

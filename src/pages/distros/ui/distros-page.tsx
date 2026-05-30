@@ -6,6 +6,7 @@ import { useDistros } from "@/shared/api/distro-queries";
 import { usePreferencesStore } from "@/shared/stores/use-preferences-store";
 import { useDistroFilter } from "@/features/distro-list/hooks/use-distro-filter";
 import { useDistroDialogs } from "@/features/distro-list/hooks/use-distro-dialogs";
+import { DistroDialogs } from "@/features/distro-list/ui/distro-dialogs";
 
 export function DistrosPage() {
   const { data: distros, isLoading, error } = useDistros();
@@ -63,7 +64,7 @@ export function DistrosPage() {
         />
       )}
 
-      <dialogs.DialogsRenderer running={filter.running} />
+      <DistroDialogs running={filter.running} dialogs={dialogs.dialogs} />
     </div>
   );
 }
