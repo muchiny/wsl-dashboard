@@ -54,7 +54,9 @@ describe("useDistroDialogs", () => {
       result.current.openCreateSnapshot("Ubuntu");
     });
 
-    const { container } = renderWithProviders(<DistroDialogs dialogs={result.current.dialogs} running={1} />);
+    const { container } = renderWithProviders(
+      <DistroDialogs dialogs={result.current.dialogs} running={1} />,
+    );
     const dialog = container.querySelector('[data-testid="create-snapshot-dialog"]');
     expect(dialog?.getAttribute("data-open")).toBe("true");
   });
@@ -68,7 +70,9 @@ describe("useDistroDialogs", () => {
       result.current.openRestore("snap-1", "Ubuntu");
     });
 
-    const { container } = renderWithProviders(<DistroDialogs dialogs={result.current.dialogs} running={1} />);
+    const { container } = renderWithProviders(
+      <DistroDialogs dialogs={result.current.dialogs} running={1} />,
+    );
     const dialog = container.querySelector('[data-testid="restore-snapshot-dialog"]');
     expect(dialog?.getAttribute("data-open")).toBe("true");
   });
@@ -82,7 +86,9 @@ describe("useDistroDialogs", () => {
       result.current.openDelete("Ubuntu");
     });
 
-    const { container } = renderWithProviders(<DistroDialogs dialogs={result.current.dialogs} running={1} />);
+    const { container } = renderWithProviders(
+      <DistroDialogs dialogs={result.current.dialogs} running={1} />,
+    );
     const dialog = container.querySelector('[data-testid="delete-dialog"]');
     expect(dialog?.getAttribute("data-open")).toBe("true");
     expect(dialog?.getAttribute("data-name")).toBe("Ubuntu");
@@ -97,7 +103,9 @@ describe("useDistroDialogs", () => {
       result.current.openShutdownConfirm();
     });
 
-    const { container } = renderWithProviders(<DistroDialogs dialogs={result.current.dialogs} running={2} />);
+    const { container } = renderWithProviders(
+      <DistroDialogs dialogs={result.current.dialogs} running={2} />,
+    );
     const dialog = container.querySelector('[data-testid="confirm-dialog"]');
     expect(dialog?.getAttribute("data-open")).toBe("true");
   });
@@ -115,7 +123,9 @@ describe("useDistroDialogs", () => {
       wrapper: createWrapper(),
     });
 
-    const { container } = renderWithProviders(<DistroDialogs dialogs={result.current.dialogs} running={0} />);
+    const { container } = renderWithProviders(
+      <DistroDialogs dialogs={result.current.dialogs} running={0} />,
+    );
 
     expect(container.querySelector('[data-testid="delete-dialog"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="create-snapshot-dialog"]')).toBeTruthy();
