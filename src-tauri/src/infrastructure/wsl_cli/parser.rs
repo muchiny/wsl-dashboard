@@ -113,6 +113,34 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_header_requires_both_name_and_state() {
+        // Header line has NAME but not STATE => no header found => empty result.
+        // The `&&`->`||` mutant would accept the NAME-only line as the header
+        // and then parse the following data line.
+        let input = "NAME of report\nUbuntu Running 2\n";
+        assert!(parse_distro_list(input).unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_line_with_extra_columns_is_parsed() {
+        // A 4-column data line: real `parts.len() < 3` keeps it (4 < 3 false).
+        // The `<`->`>` mutant (4 > 3 true) would skip it, yielding 0 distros.
+        let input = "NAME STATE VERSION\nUbuntu Running 2 extra\n";
+        let distros = parse_distro_list(input).unwrap();
+        assert_eq!(distros.len(), 1);
+        assert_eq!(distros[0].name.as_str(), "Ubuntu");
+    }
+
+    #[test]
+    fn test_version_prefers_colon_value_over_trailing_number() {
+        // After the colon the value is "stable 2.6.3.0" (non-empty): real
+        // `!val.is_empty()` returns it verbatim. The `delete !` mutant skips
+        // that branch and falls back to the trailing numeric token "2.6.3.0".
+        let info = parse_version_output("WSL version: stable 2.6.3.0");
+        assert_eq!(info.wsl_version.as_deref(), Some("stable 2.6.3.0"));
+    }
+
+    #[test]
     fn test_parse_typical_output() {
         let input = "  NAME              STATE           VERSION\n\
                       * FedoraLinux-43    Running         2\n\

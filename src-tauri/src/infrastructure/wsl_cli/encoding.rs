@@ -33,6 +33,37 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_bom_decode_when_null_heuristic_fails() {
+        // BOM + U+0234 (high byte 0x02, no null at odd position) => only the
+        // has_bom branch can trigger UTF-16 decoding. Kills the two `==`->`!=`
+        // mutants on the has_bom computation (without BOM, 0xFF byte makes the
+        // UTF-8 fallback fail, so the result would change to an error).
+        let input: Vec<u8> = vec![0xFF, 0xFE, 0x34, 0x02];
+        let result = decode_wsl_output(&input).unwrap();
+        assert_eq!(result, "\u{0234}");
+    }
+
+    #[test]
+    fn test_bom_byte_pair_requires_both_bytes() {
+        // First byte 0xFF but second byte != 0xFE, with no null bytes at odd
+        // positions => has_bom must stay false (real `&&`). The `&&`->`||`
+        // mutant would set has_bom=true and decode as UTF-16; here the real
+        // path falls through to UTF-8, which fails on the lone 0xFF byte.
+        let input: Vec<u8> = vec![0xFF, 0x42, 0x34, 0x02];
+        assert!(decode_wsl_output(&input).is_err());
+    }
+
+    #[test]
+    fn test_null_byte_ratio_strict_majority() {
+        // Exactly half the odd positions are null: null_at_odd*2 == total_pairs.
+        // Real `>` keeps this as UTF-8 ("A\0BC"); the `>`->`>=` mutant would
+        // decode it as UTF-16 and produce a different string.
+        let input: Vec<u8> = vec![0x41, 0x00, 0x42, 0x43];
+        let result = decode_wsl_output(&input).unwrap();
+        assert_eq!(result, "A\u{0}BC");
+    }
+
+    #[test]
     fn test_decode_utf8_fallback() {
         let input = b"Hello, World!";
         let result = decode_wsl_output(input).unwrap();
