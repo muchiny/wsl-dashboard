@@ -100,6 +100,30 @@ impl RestoreSnapshotHandler {
             RestoreMode::Overwrite => snapshot.distro_name.clone(),
         };
 
+        // Resolve the distro's real install directory from the WSL registry.
+        // The caller-supplied path may be wrong; the registry BasePath is the
+        // source of truth (MS docs: %LocalAppData%\Packages\<PFN>\LocalState).
+        let install_location = if matches!(cmd.mode, RestoreMode::Overwrite) {
+            match self.wsl_manager.get_distro_install_path(&target_name).await {
+                Ok(p) if !p.trim().is_empty() => {
+                    if p != cmd.install_location {
+                        tracing::warn!(
+                            "overriding caller install_location '{}' with registry path '{}'",
+                            cmd.install_location,
+                            p
+                        );
+                    }
+                    p
+                }
+                _ => {
+                    tracing::warn!("could not resolve registry install path; using caller value");
+                    cmd.install_location.clone()
+                }
+            }
+        } else {
+            cmd.install_location.clone()
+        };
+
         // Canary test: write a unique file BEFORE the restore that should NOT
         // survive the import. If it's still present after, the filesystem wasn't replaced.
         let canary_id = uuid::Uuid::new_v4().to_string();
@@ -146,10 +170,10 @@ impl RestoreSnapshotHandler {
             // can persist and cause remove_dir_all to silently fail, making the
             // subsequent wsl --import reuse the stale VHDX.
             // A direct file copy never boots the VM and never locks the VHDX.
-            let vhdx_path = std::path::Path::new(&cmd.install_location).join("ext4.vhdx");
-            let backup_path = std::path::Path::new(&cmd.install_location)
+            let vhdx_path = std::path::Path::new(&install_location).join("ext4.vhdx");
+            let backup_path = std::path::Path::new(&install_location)
                 .parent()
-                .unwrap_or(std::path::Path::new(&cmd.install_location))
+                .unwrap_or(std::path::Path::new(&install_location))
                 .join(format!("{}_pre_restore_backup.vhdx", target_name));
             let backup_str = backup_path.to_string_lossy().to_string();
 
@@ -196,11 +220,11 @@ impl RestoreSnapshotHandler {
             // creates a fresh VHDX from the snapshot tar. If the old ext4.vhdx
             // persists (known WSL bug: wslservice.exe holds a file handle after
             // unregister), wsl --import silently reuses it instead of the tar.
-            let install_path = std::path::Path::new(&cmd.install_location);
+            let install_path = std::path::Path::new(&install_location);
             if install_path.exists() {
                 tracing::warn!(
                     "removing install directory before import: {}",
-                    cmd.install_location
+                    install_location
                 );
                 if let Err(e) = std::fs::remove_dir_all(install_path) {
                     // VHDX still locked — try another full shutdown and retry
@@ -214,12 +238,12 @@ impl RestoreSnapshotHandler {
                         DomainError::SnapshotError(format!(
                             "Cannot delete install directory '{}': {}. \
                              Close all WSL sessions and try again.",
-                            cmd.install_location, e
+                            install_location, e
                         ))
                     })?;
                     tracing::warn!(
                         "install directory removed after WSL shutdown: {}",
-                        cmd.install_location
+                        install_location
                     );
                 }
             }
@@ -228,12 +252,12 @@ impl RestoreSnapshotHandler {
             std::fs::create_dir_all(install_path).map_err(|e| {
                 DomainError::SnapshotError(format!(
                     "Cannot create install directory '{}': {}",
-                    cmd.install_location, e
+                    install_location, e
                 ))
             })?;
             tracing::warn!(
                 "clean install directory ready for import: {}",
-                cmd.install_location
+                install_location
             );
 
             // Final WSL shutdown to release any lingering VM caches
@@ -244,7 +268,7 @@ impl RestoreSnapshotHandler {
         tracing::info!(
             "executing wsl --import: distro={} install={} snapshot={} size={}",
             target_name,
-            cmd.install_location,
+            install_location,
             snapshot.file_path,
             snapshot.file_size.bytes()
         );
@@ -253,7 +277,7 @@ impl RestoreSnapshotHandler {
             .wsl_manager
             .import_distro(
                 &target_name,
-                &cmd.install_location,
+                &install_location,
                 &snapshot.file_path,
                 snapshot.format.clone(),
             )
@@ -273,7 +297,7 @@ impl RestoreSnapshotHandler {
                 .wsl_manager
                 .import_distro(
                     &target_name,
-                    &cmd.install_location,
+                    &install_location,
                     backup_path,
                     crate::domain::entities::snapshot::ExportFormat::Vhd,
                 )
@@ -338,8 +362,8 @@ impl RestoreSnapshotHandler {
         // Verify the new VHDX was actually created from the snapshot.
         // If the import silently reused stale data, the VHDX won't have
         // a recent modification time.
-        let new_vhdx = std::path::Path::new(&cmd.install_location).join("ext4.vhdx");
-        let linux_loc = windows_to_linux_path(&cmd.install_location);
+        let new_vhdx = std::path::Path::new(&install_location).join("ext4.vhdx");
+        let linux_loc = windows_to_linux_path(&install_location);
         let new_vhdx_linux = std::path::Path::new(&linux_loc).join("ext4.vhdx");
         let vhdx_meta = std::fs::metadata(&new_vhdx)
             .or_else(|_| {
@@ -373,7 +397,7 @@ impl RestoreSnapshotHandler {
         } else {
             tracing::warn!(
                 "post-import VHDX not found — import may have used a different path: install={}",
-                cmd.install_location
+                install_location
             );
         }
 
@@ -655,6 +679,7 @@ mod tests {
             .returning(move |_| Ok(snap.clone()));
 
         let mut wsl_mock = MockWslManagerPort::new();
+        wsl_mock.expect_get_distro_install_path().returning(|_| Ok(String::new()));
         wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
         wsl_mock.expect_shutdown_all().returning(|| Ok(()));
         wsl_mock.expect_unregister_distro().returning(|_| Ok(()));
@@ -713,6 +738,7 @@ mod tests {
         repo_mock.expect_get_by_id().returning(move |_| Ok(snap.clone()));
 
         let mut wsl_mock = MockWslManagerPort::new();
+        wsl_mock.expect_get_distro_install_path().returning(|_| Ok(String::new()));
         wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
         wsl_mock.expect_shutdown_all().returning(|| Ok(()));
         wsl_mock.expect_unregister_distro().returning(|_| Ok(()));
@@ -759,6 +785,69 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_overwrite_uses_registry_install_path_when_caller_path_differs() {
+        let real_dir = std::env::temp_dir().join("restore_real_basepath");
+        std::fs::create_dir_all(&real_dir).unwrap();
+        let real_dir_str = real_dir.to_str().unwrap().to_string();
+        let tar = std::env::temp_dir().join("restore_path.tar");
+        std::fs::write(&tar, b"DATA").unwrap();
+
+        let mut repo_mock = MockSnapshotRepositoryPort::new();
+        let snap = make_snapshot(tar.to_str().unwrap());
+        repo_mock.expect_get_by_id().returning(move |_| Ok(snap.clone()));
+
+        let mut wsl_mock = MockWslManagerPort::new();
+        let resolved = real_dir_str.clone();
+        wsl_mock
+            .expect_get_distro_install_path()
+            .times(1)
+            .returning(move |_| Ok(resolved.clone()));
+        wsl_mock.expect_terminate_distro().returning(|_| Ok(()));
+        wsl_mock.expect_shutdown_all().returning(|| Ok(()));
+        wsl_mock.expect_unregister_distro().returning(|_| Ok(()));
+        let expect_loc = real_dir_str.clone();
+        wsl_mock
+            .expect_import_distro()
+            .times(1)
+            .returning(move |_, loc, _, _| {
+                assert_eq!(loc, expect_loc, "import must target the registry BasePath");
+                Ok(())
+            });
+        wsl_mock.expect_get_distro().returning(|name| {
+            Ok(crate::domain::entities::distro::Distro::new(
+                name.clone(),
+                crate::domain::value_objects::DistroState::from_wsl_output("Running").unwrap(),
+                crate::domain::value_objects::WslVersion::V2,
+                false,
+            ))
+        });
+        wsl_mock.expect_exec_in_distro().returning(|_name, cmd| {
+            if cmd.contains("cat /var/tmp/.snapshot-marker") {
+                Ok("snapshot-marker-snap-001".to_string())
+            } else {
+                Ok(String::new())
+            }
+        });
+
+        let audit_mock = MockAuditLoggerPort::new();
+        let handler = RestoreSnapshotHandler::new(
+            Arc::new(wsl_mock),
+            Arc::new(repo_mock),
+            Arc::new(audit_mock),
+        );
+        let _ = handler
+            .handle(RestoreSnapshotCommand {
+                snapshot_id: SnapshotId::from_string("snap-001".into()),
+                mode: RestoreMode::Overwrite,
+                install_location: "/some/wrong/path/from/frontend".into(),
+            })
+            .await;
+
+        let _ = std::fs::remove_dir_all(&real_dir);
+        let _ = std::fs::remove_file(&tar);
+    }
+
+    #[tokio::test]
     async fn test_restore_overwrite_unregister_failure_propagates() {
         let tmp = std::env::temp_dir().join("test_restore_unreg_fail.tar");
         std::fs::write(&tmp, b"test").unwrap();
@@ -770,6 +859,7 @@ mod tests {
             .returning(move |_| Ok(snap.clone()));
 
         let mut wsl_mock = MockWslManagerPort::new();
+        wsl_mock.expect_get_distro_install_path().returning(|_| Ok(String::new()));
         wsl_mock
             .expect_exec_in_distro()
             .returning(|_, _| Ok(String::new()));
