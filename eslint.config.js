@@ -5,7 +5,14 @@ import tseslint from "typescript-eslint";
 import globals from "globals";
 
 export default tseslint.config(
-  { ignores: ["dist", "src/routeTree.gen.ts"] },
+  {
+    ignores: [
+      "dist",
+      "src/routeTree.gen.ts",
+      "static_analysis_semgrep_1",
+      ".serena",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

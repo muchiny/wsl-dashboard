@@ -11,8 +11,10 @@ dist-ssr/
 .env.*
 !.env.example
 
-# IDE
+# IDE / tool artifacts
 .claude/
+.serena/
+static_analysis_semgrep_1/
 .vscode/
 !.vscode/extensions.json
 .idea/

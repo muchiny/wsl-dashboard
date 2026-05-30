@@ -123,7 +123,10 @@ impl TerminalSessionManager {
             .get(session_id)
             .ok_or_else(|| DomainError::TerminalError("Session not found".to_string()))?;
 
-        let mut writer = session.writer.lock().unwrap();
+        let mut writer = session
+            .writer
+            .lock()
+            .map_err(|e| DomainError::TerminalError(format!("Writer lock poisoned: {e}")))?;
         writer
             .write_all(data)
             .map_err(|e| DomainError::TerminalError(format!("Write failed: {e}")))?;
@@ -145,7 +148,10 @@ impl TerminalSessionManager {
             .get(session_id)
             .ok_or_else(|| DomainError::TerminalError("Session not found".to_string()))?;
 
-        let master = session.master.lock().unwrap();
+        let master = session
+            .master
+            .lock()
+            .map_err(|e| DomainError::TerminalError(format!("Master lock poisoned: {e}")))?;
         master
             .resize(PtySize {
                 rows,

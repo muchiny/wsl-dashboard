@@ -44,7 +44,7 @@ impl DebugLogBuffer {
             target,
         };
 
-        let mut entries = self.entries.lock().unwrap();
+        let mut entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
         if entries.len() >= MAX_ENTRIES {
             entries.pop_front();
         }
@@ -53,11 +53,19 @@ impl DebugLogBuffer {
     }
 
     pub fn get_all(&self) -> Vec<LogEntry> {
-        self.entries.lock().unwrap().iter().cloned().collect()
+        self.entries
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .iter()
+            .cloned()
+            .collect()
     }
 
     pub fn clear(&self) {
-        self.entries.lock().unwrap().clear();
+        self.entries
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
     }
 }
 
